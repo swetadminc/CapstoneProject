@@ -27,16 +27,32 @@ Draft — several decisions are still pending team confirmation (use case freeze
 provider, presenter, workstream owners). See Section 16 of the merged blueprint or
 `Product Docs/12-Meeting-Notes-and-Decisions.md` for the open-items log.
 
-No application code has been built yet — this repository currently holds the blueprint,
-architecture, UI design, and synthetic dataset. The Streamlit prototype and its Railway
-deployment config will be added as the build progresses.
+**Deployed:** a placeholder app is live on Railway (auto-deploys on every push to `main`)
+to prove the pipeline and the database connection work end to end. It is **not** the
+Investigation Copilot yet — that build is the next phase. See `app.py`.
+
+## Running locally
+
+```bash
+pip install -r requirements.txt
+python data/build_database.py   # rebuilds data/investigateiq.db from the Excel dataset
+streamlit run app.py
+```
 
 ## Repository layout
 
 ```
-Product Docs/          — the full documentation pack (blueprint, PRD, architecture, etc.)
-  diagrams/             — workflow, architecture, UI, RAG/OKF, team-flow diagrams (PNG)
-  dataset/              — synthetic demo dataset (Excel) + OKF knowledge base (RAG)
+app.py                  — placeholder Streamlit app (proves DB connection + deploy pipeline)
+requirements.txt        — Python dependencies
+Procfile                — Railway/Railpack start command
+.streamlit/config.toml  — app theme
+data/
+  build_database.py     — builds investigateiq.db from the Excel dataset (re-run after edits)
+  investigateiq.db       — SQLite database the app queries (customers, accounts,
+                           transactions, relationships, alerts, past_cases, documents)
+Product Docs/            — the full documentation pack (blueprint, PRD, architecture, etc.)
+  diagrams/               — workflow, architecture, UI, RAG/OKF, team-flow diagrams (PNG)
+  dataset/                — source Excel dataset + OKF knowledge base (RAG)
 Capstone Team Plan.xlsx — team decisions, work split, timeline
 AML Prototype - Analysis and Proposal.md — early scoping analysis
 ```
