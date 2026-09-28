@@ -2,12 +2,14 @@
 """
 Investigation Agent demo — runs the real pipeline (DB -> deterministic
 analysis -> RAG retrieval -> Gemini -> Grounding Validator) against a chosen
-case, then a real Human Decision panel and a real, persistent Audit Log.
+case, then the Ask-the-Copilot chat panel, a real Human Decision panel, and
+a real, persistent Audit Log.
 
 This is a first working slice, not the finished Investigation Workspace UI
-from the CEO Playbook (Section 7) — no chat panel yet. It exists to prove
-the pipeline end to end, including the human-in-the-loop boundary, and give
-the team something real to demo today while the full workspace is built.
+from the CEO Playbook (Section 7) — no case-queue dashboard yet. It exists
+to prove the pipeline end to end, including the human-in-the-loop boundary,
+and give the team something real to demo today while the full workspace UI
+is built.
 """
 import json
 import os
@@ -18,6 +20,7 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agents.investigation_agent import investigate, GEMINI_API_KEY, GEMINI_MODEL
+from agents.chat_agent import ask_question
 from data.runtime_db import record_human_decision, get_audit_log, get_human_actions, log_audit_event
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "cached_reports")
@@ -176,6 +179,77 @@ if state_key in st.session_state:
             "documents": evidence["documents"],
             "knowledge_chunks_retrieved": [g["chunk_id"] for g in guidance],
         })
+
+    # -------------------------------------------------------------
+    # Ask the Copilot — grounded, cited, multi-turn chat over this case's
+    # own evidence. Every answer runs through the same citation-checking
+    # discipline as the report (agents/chat_agent.py), and every exchange
+    # is written to the audit log — this always makes a live Gemini call
+    # (there's nothing sensible to "cache" for an arbitrary question).
+    # -------------------------------------------------------------
+    st.divider()
+    st.subheader("💬 Ask the Copilot")
+
+    chat_key = f"chat_{case_id}"
+    if chat_key not in st.session_state:
+        st.session_state[chat_key] = []
+    chat_history = st.session_state[chat_key]
+
+    if not GEMINI_API_KEY:
+        st.info("GEMINI_API_KEY is not set — chat requires a live model call and can't run in this environment.")
+    else:
+        SUGGESTED = [
+            "Why was this alert triggered?",
+            "What should I do next?",
+            "Has this customer been flagged before?",
+            "Who are the counterparties?",
+        ]
+        st.caption("Suggested questions:")
+        sugg_cols = st.columns(len(SUGGESTED))
+        clicked_question = None
+        for i, sq in enumerate(SUGGESTED):
+            if sugg_cols[i].button(sq, key=f"sugg_{case_id}_{i}"):
+                clicked_question = sq
+
+        for turn in chat_history:
+            with st.chat_message(turn["role"]):
+                st.write(turn["content"])
+                if turn.get("citations"):
+                    st.caption("Sources: " + ", ".join(turn["citations"]))
+                if turn.get("validator_notes"):
+                    st.caption(f"⚠️ {len(turn['validator_notes'])} citation(s) adjusted by the Grounding Validator")
+
+        typed_question = st.chat_input("Ask a question about this case...")
+        question = clicked_question or typed_question
+
+        if question:
+            with st.chat_message("user"):
+                st.write(question)
+            chat_history.append({"role": "user", "content": question})
+
+            with st.chat_message("assistant"):
+                with st.spinner("Thinking... (live Gemini call)"):
+                    try:
+                        answer = ask_question(case_id, question, chat_history[:-1], context, evidence, guidance)
+                    except Exception as e:
+                        st.error(f"Could not get an answer: {e}")
+                        answer = None
+                if answer:
+                    st.write(answer["answer"])
+                    citations = answer["cited_txn_ids"] + [f"[{d}]" for d in answer["cited_doc_ids"]]
+                    if citations:
+                        st.caption("Sources: " + ", ".join(citations))
+                    if answer["validator_notes"]:
+                        with st.expander(f"⚠️ {len(answer['validator_notes'])} citation(s) adjusted"):
+                            for n in answer["validator_notes"]:
+                                st.write(f"- {n}")
+            if answer:
+                chat_history.append({
+                    "role": "assistant", "content": answer["answer"],
+                    "citations": answer["cited_txn_ids"] + [f"[{d}]" for d in answer["cited_doc_ids"]],
+                    "validator_notes": answer["validator_notes"],
+                })
+            st.rerun()
 
     # -------------------------------------------------------------
     # Human Decision panel — the accountable action. Separate visual

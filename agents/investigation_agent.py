@@ -243,15 +243,22 @@ Produce the investigation report now, following the given JSON schema exactly.
 """
 
 
-def call_gemini(prompt: str, max_retries: int = 3) -> dict:
+def call_gemini(prompt: str, schema: dict = None, max_retries: int = 3) -> dict:
     """Gemini's flash tier returns transient 503s under load reasonably
     often (observed during this build) — retry with backoff rather than
     failing the whole investigation on a temporary blip. This is exactly
     the kind of thing the cached-report fallback (CEO Playbook, Section 12)
     exists for at demo time; this retry is the first, cheaper line of
-    defense before falling back to a cached report."""
+    defense before falling back to a cached report.
+
+    Shared by the investigation report AND the chat panel — schema defaults
+    to REPORT_SCHEMA so existing call sites don't need to change, but the
+    chat agent passes CHAT_SCHEMA instead. Same HTTP handling, same retry
+    behavior, same JSON-schema-constrained output either way."""
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY is not set in the environment.")
+    if schema is None:
+        schema = REPORT_SCHEMA
 
     last_error = None
     for attempt in range(1, max_retries + 1):
@@ -263,7 +270,7 @@ def call_gemini(prompt: str, max_retries: int = 3) -> dict:
                     "contents": [{"parts": [{"text": prompt}]}],
                     "generationConfig": {
                         "responseMimeType": "application/json",
-                        "responseSchema": REPORT_SCHEMA,
+                        "responseSchema": schema,
                     },
                 },
                 timeout=60,
@@ -339,7 +346,7 @@ def investigate(case_id: str) -> dict:
     })
 
     prompt = build_prompt(context, evidence, guidance)
-    raw_report = call_gemini(prompt)
+    raw_report = call_gemini(prompt, REPORT_SCHEMA)
     validated_report = validate_report(raw_report, evidence, guidance)
 
     log_audit_event(case_id, actor="ai", action="report_generated", details={
