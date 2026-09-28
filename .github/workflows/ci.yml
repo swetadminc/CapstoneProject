@@ -1,0 +1,28 @@
+name: CI
+
+# Catches a broken dataset, chunker, or FTS index on every push/PR — before it
+# ever reaches a Railway build. GitHub Actions minutes are free for this scale
+# of job; Railway build minutes are not. Cheap insurance, short workflow.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  sanity-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Rebuild database and run sanity checks
+        run: python scripts/ci_check.py

@@ -13,6 +13,7 @@ in, same database out), so it's safe to re-run after editing the source Excel.
 import sqlite3
 import pandas as pd
 import os
+import re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(HERE)
@@ -42,7 +43,15 @@ INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_pastcases_customer ON past_cases(customer_id)",
     "CREATE INDEX IF NOT EXISTS idx_docs_customer ON documents(customer_id)",
     "CREATE INDEX IF NOT EXISTS idx_kb_scenario ON knowledge_base(scenario_id)",
+    "CREATE INDEX IF NOT EXISTS idx_chunks_doc ON knowledge_chunks(doc_id)",
 ]
+
+# Chunking strategy, stated explicitly so it can be quoted to an evaluator:
+# 1 metadata chunk (title + escalation criteria) per document, then the body
+# split into sentences and grouped SENTENCES_PER_CHUNK at a time. Small,
+# deterministic, no external tokenizer dependency.
+SENTENCES_PER_CHUNK = 2
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
 
 
 def parse_okf_file(path):
@@ -61,31 +70,97 @@ def parse_okf_file(path):
     return meta, body.strip()
 
 
+def chunk_body(body):
+    """Split a document body into sentences, then group SENTENCES_PER_CHUNK at
+    a time. Returns a list of chunk text strings, in order."""
+    sentences = [s.strip() for s in _SENTENCE_SPLIT_RE.split(body.strip()) if s.strip()]
+    chunks = []
+    for i in range(0, len(sentences), SENTENCES_PER_CHUNK):
+        chunks.append(" ".join(sentences[i:i + SENTENCES_PER_CHUNK]))
+    return chunks
+
+
 def load_knowledge_base(conn):
-    """RAG source table: every OKF playbook document, ready to query today by
-    scenario_id/keyword. Embeddings (for real vector similarity search) are a
-    separate, additive step once an LLM/embedding API key is wired in — the
-    schema below already has a slot for it (embedding column, NULL until then)."""
-    rows = []
+    """RAG source: every OKF playbook document (knowledge_base table), chunked
+    into retrievable pieces (knowledge_chunks table) with a real SQLite FTS5
+    full-text index over those chunks (knowledge_chunks_fts) for keyword-based
+    retrieval today. Embeddings for semantic/vector similarity are a separate,
+    additive step once an LLM/embedding API key is available — the schema
+    already has a slot for it (embedding column, NULL until then) so adding
+    vector search later doesn't require a schema change."""
+    doc_rows = []
+    chunk_rows = []
+
     if os.path.isdir(KB_DIR):
         for fname in sorted(os.listdir(KB_DIR)):
             if not fname.endswith(".md"):
                 continue
             meta, body = parse_okf_file(os.path.join(KB_DIR, fname))
-            rows.append({
-                "doc_id": meta.get("id"),
-                "scenario_id": meta.get("scenario_id"),
-                "title": meta.get("title"),
-                "escalation_criteria": meta.get("escalation_criteria"),
-                "version": meta.get("version"),
-                "last_updated": meta.get("last_updated"),
-                "body": body,
-                "source_file": fname,
-                "embedding": None,
+            doc_id = meta.get("id")
+            scenario_id = meta.get("scenario_id")
+            title = meta.get("title")
+            escalation = meta.get("escalation_criteria")
+
+            doc_rows.append({
+                "doc_id": doc_id, "scenario_id": scenario_id, "title": title,
+                "escalation_criteria": escalation, "version": meta.get("version"),
+                "last_updated": meta.get("last_updated"), "body": body,
+                "source_file": fname, "embedding": None,
             })
-    df = pd.DataFrame(rows)
-    df.to_sql("knowledge_base", conn, if_exists="replace", index=False)
-    return len(df)
+
+            # Chunk 0: metadata chunk — title + escalation criteria together,
+            # so a query about "when to escalate" can match without needing
+            # the full body text.
+            chunk_rows.append({
+                "chunk_id": f"{doc_id}-C0", "doc_id": doc_id, "scenario_id": scenario_id,
+                "chunk_index": 0, "chunk_type": "metadata",
+                "chunk_text": f"{title}. Escalation criteria: {escalation}.",
+                "source_file": fname, "embedding": None,
+            })
+            # Body chunks: grouped sentences (the markdown "# Title" heading
+            # line is stripped first — it's already captured in chunk C0).
+            prose = re.sub(r"^#[^\n]*\n+", "", body).strip()
+            for i, chunk_text in enumerate(chunk_body(prose), start=1):
+                chunk_rows.append({
+                    "chunk_id": f"{doc_id}-C{i}", "doc_id": doc_id, "scenario_id": scenario_id,
+                    "chunk_index": i, "chunk_type": "body", "chunk_text": chunk_text,
+                    "source_file": fname, "embedding": None,
+                })
+
+    df_docs = pd.DataFrame(doc_rows)
+    df_docs.to_sql("knowledge_base", conn, if_exists="replace", index=False)
+
+    df_chunks = pd.DataFrame(chunk_rows)
+    df_chunks["char_count"] = df_chunks["chunk_text"].str.len()
+    df_chunks["word_count"] = df_chunks["chunk_text"].str.split().str.len()
+    df_chunks.to_sql("knowledge_chunks", conn, if_exists="replace", index=False)
+
+    # Real full-text search index: SQLite's FTS5 engine — tokenizes chunk_text,
+    # builds an inverted index, and supports BM25-ranked MATCH queries. This is
+    # the "indexing" a keyword-search RAG system actually needs; not a mock.
+    cur = conn.cursor()
+    cur.execute("DROP TABLE IF EXISTS knowledge_chunks_fts")
+    cur.execute("""
+        CREATE VIRTUAL TABLE knowledge_chunks_fts USING fts5(
+            chunk_id UNINDEXED, doc_id UNINDEXED, scenario_id UNINDEXED, chunk_text
+        )
+    """)
+    for row in chunk_rows:
+        cur.execute(
+            "INSERT INTO knowledge_chunks_fts (chunk_id, doc_id, scenario_id, chunk_text) VALUES (?,?,?,?)",
+            (row["chunk_id"], row["doc_id"], row["scenario_id"], row["chunk_text"]),
+        )
+
+    # fts5vocab: exposes the FTS5 index's own vocabulary (term, doc count,
+    # occurrence count) as a queryable table — this is what powers the
+    # autocomplete/suggestion box, always in sync with the real index.
+    cur.execute("DROP TABLE IF EXISTS knowledge_chunks_fts_vocab")
+    cur.execute(
+        "CREATE VIRTUAL TABLE knowledge_chunks_fts_vocab USING fts5vocab(knowledge_chunks_fts, 'row')"
+    )
+    conn.commit()
+
+    return len(df_docs), len(df_chunks)
 
 
 def main():
@@ -101,7 +176,9 @@ def main():
         df.to_sql(table, conn, if_exists="replace", index=False)
         counts[table] = len(df)
 
-    counts["knowledge_base"] = load_knowledge_base(conn)
+    n_docs, n_chunks = load_knowledge_base(conn)
+    counts["knowledge_base"] = n_docs
+    counts["knowledge_chunks"] = n_chunks
 
     cur = conn.cursor()
     for stmt in INDEXES:

@@ -90,12 +90,20 @@ else:
         st.error(f"Database query failed: {e}")
 
 st.divider()
+st.subheader("Knowledge base — built and live today")
+st.markdown(
+    "The RAG knowledge base (OKF documents → chunked → indexed with SQLite FTS5) is already built and "
+    "queryable, ahead of the agents that will use it. Open **Admin Knowledge Base** in the sidebar to see "
+    "the documents, every chunk, and run a real keyword search against the index."
+)
+
+st.divider()
 st.subheader("What's coming")
 st.markdown(
     """
     - The Investigation Workspace — evidence panel, chat/Q&A, human decision panel
     - The AI agents (Context → Discovery → Evidence/Validation → Conclusion) with the Grounding Validator
-    - RAG retrieval over the OKF knowledge base for cited, playbook-grounded recommendations
+    - The Conclusion Agent wired to the knowledge-base search that's already live (see above)
     - The full audit trail
 
     See the **CEO Playbook** in `Product Docs/` for the complete architecture, roles, and demo script.
