@@ -32,6 +32,7 @@ REPO_ROOT = os.path.dirname(HERE)
 sys.path.insert(0, REPO_ROOT)
 
 from data.knowledge_search import search as search_knowledge, DB_PATH  # noqa: E402
+from data.runtime_db import log_audit_event  # noqa: E402
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 # gemini-flash-lite-latest, not gemini-flash-latest: during this build,
@@ -327,12 +328,27 @@ def validate_report(report: dict, evidence: dict, guidance: list) -> dict:
 # Orchestrator
 # ---------------------------------------------------------------------------
 def investigate(case_id: str) -> dict:
+    log_audit_event(case_id, actor="system", action="investigation_started", details={"model": GEMINI_MODEL})
+
     context = gather_context(case_id)
     evidence = discover_evidence(context)
     guidance = retrieve_guidance(context, evidence)
+    log_audit_event(case_id, actor="ai", action="evidence_gathered", details={
+        "transactions_in_window": len(evidence["window_transactions"]),
+        "knowledge_chunks_retrieved": [g["chunk_id"] for g in guidance],
+    })
+
     prompt = build_prompt(context, evidence, guidance)
     raw_report = call_gemini(prompt)
     validated_report = validate_report(raw_report, evidence, guidance)
+
+    log_audit_event(case_id, actor="ai", action="report_generated", details={
+        "model": GEMINI_MODEL,
+        "validator_result": validated_report["_validator_result"],
+        "validator_notes": validated_report["_validator_notes"],
+        "findings_count": len(validated_report.get("findings", [])),
+    })
+
     return {
         "context": context,
         "evidence": evidence,

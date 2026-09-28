@@ -3,3 +3,7 @@ __pycache__/
 .DS_Store
 Thumbs.db
 *.tmp
+
+# Local-dev-only runtime DB (human decisions + audit log). Production uses
+# the Railway-mounted volume at /app/runtime_data instead — see data/runtime_db.py.
+data/investigateiq_runtime.db

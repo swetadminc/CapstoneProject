@@ -1,22 +1,24 @@
 # -*- coding: utf-8 -*-
 """
 Investigation Agent demo — runs the real pipeline (DB -> deterministic
-analysis -> RAG retrieval -> Gemini -> Grounding Validator) live against a
-chosen case and shows the validated report.
+analysis -> RAG retrieval -> Gemini -> Grounding Validator) against a chosen
+case, then a real Human Decision panel and a real, persistent Audit Log.
 
 This is a first working slice, not the finished Investigation Workspace UI
-from the CEO Playbook (Section 7) — no chat panel, no human decision panel
-yet. It exists to prove the pipeline end to end and give the team something
-real to demo today while the full workspace is built.
+from the CEO Playbook (Section 7) — no chat panel yet. It exists to prove
+the pipeline end to end, including the human-in-the-loop boundary, and give
+the team something real to demo today while the full workspace is built.
 """
 import json
 import os
 import sys
 import time
+import datetime
 import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agents.investigation_agent import investigate, GEMINI_API_KEY, GEMINI_MODEL
+from data.runtime_db import record_human_decision, get_audit_log, get_human_actions, log_audit_event
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "cached_reports")
 
@@ -27,6 +29,14 @@ def load_cached(case_id):
         return None
     with open(path, encoding="utf-8") as f:
         return json.load(f)
+
+
+def fmt_ts(iso_ts):
+    try:
+        return datetime.datetime.fromisoformat(iso_ts).strftime("%Y-%m-%d %H:%M:%S UTC")
+    except Exception:
+        return iso_ts
+
 
 st.set_page_config(page_title="InvestigateIQ — Investigation Demo", page_icon="🕵️", layout="wide")
 
@@ -40,10 +50,12 @@ st.markdown(
     .status-inferred { color: #6E6E6E; font-weight: 600; }
     .status-missing { color: #B57808; font-weight: 600; }
     .status-conflicting { color: #B02A2A; font-weight: 600; }
+    .decision-box { border: 2px solid #27844E; border-radius: 10px; padding: 16px; background: #F4FBF7; }
+    .audit-row { font-family: monospace; font-size: 12.5px; padding: 3px 0; border-bottom: 1px solid #eee; }
     </style>
     <div class="iq-banner">
         <h1>🕵️ Investigation Agent — Live Demo</h1>
-        <p>Real pipeline: database → deterministic analysis → RAG retrieval → Gemini → Grounding Validator</p>
+        <p>Real pipeline: database → deterministic analysis → RAG retrieval → Gemini → Grounding Validator → human decision → audit log</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -77,12 +89,19 @@ else:
 
 run = st.button("▶ Run investigation", type="primary")
 
+# Session state holds the last result per case, so it survives the reruns
+# that clicking a checkbox or the decision-submit button triggers — without
+# this, every widget interaction would silently re-run (or worse, re-call
+# the live API) instead of just updating the page.
+state_key = f"result_{case_id}"
+
 if run:
     if use_cache:
         result = {"context": cached["context"], "evidence": cached["evidence"],
                   "guidance": cached["guidance"], "report": cached["report"]}
         elapsed = 0.0
-        st.info("Replaying a cached, previously-validated real run — no API call made just now.")
+        log_audit_event(case_id, actor="system", action="report_replayed_from_cache",
+                         details={"cached_at": cached["generated_at"], "model": cached["model"]})
     else:
         with st.spinner(f"Running the full pipeline for {case_id}... (live Gemini call, a few seconds)"):
             t0 = time.time()
@@ -92,7 +111,11 @@ if run:
                 st.error(f"Investigation failed: {e}")
                 st.stop()
             elapsed = time.time() - t0
+    st.session_state[state_key] = {"result": result, "elapsed": elapsed, "use_cache": use_cache}
 
+if state_key in st.session_state:
+    saved = st.session_state[state_key]
+    result, elapsed, use_cache = saved["result"], saved["elapsed"], saved["use_cache"]
     context, evidence, guidance, report = result["context"], result["evidence"], result["guidance"], result["report"]
 
     status_msg = f"Validator result: **{report['_validator_result']}**"
@@ -118,14 +141,19 @@ if run:
         "Verified": "status-verified", "Inferred": "status-inferred",
         "Missing": "status-missing", "Conflicting": "status-conflicting",
     }
-    for f in report["findings"]:
+    accepted_flags = []
+    for i, f in enumerate(report["findings"]):
         with st.container(border=True):
             cls = status_class.get(f["evidence_status"], "")
-            st.markdown(f"**[{f['type'].upper()}]** &nbsp; <span class='{cls}'>{f['evidence_status']}</span>", unsafe_allow_html=True)
-            st.write(f["description"])
-            st.caption(f["why_it_matters"])
-            if f.get("supporting_txn_ids"):
-                st.code(", ".join(f["supporting_txn_ids"]), language=None)
+            cols = st.columns([0.06, 0.94])
+            accept = cols[0].checkbox("Accept", key=f"accept_{case_id}_{i}", value=True, label_visibility="collapsed")
+            with cols[1]:
+                st.markdown(f"**[{f['type'].upper()}]** &nbsp; <span class='{cls}'>{f['evidence_status']}</span>", unsafe_allow_html=True)
+                st.write(f["description"])
+                st.caption(f["why_it_matters"])
+                if f.get("supporting_txn_ids"):
+                    st.code(", ".join(f["supporting_txn_ids"]), language=None)
+            accepted_flags.append(accept)
 
     st.divider()
     st.subheader("Investigation questions")
@@ -148,6 +176,79 @@ if run:
             "documents": evidence["documents"],
             "knowledge_chunks_retrieved": [g["chunk_id"] for g in guidance],
         })
+
+    # -------------------------------------------------------------
+    # Human Decision panel — the accountable action. Separate visual
+    # treatment from everything above, on purpose: the AI panel is a
+    # draft, this is the only place a real decision gets recorded.
+    # -------------------------------------------------------------
+    st.divider()
+    st.markdown('<div class="decision-box">', unsafe_allow_html=True)
+    st.subheader("✅ Human Decision")
+    st.caption("This is the accountable action. The AI cannot close, escalate, or file anything on its own (BR1, BR4).")
+
+    investigator = st.text_input("Your name (investigator)", key=f"investigator_{case_id}")
+    action = st.radio(
+        "Decision",
+        ["Close — no concern", "Request more information", "Escalate to Compliance"],
+        key=f"action_{case_id}",
+    )
+    rationale = st.text_area("Rationale (required)", key=f"rationale_{case_id}",
+                              placeholder="Explain the decision — this is required, and it's what gets audited.")
+    submit = st.button("Submit decision", type="primary", key=f"submit_{case_id}")
+
+    if submit:
+        n_findings = len(report["findings"])
+        accepted_idx = [i for i, a in enumerate(accepted_flags) if a]
+        rejected_idx = [i for i in range(n_findings) if i not in accepted_idx]
+        action_code = {"Close — no concern": "close", "Request more information": "request_info",
+                       "Escalate to Compliance": "escalate"}[action]
+
+        if not investigator.strip():
+            st.error("Investigator name is required.")
+        elif not rationale.strip():
+            st.error("Rationale is required — a decision cannot be recorded without one (BR4).")
+        else:
+            try:
+                record_human_decision(
+                    case_id=case_id, investigator=investigator.strip(), action=action_code,
+                    rationale=rationale.strip(),
+                    findings_accepted=[report["findings"][i]["description"] for i in accepted_idx],
+                    findings_rejected=[report["findings"][i]["description"] for i in rejected_idx],
+                )
+                st.success(f"Decision recorded: **{action}** by {investigator}. Written to the audit log below.")
+            except Exception as e:
+                st.error(f"Could not record decision: {e}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # -------------------------------------------------------------
+    # Audit Log — every AI action and every human decision, in order.
+    # Reads from the persistent runtime DB, not from this page's state.
+    # -------------------------------------------------------------
+    st.divider()
+    st.subheader("📜 Audit Log")
+    st.caption(f"Persisted on a mounted volume — survives redeploys. case_id: `{case_id}`")
+
+    try:
+        audit_rows = get_audit_log(case_id)
+    except Exception as e:
+        audit_rows = []
+        st.error(f"Could not read audit log: {e}")
+
+    if not audit_rows:
+        st.caption("No audit events yet for this case.")
+    else:
+        with st.container(border=True):
+            for row in audit_rows:
+                actor_label = {"ai": "🤖 AI", "human": "🧑 Human", "system": "⚙️ System"}.get(row["actor"], row["actor"])
+                name = f" ({row['actor_name']})" if row.get("actor_name") else ""
+                st.markdown(
+                    f"<div class='audit-row'>{fmt_ts(row['timestamp'])} &nbsp; "
+                    f"<b>{actor_label}{name}</b> &nbsp; — &nbsp; {row['action']}</div>",
+                    unsafe_allow_html=True,
+                )
+        with st.expander("Full audit detail (JSON)"):
+            st.json(audit_rows)
 
 st.divider()
 st.caption(
