@@ -1,0 +1,252 @@
+{
+  "case_id": "CASE-001",
+  "generated_at": "2026-09-28T21:05:05.836613Z",
+  "model": "models/gemini-flash-lite-latest",
+  "context": {
+    "case_id": "CASE-001",
+    "alert": {
+      "alert_id": "ALERT-001",
+      "case_id": "CASE-001",
+      "customer_id": "CUST-1004",
+      "account_id": "ACC-1004",
+      "alert_type": "Unusual transaction activity / rapid movement of funds",
+      "scenario_id": "rapid-movement-of-funds",
+      "trigger_rule": "R1 (amount deviation) + R2 (rapid pass-through)",
+      "alert_date": "2026-09-18",
+      "severity": "High",
+      "trigger_transaction_id": "TXN-19918",
+      "status": "Open"
+    },
+    "customer": {
+      "customer_id": "CUST-1004",
+      "name": "Apex Global Trading Ltd.",
+      "type": "Business",
+      "segment": "SME - Trade & Import/Export",
+      "occupation_or_industry": "Import/export of industrial equipment",
+      "declared_annual_income": 96000000,
+      "expected_monthly_credit": 10000000,
+      "expected_monthly_debit": 9500000,
+      "declared_source_of_funds": "Trade receivables from equipment sales",
+      "risk_rating": "Medium",
+      "kyc_status": "Verified",
+      "kyc_last_updated": "2026-05-11",
+      "country": "India",
+      "onboarding_date": "2023-09-09"
+    },
+    "account": {
+      "account_id": "ACC-1004",
+      "customer_id": "CUST-1004",
+      "type": "Current Account",
+      "open_date": "2023-09-09",
+      "currency": "INR",
+      "status": "Active",
+      "risk_rating": "Medium",
+      "is_internal": 1,
+      "counterparty_name": null
+    }
+  },
+  "evidence": {
+    "baseline_avg_amount": 730439.27,
+    "baseline_txn_count": 82,
+    "deviation_ratio": 6.6,
+    "window_transactions": [
+      {
+        "txn_id": "TXN-19918",
+        "txn_datetime": "2026-09-18T09:00:00",
+        "direction": "CR",
+        "amount": 4800000,
+        "counterparty_name": "NewCo Imports",
+        "counterparty_account_id": "ACC-1586",
+        "reference_text": "Inward remittance"
+      },
+      {
+        "txn_id": "TXN-19919",
+        "txn_datetime": "2026-09-18T14:00:00",
+        "direction": "CR",
+        "amount": 3200000,
+        "counterparty_name": "NewCo Imports",
+        "counterparty_account_id": "ACC-1586",
+        "reference_text": "Inward remittance"
+      },
+      {
+        "txn_id": "TXN-19920",
+        "txn_datetime": "2026-09-19T10:30:00",
+        "direction": "DR",
+        "amount": 4500000,
+        "counterparty_name": "Orion Consulting",
+        "counterparty_account_id": "ACC-1587",
+        "reference_text": "Consulting fee payment"
+      },
+      {
+        "txn_id": "TXN-19921",
+        "txn_datetime": "2026-09-19T15:10:00",
+        "direction": "DR",
+        "amount": 2900000,
+        "counterparty_name": "Delta Trading",
+        "counterparty_account_id": "ACC-1588",
+        "reference_text": "Advance payment"
+      },
+      {
+        "txn_id": "TXN-19922",
+        "txn_datetime": "2026-09-19T16:45:00",
+        "direction": "DR",
+        "amount": 3800000,
+        "counterparty_name": "Orion Consulting",
+        "counterparty_account_id": "ACC-1587",
+        "reference_text": "Consulting fee payment"
+      },
+      {
+        "txn_id": "TXN-19923",
+        "txn_datetime": "2026-09-19T17:20:00",
+        "direction": "DR",
+        "amount": 2500000,
+        "counterparty_name": "Delta Trading",
+        "counterparty_account_id": "ACC-1588",
+        "reference_text": "Advance payment"
+      },
+      {
+        "txn_id": "TXN-10074",
+        "txn_datetime": "2026-09-21T15:42:00",
+        "direction": "DR",
+        "amount": 12931,
+        "counterparty_name": "Shalini Pandey",
+        "counterparty_account_id": "ACC-1637",
+        "reference_text": "Utility bill"
+      },
+      {
+        "txn_id": "TXN-10018",
+        "txn_datetime": "2026-09-27T11:50:00",
+        "direction": "CR",
+        "amount": 13762,
+        "counterparty_name": "Deepak Joshi",
+        "counterparty_account_id": "ACC-1610",
+        "reference_text": "School fee payment"
+      }
+    ],
+    "relationships": [
+      {
+        "counterparty_account_id": "ACC-1610",
+        "relationship": null
+      },
+      {
+        "counterparty_account_id": "ACC-1587",
+        "relationship": {
+          "relationship_type": "Unknown",
+          "source": "Observed",
+          "verified": "Unknown",
+          "start_date": "2026-09-20",
+          "previously_flagged": 0
+        }
+      },
+      {
+        "counterparty_account_id": "ACC-1637",
+        "relationship": null
+      },
+      {
+        "counterparty_account_id": "ACC-1588",
+        "relationship": {
+          "relationship_type": "Unknown",
+          "source": "Observed",
+          "verified": "Unknown",
+          "start_date": "2026-09-20",
+          "previously_flagged": 0
+        }
+      },
+      {
+        "counterparty_account_id": "ACC-1586",
+        "relationship": {
+          "relationship_type": "Unknown",
+          "source": "Observed",
+          "verified": "Unknown",
+          "start_date": "2026-09-20",
+          "previously_flagged": 0
+        }
+      }
+    ],
+    "prior_cases": [
+      {
+        "case_id": "CASE-0891",
+        "disposition": "Closed - No Concern",
+        "rationale": "Large trade receipt matched an invoiced sales contract on file; counterparty verified. No further action."
+      }
+    ],
+    "documents": []
+  },
+  "guidance": [
+    {
+      "chunk_id": "PB-AML-07-07-C0",
+      "doc_id": "PB-AML-07-07",
+      "doc_title": "Escalation criteria for the rapid-movement-of-funds scenario",
+      "escalation_criteria": "unresolved high-value unverified transfer after investigation",
+      "chunk_text": "Escalation criteria for the rapid-movement-of-funds scenario. Escalation criteria: unresolved high-value unverified transfer after investigation.",
+      "score": 16.541
+    },
+    {
+      "chunk_id": "PB-AML-07-03-C0",
+      "doc_id": "PB-AML-07-03",
+      "doc_title": "Verify source of funds",
+      "escalation_criteria": "source of funds undeclared or unsupported",
+      "chunk_text": "Verify source of funds. Escalation criteria: source of funds undeclared or unsupported.",
+      "score": 4.589
+    },
+    {
+      "chunk_id": "PB-AML-07-10-C1",
+      "doc_id": "PB-AML-07-10",
+      "doc_title": "Documentation required before case closure",
+      "escalation_criteria": "not applicable - this is the closure checklist",
+      "chunk_text": "Before closing a case with no concern identified, confirm four things are true: the customer's KYC status is current, the source of funds is either documented or reasonably explained, the counterparty relationship is understood well enough to account for the activity, and the investigator has recorded a written rationale for the decision in the case file.",
+      "score": 3.525
+    },
+    {
+      "chunk_id": "PB-AML-07-03-C1",
+      "doc_id": "PB-AML-07-03",
+      "doc_title": "Verify source of funds",
+      "escalation_criteria": "source of funds undeclared or unsupported",
+      "chunk_text": "Request documentation supporting the declared source of funds for the flagged credit. Acceptable evidence includes an invoice, a signed contract, a sale deed, or equivalent proof tied to the transaction amount and date.",
+      "score": 3.188
+    }
+  ],
+  "report": {
+    "findings": [
+      {
+        "type": "red_flag",
+        "description": "Rapid movement of funds with a deviation ratio of 6.6x baseline, involving large inward remittances followed quickly by outward payments to Orion Consulting and Delta Trading.",
+        "evidence_status": "Verified",
+        "why_it_matters": "Significant volume and velocity deviations from the customer's baseline average warrant investigation to understand the commercial rationale.",
+        "supporting_txn_ids": [
+          "TXN-19918",
+          "TXN-19919",
+          "TXN-19920",
+          "TXN-19921",
+          "TXN-19922",
+          "TXN-19923"
+        ]
+      },
+      {
+        "type": "missing",
+        "description": "No documentation on file to support the source of funds or business rationale for the large transfers.",
+        "evidence_status": "Missing",
+        "why_it_matters": "Without supporting documentation or contracts, it is difficult to confirm whether the activity aligns with the customer's stated import/export profile.",
+        "supporting_txn_ids": []
+      }
+    ],
+    "investigation_questions": [
+      "What is the underlying commercial purpose of the rapid fund transfers to Orion Consulting and Delta Trading?",
+      "Do contracts or invoices exist to substantiate the inward remittances from NewCo Imports and the outward payments?",
+      "What is the nature of the relationship between Apex Global Trading Ltd. and the newly observed counterparties?"
+    ],
+    "recommended_next_steps": [
+      {
+        "step": "Verify the source of funds by requesting documentation supporting the declared source for the flagged credit.",
+        "playbook_doc_id": "PB-AML-07-03"
+      },
+      {
+        "step": "Confirm all requirements under the guidance for closing cases before making a final determination.",
+        "playbook_doc_id": "PB-AML-07-10"
+      }
+    ],
+    "narrative_summary": "Case CASE-001 involves Apex Global Trading Ltd., a medium-risk business specializing in industrial equipment import/export. An alert was generated for unusual transaction activity and rapid movement of funds, showing a deviation ratio of 6.6x baseline. Specifically, large credits from NewCo Imports were quickly followed by large debits to Orion Consulting and Delta Trading. There are currently no supporting documents on file to explain this volume of transactions, prompting further review following established playbook guidance.",
+    "_validator_notes": [],
+    "_validator_result": "PASS"
+  }
+}

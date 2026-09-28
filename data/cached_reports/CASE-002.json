@@ -1,0 +1,233 @@
+{
+  "case_id": "CASE-002",
+  "generated_at": "2026-09-28T21:05:21.715311Z",
+  "model": "models/gemini-flash-lite-latest",
+  "context": {
+    "case_id": "CASE-002",
+    "alert": {
+      "alert_id": "ALERT-002",
+      "case_id": "CASE-002",
+      "customer_id": "CUST-1004",
+      "account_id": "ACC-1004",
+      "alert_type": "Unusual transaction activity / rapid movement of funds",
+      "scenario_id": "rapid-movement-of-funds",
+      "trigger_rule": "R1 (amount deviation) + R2 (rapid pass-through)",
+      "alert_date": "2026-03-12",
+      "severity": "Medium",
+      "trigger_transaction_id": "TXN-19924",
+      "status": "Closed - No Concern"
+    },
+    "customer": {
+      "customer_id": "CUST-1004",
+      "name": "Apex Global Trading Ltd.",
+      "type": "Business",
+      "segment": "SME - Trade & Import/Export",
+      "occupation_or_industry": "Import/export of industrial equipment",
+      "declared_annual_income": 96000000,
+      "expected_monthly_credit": 10000000,
+      "expected_monthly_debit": 9500000,
+      "declared_source_of_funds": "Trade receivables from equipment sales",
+      "risk_rating": "Medium",
+      "kyc_status": "Verified",
+      "kyc_last_updated": "2026-05-11",
+      "country": "India",
+      "onboarding_date": "2023-09-09"
+    },
+    "account": {
+      "account_id": "ACC-1004",
+      "customer_id": "CUST-1004",
+      "type": "Current Account",
+      "open_date": "2023-09-09",
+      "currency": "INR",
+      "status": "Active",
+      "risk_rating": "Medium",
+      "is_internal": 1,
+      "counterparty_name": null
+    }
+  },
+  "evidence": {
+    "baseline_avg_amount": 421953.12,
+    "baseline_txn_count": 24,
+    "deviation_ratio": 21.3,
+    "window_transactions": [
+      {
+        "txn_id": "TXN-19924",
+        "txn_datetime": "2026-03-12T11:00:00",
+        "direction": "CR",
+        "amount": 9000000,
+        "counterparty_name": "Continental Buyers Pte Ltd",
+        "counterparty_account_id": "ACC-1589",
+        "reference_text": "Advance payment - Sales Contract SC-2026-114"
+      },
+      {
+        "txn_id": "TXN-19925",
+        "txn_datetime": "2026-03-14T10:15:00",
+        "direction": "DR",
+        "amount": 4000000,
+        "counterparty_name": "Meridian Steel Suppliers",
+        "counterparty_account_id": "ACC-1590",
+        "reference_text": "Supplier payment - PO-8821"
+      },
+      {
+        "txn_id": "TXN-19926",
+        "txn_datetime": "2026-03-15T09:40:00",
+        "direction": "DR",
+        "amount": 3000000,
+        "counterparty_name": "Coastal Logistics Pvt Ltd",
+        "counterparty_account_id": "ACC-1591",
+        "reference_text": "Freight & logistics payment"
+      },
+      {
+        "txn_id": "TXN-10006",
+        "txn_datetime": "2026-03-17T15:09:00",
+        "direction": "DR",
+        "amount": 15572,
+        "counterparty_name": "Granite Corp Ltd.",
+        "counterparty_account_id": "ACC-1621",
+        "reference_text": "Rent payment"
+      }
+    ],
+    "relationships": [
+      {
+        "counterparty_account_id": "ACC-1589",
+        "relationship": {
+          "relationship_type": "Business - Buyer",
+          "source": "KYC-declared",
+          "verified": "Yes",
+          "start_date": "2024-07-20",
+          "previously_flagged": 0
+        }
+      },
+      {
+        "counterparty_account_id": "ACC-1621",
+        "relationship": null
+      },
+      {
+        "counterparty_account_id": "ACC-1590",
+        "relationship": {
+          "relationship_type": "Business - Supplier",
+          "source": "KYC-declared",
+          "verified": "Yes",
+          "start_date": "2024-07-20",
+          "previously_flagged": 0
+        }
+      },
+      {
+        "counterparty_account_id": "ACC-1591",
+        "relationship": {
+          "relationship_type": "Business - Service Provider",
+          "source": "KYC-declared",
+          "verified": "Yes",
+          "start_date": "2024-07-20",
+          "previously_flagged": 0
+        }
+      }
+    ],
+    "prior_cases": [
+      {
+        "case_id": "CASE-0891",
+        "disposition": "Closed - No Concern",
+        "rationale": "Large trade receipt matched an invoiced sales contract on file; counterparty verified. No further action."
+      }
+    ],
+    "documents": [
+      {
+        "doc_id": "DOC-2201",
+        "doc_type": "Sales Contract",
+        "doc_date": "2026-03-07",
+        "extracted_summary": "Sales Contract SC-2026-114 between Apex Global Trading Ltd. and Continental Buyers Pte Ltd for industrial equipment, advance payment terms 9,000,000 INR.",
+        "verified": 1
+      },
+      {
+        "doc_id": "DOC-2202",
+        "doc_type": "Purchase Order",
+        "doc_date": "2026-03-13",
+        "extracted_summary": "PO-8821 issued to Meridian Steel Suppliers for raw material, amount 4,000,000 INR, consistent with historical purchase pattern.",
+        "verified": 1
+      }
+    ]
+  },
+  "guidance": [
+    {
+      "chunk_id": "PB-AML-07-07-C0",
+      "doc_id": "PB-AML-07-07",
+      "doc_title": "Escalation criteria for the rapid-movement-of-funds scenario",
+      "escalation_criteria": "unresolved high-value unverified transfer after investigation",
+      "chunk_text": "Escalation criteria for the rapid-movement-of-funds scenario. Escalation criteria: unresolved high-value unverified transfer after investigation.",
+      "score": 16.541
+    },
+    {
+      "chunk_id": "PB-AML-07-03-C0",
+      "doc_id": "PB-AML-07-03",
+      "doc_title": "Verify source of funds",
+      "escalation_criteria": "source of funds undeclared or unsupported",
+      "chunk_text": "Verify source of funds. Escalation criteria: source of funds undeclared or unsupported.",
+      "score": 4.589
+    },
+    {
+      "chunk_id": "PB-AML-07-10-C1",
+      "doc_id": "PB-AML-07-10",
+      "doc_title": "Documentation required before case closure",
+      "escalation_criteria": "not applicable - this is the closure checklist",
+      "chunk_text": "Before closing a case with no concern identified, confirm four things are true: the customer's KYC status is current, the source of funds is either documented or reasonably explained, the counterparty relationship is understood well enough to account for the activity, and the investigator has recorded a written rationale for the decision in the case file.",
+      "score": 3.525
+    },
+    {
+      "chunk_id": "PB-AML-07-03-C1",
+      "doc_id": "PB-AML-07-03",
+      "doc_title": "Verify source of funds",
+      "escalation_criteria": "source of funds undeclared or unsupported",
+      "chunk_text": "Request documentation supporting the declared source of funds for the flagged credit. Acceptable evidence includes an invoice, a signed contract, a sale deed, or equivalent proof tied to the transaction amount and date.",
+      "score": 3.188
+    }
+  ],
+  "report": {
+    "findings": [
+      {
+        "type": "red_flag",
+        "description": "Transaction volume shows a significant deviation of 21.3x above the baseline average amount, driven by a large credit of 9,000,000 INR from Continental Buyers Pte Ltd.",
+        "evidence_status": "Verified",
+        "why_it_matters": "Rapid movement and high-value transactions that heavily deviate from baseline averages require scrutiny to ensure the activity aligns with the customer's known business profile.",
+        "supporting_txn_ids": [
+          "TXN-19924"
+        ]
+      },
+      {
+        "type": "counter_evidence",
+        "description": "The large incoming credit of 9,000,000 INR is supported by a verified sales contract (SC-2026-114) on file matching the transaction amount and counterparty.",
+        "evidence_status": "Verified",
+        "why_it_matters": "Supporting documentation helps account for commercial rationale and business legitimacy behind incoming funds.",
+        "supporting_txn_ids": [
+          "TXN-19924"
+        ]
+      },
+      {
+        "type": "counter_evidence",
+        "description": "Subsequent large debits correspond to verified KYC-declared business relationships such as Meridian Steel Suppliers and Coastal Logistics Pvt Ltd.",
+        "evidence_status": "Verified",
+        "why_it_matters": "Outgoing funds directed to known, verified suppliers and service providers indicate consistent commercial operations.",
+        "supporting_txn_ids": [
+          "TXN-19925",
+          "TXN-19926"
+        ]
+      }
+    ],
+    "investigation_questions": [
+      "Do the outgoing payments to Meridian Steel Suppliers and Coastal Logistics Pvt Ltd directly correspond to the fulfillment of the sales contract SC-2026-114?",
+      "What is the expected timeline for delivery of the industrial equipment under Sales Contract SC-2026-114?"
+    ],
+    "recommended_next_steps": [
+      {
+        "step": "Verify the source of funds by ensuring the documentation matches the transaction amount and date.",
+        "playbook_doc_id": "PB-AML-07-03"
+      },
+      {
+        "step": "Confirm all four required conditions are met before considering closure of the case with no concern.",
+        "playbook_doc_id": "PB-AML-07-10"
+      }
+    ],
+    "narrative_summary": "Apex Global Trading Ltd. triggered an alert for unusual transaction activity with a deviation ratio of 21.3x their baseline average, driven by a large credit of 9,000,000 INR (TXN-19924). Subsequent rapid movement included payments to suppliers and logistics providers (TXN-19925 and TXN-19926). Review of documents on file confirms that Sales Contract SC-2026-114 supports the inbound credit, and counterparty relationships are KYC-verified. Further checks should ensure all closure criteria are properly documented.",
+    "_validator_notes": [],
+    "_validator_result": "PASS"
+  }
+}
