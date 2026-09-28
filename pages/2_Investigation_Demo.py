@@ -13,6 +13,7 @@ is built.
 """
 import json
 import os
+import sqlite3
 import sys
 import time
 import datetime
@@ -65,11 +66,40 @@ st.markdown(
 )
 st.write("")
 
-CASES = {
-    "CASE-001 — Apex Global Trading (suspicious)": "CASE-001",
-    "CASE-002 — Apex Global Trading (legitimate twin)": "CASE-002",
-}
-choice = st.selectbox("Choose a case to investigate", list(CASES.keys()))
+@st.cache_data(ttl=30)
+def load_case_options():
+    """All 40 alerts, not just the two hero cases — the queue dashboard can
+    send any of them here. Hero cases are pinned to the top and labeled."""
+    conn = sqlite3.connect(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "investigateiq.db"))
+    rows = conn.execute("""
+        SELECT a.case_id, c.name, a.alert_type FROM alerts a
+        JOIN customers c ON c.customer_id = a.customer_id
+        ORDER BY a.alert_date DESC
+    """).fetchall()
+    conn.close()
+    hero_ids = {"CASE-001": "suspicious", "CASE-002": "legitimate twin"}
+    options = {}
+    for cid, name, atype in rows:
+        label = f"{cid} — {name} ({hero_ids[cid]}, demo)" if cid in hero_ids else f"{cid} — {name}"
+        options[label] = cid
+    # pin hero cases first
+    ordered = {k: v for k, v in options.items() if v in hero_ids}
+    ordered.update({k: v for k, v in options.items() if v not in hero_ids})
+    return ordered
+
+CASES = load_case_options()
+labels = list(CASES.keys())
+
+# If the queue dashboard sent us here with a specific case, default to it.
+default_idx = 0
+preselect = st.session_state.pop("selected_case_id", None)
+if preselect:
+    for i, label in enumerate(labels):
+        if CASES[label] == preselect:
+            default_idx = i
+            break
+
+choice = st.selectbox("Choose a case to investigate", labels, index=default_idx)
 case_id = CASES[choice]
 
 cached = load_cached(case_id)

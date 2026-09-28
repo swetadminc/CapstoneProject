@@ -136,3 +136,21 @@ def get_human_actions(case_id: str) -> list:
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+def get_latest_decision_per_case() -> dict:
+    """One query for the whole queue dashboard, instead of one query per
+    case: {case_id: {"action": ..., "investigator": ..., "timestamp": ...}}
+    — only the most recent decision per case (a case can be decided more
+    than once over time, e.g. reopened)."""
+    init_runtime_db()
+    conn = _connect()
+    rows = conn.execute("""
+        SELECT h.case_id, h.action, h.investigator, h.timestamp
+        FROM human_actions h
+        INNER JOIN (
+            SELECT case_id, MAX(timestamp) AS max_ts FROM human_actions GROUP BY case_id
+        ) latest ON h.case_id = latest.case_id AND h.timestamp = latest.max_ts
+    """).fetchall()
+    conn.close()
+    return {r["case_id"]: dict(r) for r in rows}
