@@ -17,6 +17,7 @@ import os
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(HERE)
 XLSX_PATH = os.path.join(REPO_ROOT, "Product Docs", "dataset", "InvestigateIQ - Synthetic Bank Dataset.xlsx")
+KB_DIR = os.path.join(REPO_ROOT, "Product Docs", "dataset", "knowledge_base")
 DB_PATH = os.path.join(HERE, "investigateiq.db")
 
 SHEET_TO_TABLE = {
@@ -40,7 +41,52 @@ INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_alerts_account ON alerts(account_id)",
     "CREATE INDEX IF NOT EXISTS idx_pastcases_customer ON past_cases(customer_id)",
     "CREATE INDEX IF NOT EXISTS idx_docs_customer ON documents(customer_id)",
+    "CREATE INDEX IF NOT EXISTS idx_kb_scenario ON knowledge_base(scenario_id)",
 ]
+
+
+def parse_okf_file(path):
+    """Parse an OKF document: YAML-ish frontmatter between '---' markers + markdown body.
+    Hand-rolled (not a yaml lib) because our frontmatter is a flat key: value list —
+    no need for a dependency to read six fields."""
+    with open(path, "r", encoding="utf-8") as f:
+        text = f.read()
+    parts = text.split("---", 2)
+    frontmatter_raw, body = parts[1], parts[2]
+    meta = {}
+    for line in frontmatter_raw.strip().splitlines():
+        if ":" in line:
+            k, v = line.split(":", 1)
+            meta[k.strip()] = v.strip()
+    return meta, body.strip()
+
+
+def load_knowledge_base(conn):
+    """RAG source table: every OKF playbook document, ready to query today by
+    scenario_id/keyword. Embeddings (for real vector similarity search) are a
+    separate, additive step once an LLM/embedding API key is wired in — the
+    schema below already has a slot for it (embedding column, NULL until then)."""
+    rows = []
+    if os.path.isdir(KB_DIR):
+        for fname in sorted(os.listdir(KB_DIR)):
+            if not fname.endswith(".md"):
+                continue
+            meta, body = parse_okf_file(os.path.join(KB_DIR, fname))
+            rows.append({
+                "doc_id": meta.get("id"),
+                "scenario_id": meta.get("scenario_id"),
+                "title": meta.get("title"),
+                "escalation_criteria": meta.get("escalation_criteria"),
+                "version": meta.get("version"),
+                "last_updated": meta.get("last_updated"),
+                "body": body,
+                "source_file": fname,
+                "embedding": None,
+            })
+    df = pd.DataFrame(rows)
+    df.to_sql("knowledge_base", conn, if_exists="replace", index=False)
+    return len(df)
+
 
 def main():
     if os.path.exists(DB_PATH):
@@ -54,6 +100,8 @@ def main():
         df = xl.parse(sheet)
         df.to_sql(table, conn, if_exists="replace", index=False)
         counts[table] = len(df)
+
+    counts["knowledge_base"] = load_knowledge_base(conn)
 
     cur = conn.cursor()
     for stmt in INDEXES:
