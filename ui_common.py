@@ -86,6 +86,56 @@ _GLOBAL_CSS = """
     border: 2px solid var(--iq-sev-high); border-radius: 10px; padding: 14px 18px;
     margin-bottom: 10px; background: rgba(176,42,42,0.06);
 }
+
+/* ------------------------------------------------------------------
+   Motion — real page-load animation, not just static CSS. .iq-rise
+   fades+slides an element up on mount; add .iq-stagger-N (1-8) for a
+   staggered reveal across a row of cards/KPIs so they cascade in
+   rather than all popping at once. Respects reduced-motion.
+   ------------------------------------------------------------------ */
+@keyframes iq-rise-in {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.iq-rise {
+    animation: iq-rise-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.iq-stagger-1 { animation-delay: 0.05s; }
+.iq-stagger-2 { animation-delay: 0.12s; }
+.iq-stagger-3 { animation-delay: 0.19s; }
+.iq-stagger-4 { animation-delay: 0.26s; }
+.iq-stagger-5 { animation-delay: 0.33s; }
+.iq-stagger-6 { animation-delay: 0.40s; }
+.iq-stagger-7 { animation-delay: 0.47s; }
+.iq-stagger-8 { animation-delay: 0.54s; }
+
+.st-key-hero_cta { margin-top: -20px; margin-bottom: 10px; position: relative; z-index: 3; }
+.st-key-hero_cta [data-testid="stPageLink-NavLink"] {
+    background: #2E63BF !important; border-radius: 999px !important;
+    padding: 10px 20px !important; justify-content: center !important;
+    box-shadow: 0 6px 18px rgba(46,99,191,0.45); border: none !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.st-key-hero_cta [data-testid="stPageLink-NavLink"]:hover {
+    transform: translateY(-2px); box-shadow: 0 10px 26px rgba(46,99,191,0.6);
+}
+.st-key-hero_cta [data-testid="stPageLink-NavLink"] * {
+    color: white !important; font-weight: 700 !important; font-size: 15px !important;
+}
+
+.iq-card, [data-testid="stVerticalBlockBorderWrapper"] {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+div[data-testid="stVerticalBlockBorderWrapper"]:has(.iq-nav-title):hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(26,42,74,0.14);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .iq-rise, div[data-testid="stVerticalBlockBorderWrapper"]:has(.iq-nav-title):hover {
+        animation: none !important; transition: none !important; transform: none !important;
+    }
+}
 </style>
 """
 
@@ -152,9 +202,21 @@ def inject_global_styles():
     automatically inside require_login()). Streamlit dedupes identical
     <style> blocks across reruns on its own. Emits the dark override block
     second, after the base :root declaration, so its redeclared custom
-    properties win by CSS source order — no class-toggling needed."""
+    properties win by CSS source order — no class-toggling needed.
+
+    Reads session_state["dark_mode_toggle"] — the toggle widget's OWN key,
+    not a separately-assigned "dark_mode" flag. A prior version tracked
+    dark mode under its own key, set by a plain assignment further down in
+    require_login()'s sidebar block; since this function runs at the very
+    top of the page, before that assignment line executes, it always read
+    last run's value — every click looked like it took effect one rerun
+    late (toggle showed the new state, but the background didn't change
+    until the NEXT click). Streamlit updates a widget's own key-bound
+    session_state entry before the script starts running, so reading that
+    key directly here has no such lag — confirmed by testing repeated
+    clicks in place on the same page, not just navigating between pages."""
     st.markdown(_GLOBAL_CSS, unsafe_allow_html=True)
-    if st.session_state.get("dark_mode"):
+    if st.session_state.get("dark_mode_toggle"):
         st.markdown(_DARK_OVERRIDE_CSS, unsafe_allow_html=True)
 
 
@@ -205,16 +267,10 @@ def require_login():
     with st.sidebar:
         st.markdown(f"**👤 {st.session_state['user_name']}**")
         st.caption(f"Role: {st.session_state['user_role']}")
-        # Explicit value= (not just key=) — each page in a classic
-        # pages/-directory multipage app is a fresh script/module, and a
-        # freshly-instantiated st.toggle(key=...) does not reliably pick up
-        # a same-named session_state entry that was last written by a
-        # DIFFERENT page's run of this same widget; passing value=
-        # explicitly forces it to read the persisted flag every time
-        # instead of silently falling back to its own False default.
-        st.session_state["dark_mode"] = st.toggle(
-            "🌙 Dark mode", value=st.session_state.get("dark_mode", False), key="dark_mode_toggle",
-        )
+        # key= alone is enough — session_state["dark_mode_toggle"] persists
+        # for the whole session (every page reads it, see
+        # inject_global_styles() above), the same way user_name does.
+        st.toggle("🌙 Dark mode", key="dark_mode_toggle")
         if st.button("Switch user", key="switch_user_btn"):
             del st.session_state["user_name"]
             del st.session_state["user_role"]
