@@ -40,12 +40,14 @@ st.markdown(
 )
 
 st.subheader("Start here")
-c1, c2, c3 = st.columns(3)
+c1, c2, c3, c4 = st.columns(4)
 with c1:
     st.page_link("pages/0_Case_Queue.py", label="🗂️ Case Queue", help="All alerts — the real entry point")
 with c2:
     st.page_link("pages/2_Investigation_Demo.py", label="🕵️ Investigation Workspace", help="Evidence, chat, decision, audit log")
 with c3:
+    st.page_link("pages/3_Compliance_Queue.py", label="🛡️ Compliance Queue", help="Escalated cases")
+with c4:
     st.page_link("pages/1_Admin_Knowledge_Base.py", label="🔐 Admin: Knowledge Base", help="Passcode: IQ-Demo-2026")
 
 st.divider()

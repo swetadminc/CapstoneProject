@@ -76,7 +76,11 @@ decisions = get_latest_decision_per_case()
 def queue_status(row):
     d = decisions.get(row["case_id"])
     if d:
-        return {"close": "Closed", "escalate": "Escalated", "request_info": "Info Requested"}.get(d["action"], d["action"])
+        return {
+            "close": "Closed", "escalate": "Escalated", "request_info": "Info Requested",
+            "compliance_ack": "Closed (Compliance)", "compliance_return": "Returned to Investigator",
+            "compliance_refer": "Referred (Compliance)",
+        }.get(d["action"], d["action"])
     # Normalize the raw alert status ("Closed - No Concern") to the same
     # vocabulary a human decision produces ("Closed"), so KPI counts and
     # badge colors are consistent regardless of which source set the status.
@@ -125,7 +129,11 @@ st.caption(f"Showing {len(filtered)} of {len(df)} alerts")
 # Queue table
 # ------------------------------------------------------------------
 sev_class = {"High": "sev-high", "Medium": "sev-medium", "Low": "sev-low"}
-status_class = {"Open": "status-open", "Escalated": "status-escalate", "Closed": "status-close", "Info Requested": "status-info"}
+status_class = {
+    "Open": "status-open", "Escalated": "status-escalate", "Closed": "status-close",
+    "Info Requested": "status-info", "Closed (Compliance)": "status-close",
+    "Returned to Investigator": "status-info", "Referred (Compliance)": "status-escalate",
+}
 
 header = st.columns([1.6, 2.2, 2.6, 1.3, 1.3, 1.5, 1.2])
 for col, label in zip(header, ["Case", "Customer", "Alert Type", "Severity", "Status", "Rule(s)", ""]):
