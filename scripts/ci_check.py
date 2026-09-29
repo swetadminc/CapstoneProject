@@ -59,6 +59,13 @@ def main():
     n_alerts = cur.execute("SELECT COUNT(*) FROM alerts WHERE customer_id='CUST-1004'").fetchone()[0]
     check(n_alerts == 2, f"hero customer has exactly 2 alerts (found {n_alerts}) — the C1/C2 twin case")
 
+    print("\nChecking every alert scenario has RAG/playbook coverage...")
+    print("(this exists because that gap was real: 33/40 cases had zero grounded next-steps until it was fixed)")
+    alert_scenarios = {r[0] for r in cur.execute("SELECT DISTINCT scenario_id FROM alerts").fetchall()}
+    kb_scenarios = {r[0] for r in cur.execute("SELECT DISTINCT scenario_id FROM knowledge_base").fetchall()}
+    uncovered = alert_scenarios - kb_scenarios
+    check(not uncovered, f"every alert scenario_id has at least one knowledge_base doc (uncovered: {uncovered or 'none'})")
+
     print("\nChecking the FTS5 knowledge index actually returns results...")
     sys.path.insert(0, os.path.join(REPO_ROOT))
     from data.knowledge_search import search
