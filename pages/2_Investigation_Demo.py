@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agents.investigation_agent import investigate, GEMINI_API_KEY, GEMINI_MODEL
 from agents.chat_agent import ask_question
 from data.runtime_db import record_human_decision, get_audit_log, get_human_actions, log_audit_event
+from ui_common import require_login
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "cached_reports")
 
@@ -43,6 +44,7 @@ def fmt_ts(iso_ts):
 
 
 st.set_page_config(page_title="InvestigateIQ — Investigation Demo", page_icon="🕵️", layout="wide")
+user_name, user_role = require_login()
 
 st.markdown(
     """
@@ -289,7 +291,7 @@ if state_key in st.session_state:
     st.subheader("✅ Human Decision")
     st.caption("This is the accountable action. The AI cannot close, escalate, or file anything on its own (BR1, BR4).")
 
-    investigator = st.text_input("Your name (investigator)", key=f"investigator_{case_id}")
+    investigator = st.text_input("Your name (investigator)", value=user_name, key=f"investigator_{case_id}")
     action = st.radio(
         "Decision",
         ["Close — no concern", "Request more information", "Escalate to Compliance"],

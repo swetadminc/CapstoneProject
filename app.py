@@ -11,8 +11,10 @@ import sqlite3
 import os
 import streamlit as st
 import pandas as pd
+from ui_common import require_login
 
 st.set_page_config(page_title="InvestigateIQ", page_icon="🔎", layout="centered")
+user_name, user_role = require_login()
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "investigateiq.db")
 

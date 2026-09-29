@@ -17,8 +17,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.runtime_db import get_rule_config, set_rule_param, get_audit_log
 from data.trigger_rules import preview_trigger_counts
+from ui_common import require_login, role_warning
 
 st.set_page_config(page_title="InvestigateIQ — Rule Config", page_icon="⚙️", layout="wide")
+user_name, user_role = require_login()
 
 ADMIN_PASSCODE = os.environ.get("ADMIN_PASSCODE", "investigateiq-admin")
 
@@ -37,6 +39,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.write("")
+role_warning(user_role, "Admin")
 
 if "rules_admin_unlocked" not in st.session_state:
     st.session_state.rules_admin_unlocked = False
@@ -97,7 +100,7 @@ if "rule_preview" in st.session_state:
 
 st.divider()
 st.subheader("Save")
-admin_name = st.text_input("Your name (for the audit trail)")
+admin_name = st.text_input("Your name (for the audit trail)", value=user_name)
 if st.button("💾 Save these thresholds", type="primary", disabled=not changed):
     if not admin_name.strip():
         st.error("Your name is required — this gets logged to the audit trail.")

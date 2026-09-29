@@ -21,11 +21,13 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import DB_PATH
 from data.runtime_db import get_latest_decision_per_case
+from ui_common import require_login
 
 HERO_CASES = {"CASE-001", "CASE-002"}
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "cached_reports")
 
 st.set_page_config(page_title="InvestigateIQ — Case Queue", page_icon="🗂️", layout="wide")
+user_name, user_role = require_login()
 
 st.markdown(
     """
