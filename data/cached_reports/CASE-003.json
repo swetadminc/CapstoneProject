@@ -1,0 +1,133 @@
+{
+  "case_id": "CASE-003",
+  "generated_at": "2026-09-29T12:05:21.812776+00:00",
+  "model": "models/gemini-flash-lite-latest",
+  "context": {
+    "case_id": "CASE-003",
+    "alert": {
+      "alert_id": "ALERT-003",
+      "case_id": "CASE-003",
+      "customer_id": "CUST-0359",
+      "account_id": "ACC-1359",
+      "alert_type": "Velocity anomaly",
+      "scenario_id": "velocity",
+      "trigger_rule": "R1+R2",
+      "alert_date": "2026-04-07",
+      "severity": "Low",
+      "trigger_transaction_id": null,
+      "status": "Closed - No Concern"
+    },
+    "customer": {
+      "customer_id": "CUST-0359",
+      "name": "Deepak Shetty",
+      "type": "Individual",
+      "segment": "Retail - Affluent",
+      "occupation_or_industry": "Salaried - Banking",
+      "declared_annual_income": 3500000,
+      "expected_monthly_credit": 343751,
+      "expected_monthly_debit": 181781,
+      "declared_source_of_funds": "Freelance income",
+      "risk_rating": "Low",
+      "kyc_status": "Verified",
+      "kyc_last_updated": "2026-03-10",
+      "country": "India",
+      "onboarding_date": "2026-05-26"
+    },
+    "account": {
+      "account_id": "ACC-1359",
+      "customer_id": "CUST-0359",
+      "type": "Savings Account",
+      "open_date": "2026-05-26",
+      "currency": "INR",
+      "status": "Active",
+      "risk_rating": "Low",
+      "is_internal": 1,
+      "counterparty_name": null
+    }
+  },
+  "evidence": {
+    "baseline_avg_amount": 35833.0,
+    "baseline_txn_count": 5,
+    "deviation_ratio": 0.9,
+    "window_transactions": [
+      {
+        "txn_id": "TXN-15941",
+        "txn_datetime": "2026-04-11T19:56:00",
+        "direction": "DR",
+        "amount": 33760,
+        "counterparty_name": "Aditya Pillai",
+        "counterparty_account_id": "ACC-1635",
+        "reference_text": "Family transfer"
+      }
+    ],
+    "evidence_window_empty": false,
+    "relationships": [
+      {
+        "counterparty_account_id": "ACC-1635",
+        "relationship": null
+      }
+    ],
+    "prior_cases": [],
+    "documents": []
+  },
+  "guidance": [
+    {
+      "chunk_id": "PB-AML-VEL-05-C0",
+      "doc_id": "PB-AML-VEL-05",
+      "doc_title": "Documentation required before closing a velocity case",
+      "escalation_criteria": "not applicable - this is the closure checklist",
+      "chunk_text": "Documentation required before closing a velocity case. Escalation criteria: not applicable - this is the closure checklist.",
+      "score": 5.36
+    },
+    {
+      "chunk_id": "PB-AML-VEL-04-C0",
+      "doc_id": "PB-AML-VEL-04",
+      "doc_title": "Escalation criteria for the velocity scenario",
+      "escalation_criteria": "unexplained high-frequency activity inconsistent with customer profile after investigation",
+      "chunk_text": "Escalation criteria for the velocity scenario. Escalation criteria: unexplained high-frequency activity inconsistent with customer profile after investigation.",
+      "score": 5.188
+    },
+    {
+      "chunk_id": "PB-AML-VEL-02-C0",
+      "doc_id": "PB-AML-VEL-02",
+      "doc_title": "Assess whether the velocity fits the customer's business",
+      "escalation_criteria": "transaction frequency inconsistent with declared occupation or business type",
+      "chunk_text": "Assess whether the velocity fits the customer's business. Escalation criteria: transaction frequency inconsistent with declared occupation or business type.",
+      "score": 5.027
+    },
+    {
+      "chunk_id": "PB-AML-VEL-03-C1",
+      "doc_id": "PB-AML-VEL-03",
+      "doc_title": "Check for structuring indicators",
+      "escalation_criteria": "multiple transactions clustered just below an internal review threshold",
+      "chunk_text": "Look specifically for a pattern of transactions sized just under a known reporting or review threshold, repeated across a short period. This is a specific red flag distinct from velocity alone and should be called out explicitly as a finding if present, with the actual amounts cited.",
+      "score": 3.54
+    }
+  ],
+  "report": {
+    "findings": [
+      {
+        "type": "counter_evidence",
+        "description": "The transaction amount of 33760 is below the baseline average of 35833.0, showing a deviation ratio of 0.9x.",
+        "evidence_status": "Verified",
+        "why_it_matters": "It indicates that the transaction volume does not exceed normal baseline expectations for this customer profile.",
+        "supporting_txn_ids": [
+          "TXN-15941"
+        ]
+      }
+    ],
+    "investigation_questions": [
+      "What is the frequency of family transfers for Deepak Shetty?",
+      "Is Aditya Pillai a known relative or frequent counterparty?"
+    ],
+    "recommended_next_steps": [
+      {
+        "step": "Complete documentation required before closing a velocity case.",
+        "playbook_doc_id": "PB-AML-VEL-05"
+      }
+    ],
+    "narrative_summary": "Case CASE-003 involves a low severity velocity anomaly for Deepak Shetty, a salaried banking professional with a low risk rating and verified KYC status. Transaction analysis reveals a single transaction within the window (TXN-15941) for 33760, which is slightly below the baseline average with a deviation ratio of 0.9x. The reference text notes it as a family transfer with counterparty Aditya Pillai. No prior cases or documents on file were found. Further investigation can follow standard velocity closure documentation guidelines.",
+    "_validator_notes": [],
+    "_validator_result": "PASS"
+  }
+}

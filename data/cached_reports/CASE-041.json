@@ -1,0 +1,186 @@
+{
+  "case_id": "CASE-041",
+  "generated_at": "2026-09-29T12:05:18.532756+00:00",
+  "model": "models/gemini-flash-lite-latest",
+  "context": {
+    "case_id": "CASE-041",
+    "alert": {
+      "alert_id": "ALERT-041",
+      "case_id": "CASE-041",
+      "customer_id": "CUST-1005",
+      "account_id": "ACC-1652",
+      "alert_type": "Structuring - multiple transactions below reporting threshold",
+      "scenario_id": "structuring",
+      "trigger_rule": "R3 (structuring)",
+      "alert_date": "2026-09-22",
+      "severity": "High",
+      "trigger_transaction_id": "TXN-19927",
+      "status": "Open"
+    },
+    "customer": {
+      "customer_id": "CUST-1005",
+      "name": "Coastal Wholesale Traders",
+      "type": "Business",
+      "segment": "SME - Wholesale Trade",
+      "occupation_or_industry": "Wholesale distribution - consumer goods",
+      "declared_annual_income": 48000000,
+      "expected_monthly_credit": 4000000,
+      "expected_monthly_debit": 3800000,
+      "declared_source_of_funds": "Wholesale trade receivables",
+      "risk_rating": "Medium",
+      "kyc_status": "Verified",
+      "kyc_last_updated": "2026-06-25",
+      "country": "India",
+      "onboarding_date": "2024-08-19"
+    },
+    "account": {
+      "account_id": "ACC-1652",
+      "customer_id": "CUST-1005",
+      "type": "Current Account",
+      "open_date": "2024-08-19",
+      "currency": "INR",
+      "status": "Active",
+      "risk_rating": "Medium",
+      "is_internal": 1,
+      "counterparty_name": null
+    }
+  },
+  "evidence": {
+    "baseline_avg_amount": 395000.0,
+    "baseline_txn_count": 10,
+    "deviation_ratio": 2.5,
+    "window_transactions": [
+      {
+        "txn_id": "TXN-19927",
+        "txn_datetime": "2026-09-22T10:15:00",
+        "direction": "CR",
+        "amount": 975000,
+        "counterparty_name": "Cash",
+        "counterparty_account_id": null,
+        "reference_text": "Cash deposit"
+      },
+      {
+        "txn_id": "TXN-19928",
+        "txn_datetime": "2026-09-23T11:15:00",
+        "direction": "CR",
+        "amount": 960000,
+        "counterparty_name": "Cash",
+        "counterparty_account_id": null,
+        "reference_text": "Cash deposit"
+      },
+      {
+        "txn_id": "TXN-19929",
+        "txn_datetime": "2026-09-24T12:15:00",
+        "direction": "CR",
+        "amount": 985000,
+        "counterparty_name": "Retail Partner A",
+        "counterparty_account_id": null,
+        "reference_text": "Payment received"
+      },
+      {
+        "txn_id": "TXN-19930",
+        "txn_datetime": "2026-09-25T13:15:00",
+        "direction": "CR",
+        "amount": 955000,
+        "counterparty_name": "Cash",
+        "counterparty_account_id": null,
+        "reference_text": "Cash deposit"
+      },
+      {
+        "txn_id": "TXN-19931",
+        "txn_datetime": "2026-09-26T14:15:00",
+        "direction": "CR",
+        "amount": 970000,
+        "counterparty_name": "Retail Partner B",
+        "counterparty_account_id": null,
+        "reference_text": "Payment received"
+      },
+      {
+        "txn_id": "TXN-19932",
+        "txn_datetime": "2026-09-27T15:15:00",
+        "direction": "CR",
+        "amount": 980000,
+        "counterparty_name": "Cash",
+        "counterparty_account_id": null,
+        "reference_text": "Cash deposit"
+      }
+    ],
+    "evidence_window_empty": false,
+    "relationships": [],
+    "prior_cases": [],
+    "documents": []
+  },
+  "guidance": [
+    {
+      "chunk_id": "PB-AML-STR-01-C0",
+      "doc_id": "PB-AML-STR-01",
+      "doc_title": "Identify and document a structuring pattern",
+      "escalation_criteria": "multiple transactions clustered just below a reporting or review threshold within a short period",
+      "chunk_text": "Identify and document a structuring pattern. Escalation criteria: multiple transactions clustered just below a reporting or review threshold within a short period.",
+      "score": 15.789
+    },
+    {
+      "chunk_id": "PB-AML-STR-02-C0",
+      "doc_id": "PB-AML-STR-02",
+      "doc_title": "Escalation criteria for a structuring pattern",
+      "escalation_criteria": "unexplained cluster of below-threshold transactions with no plausible business rationale",
+      "chunk_text": "Escalation criteria for a structuring pattern. Escalation criteria: unexplained cluster of below-threshold transactions with no plausible business rationale.",
+      "score": 11.071
+    },
+    {
+      "chunk_id": "PB-AML-STR-01-C1",
+      "doc_id": "PB-AML-STR-01",
+      "doc_title": "Identify and document a structuring pattern",
+      "escalation_criteria": "multiple transactions clustered just below a reporting or review threshold within a short period",
+      "chunk_text": "List every transaction in the cluster with its exact amount, date, and channel, and compute the total value\nmoved. A structuring pattern is characterized by multiple transactions each individually below a known\nreporting or internal review threshold, occurring close together in time, that in aggregate would have\nrequired additional scrutiny as a single transaction.",
+      "score": 10.648
+    },
+    {
+      "chunk_id": "PB-AML-STR-02-C1",
+      "doc_id": "PB-AML-STR-02",
+      "doc_title": "Escalation criteria for a structuring pattern",
+      "escalation_criteria": "unexplained cluster of below-threshold transactions with no plausible business rationale",
+      "chunk_text": "Escalate when the transaction cluster is confirmed to be structuring-like (see PB-AML-STR-01), AND the\ncustomer's declared business does not plausibly generate that specific pattern of repeated near-threshold\ndeposits, AND no reasonable explanation is on file after a documented request. A wholesale or cash-intensive\nbusiness receiving frequent moderate payments is not automatically suspicious \u2014 the escalation bar is the\ncombination of the pattern, the lack of a plausible business rationale, and the absence of an explanation,\nnot the pattern alone.",
+      "score": 3.23
+    }
+  ],
+  "report": {
+    "findings": [
+      {
+        "type": "red_flag",
+        "description": "Multiple cash deposits occurring in close succession just below standard reporting thresholds.",
+        "evidence_status": "Verified",
+        "why_it_matters": "Clustered transactions near reporting limits warrant further review to understand the operational context.",
+        "supporting_txn_ids": [
+          "TXN-19927",
+          "TXN-19928",
+          "TXN-19930",
+          "TXN-19932"
+        ]
+      },
+      {
+        "type": "missing",
+        "description": "No documents on file explaining the business rationale for the observed transaction patterns.",
+        "evidence_status": "Missing",
+        "why_it_matters": "Without supporting documentation, it is difficult to determine if the activity aligns with standard wholesale distribution operations."
+      }
+    ],
+    "investigation_questions": [
+      "What is the underlying business agreement supporting the frequent cash deposits from wholesale operations?",
+      "Does the volume of cash align with standard industry practices for wholesale distribution of consumer goods?"
+    ],
+    "recommended_next_steps": [
+      {
+        "step": "Identify and document the transaction pattern by listing every transaction in the cluster with its exact amount, date, and channel.",
+        "playbook_doc_id": "PB-AML-STR-01"
+      },
+      {
+        "step": "Evaluate whether the customer's declared business generates plausible rationale for the repeated near-threshold deposits.",
+        "playbook_doc_id": "PB-AML-STR-02"
+      }
+    ],
+    "narrative_summary": "Case CASE-041 for Coastal Wholesale Traders involves an alert for a clustering of transactions near reporting thresholds, showing a deviation ratio of 2.5x the baseline average. The review window contains multiple cash deposits and partner payments that require further operational context. Additional documentation and outreach are recommended to gather the business rationale behind these specific transaction patterns.",
+    "_validator_notes": [],
+    "_validator_result": "PASS"
+  }
+}

@@ -1,0 +1,196 @@
+{
+  "case_id": "CASE-006",
+  "generated_at": "2026-09-29T12:05:25.752369+00:00",
+  "model": "models/gemini-flash-lite-latest",
+  "context": {
+    "case_id": "CASE-006",
+    "alert": {
+      "alert_id": "ALERT-006",
+      "case_id": "CASE-006",
+      "customer_id": "CUST-0166",
+      "account_id": "ACC-1166",
+      "alert_type": "Velocity anomaly",
+      "scenario_id": "amount-anomaly",
+      "trigger_rule": "R2",
+      "alert_date": "2026-01-31",
+      "severity": "Medium",
+      "trigger_transaction_id": null,
+      "status": "Escalated"
+    },
+    "customer": {
+      "customer_id": "CUST-0166",
+      "name": "Divya Pandey",
+      "type": "Individual",
+      "segment": "Retail - Affluent",
+      "occupation_or_industry": "Government Employee",
+      "declared_annual_income": 850000,
+      "expected_monthly_credit": 61298,
+      "expected_monthly_debit": 55623,
+      "declared_source_of_funds": "Freelance income",
+      "risk_rating": "Low",
+      "kyc_status": "Verified",
+      "kyc_last_updated": "2025-04-01",
+      "country": "India",
+      "onboarding_date": "2023-09-29"
+    },
+    "account": {
+      "account_id": "ACC-1166",
+      "customer_id": "CUST-0166",
+      "type": "Savings Account",
+      "open_date": "2023-09-29",
+      "currency": "INR",
+      "status": "Active",
+      "risk_rating": "Low",
+      "is_internal": 1,
+      "counterparty_name": null
+    }
+  },
+  "evidence": {
+    "baseline_avg_amount": 6032.25,
+    "baseline_txn_count": 4,
+    "deviation_ratio": null,
+    "window_transactions": [
+      {
+        "txn_id": "TXN-12813",
+        "txn_datetime": "2026-01-06T11:00:00",
+        "direction": "CR",
+        "amount": 1301,
+        "counterparty_name": "Ananya Dutta",
+        "counterparty_account_id": "ACC-1612",
+        "reference_text": "Vendor payment"
+      },
+      {
+        "txn_id": "TXN-12821",
+        "txn_datetime": "2026-01-17T17:46:00",
+        "direction": "DR",
+        "amount": 4709,
+        "counterparty_name": "Alpine Overseas Pvt. Ltd.",
+        "counterparty_account_id": "ACC-1618",
+        "reference_text": "Online purchase settlement"
+      },
+      {
+        "txn_id": "TXN-12820",
+        "txn_datetime": "2026-01-19T13:45:00",
+        "direction": "DR",
+        "amount": 8461,
+        "counterparty_name": "Falcon Imports LLP",
+        "counterparty_account_id": "ACC-1596",
+        "reference_text": "Vendor payment"
+      },
+      {
+        "txn_id": "TXN-12814",
+        "txn_datetime": "2026-01-24T19:36:00",
+        "direction": "DR",
+        "amount": 9658,
+        "counterparty_name": "Summit Impex Ltd.",
+        "counterparty_account_id": "ACC-1479",
+        "reference_text": "Trade settlement"
+      },
+      {
+        "txn_id": "TXN-12823",
+        "txn_datetime": "2026-02-21T11:25:00",
+        "direction": "CR",
+        "amount": 7411,
+        "counterparty_name": "Shreya Iyer",
+        "counterparty_account_id": "ACC-1633",
+        "reference_text": "Investment transfer"
+      }
+    ],
+    "evidence_window_empty": true,
+    "relationships": [
+      {
+        "counterparty_account_id": "ACC-1612",
+        "relationship": null
+      },
+      {
+        "counterparty_account_id": "ACC-1633",
+        "relationship": null
+      },
+      {
+        "counterparty_account_id": "ACC-1618",
+        "relationship": null
+      },
+      {
+        "counterparty_account_id": "ACC-1596",
+        "relationship": null
+      },
+      {
+        "counterparty_account_id": "ACC-1479",
+        "relationship": null
+      }
+    ],
+    "prior_cases": [],
+    "documents": []
+  },
+  "guidance": [
+    {
+      "chunk_id": "PB-AML-AA-05-C0",
+      "doc_id": "PB-AML-AA-05",
+      "doc_title": "Documentation required before closing an amount-anomaly case",
+      "escalation_criteria": "not applicable - this is the closure checklist",
+      "chunk_text": "Documentation required before closing an amount-anomaly case. Escalation criteria: not applicable - this is the closure checklist.",
+      "score": 7.917
+    },
+    {
+      "chunk_id": "PB-AML-AA-04-C0",
+      "doc_id": "PB-AML-AA-04",
+      "doc_title": "Escalation criteria for the amount-anomaly scenario",
+      "escalation_criteria": "unresolved large-value transaction with no plausible explanation after investigation",
+      "chunk_text": "Escalation criteria for the amount-anomaly scenario. Escalation criteria: unresolved large-value transaction with no plausible explanation after investigation.",
+      "score": 7.666
+    },
+    {
+      "chunk_id": "PB-AML-AA-02-C0",
+      "doc_id": "PB-AML-AA-02",
+      "doc_title": "Verify source of funds for the anomalous amount",
+      "escalation_criteria": "source of funds undeclared or unsupported for the flagged transaction",
+      "chunk_text": "Verify source of funds for the anomalous amount. Escalation criteria: source of funds undeclared or unsupported for the flagged transaction.",
+      "score": 1.37
+    },
+    {
+      "chunk_id": "PB-AML-AA-01-C0",
+      "doc_id": "PB-AML-AA-01",
+      "doc_title": "Compare the flagged transaction to historical pattern",
+      "escalation_criteria": "flagged amount exceeds 5x the account's trailing average with no explanation on file",
+      "chunk_text": "Compare the flagged transaction to historical pattern. Escalation criteria: flagged amount exceeds 5x the account's trailing average with no explanation on file.",
+      "score": 1.309
+    }
+  ],
+  "report": {
+    "findings": [
+      {
+        "type": "missing",
+        "description": "No transactions fell within this alert's review window as the account had no recorded activity in that period.",
+        "evidence_status": "Missing",
+        "why_it_matters": "An empty review window makes it difficult to assess the validity of the velocity anomaly alert without expanding the search timeframe."
+      },
+      {
+        "type": "counter_evidence",
+        "description": "Background transactions outside the review window show standard commercial vendor payments and trade settlements such as TXN-12820 and TXN-12814.",
+        "evidence_status": "Verified",
+        "why_it_matters": "Provides contextual account behavior prior to the review window, though they do not trigger the alert itself.",
+        "supporting_txn_ids": [
+          "TXN-12820",
+          "TXN-12814"
+        ]
+      }
+    ],
+    "investigation_questions": [
+      "Why was a velocity anomaly alert triggered when the review window contains no recorded activity?",
+      "Are there any alternate accounts or hidden channels linked to the customer that might display the anomalous velocity?"
+    ],
+    "recommended_next_steps": [
+      {
+        "step": "Verify source of funds for the anomalous amount or surrounding activity.",
+        "playbook_doc_id": "PB-AML-AA-02"
+      },
+      {
+        "step": "Compare the flagged timeframe or nearest transactions to historical patterns.",
+        "playbook_doc_id": "PB-AML-AA-01"
+      }
+    ],
+    "narrative_summary": "Case CASE-006 was generated as a velocity anomaly alert with a medium severity for customer Divya Pandey. Upon review, no transactions actually fell within the designated review window, indicating an empty activity period for that timeframe. Nearest historical transactions have been reviewed as background context, but further investigation is required to reconcile the alert trigger with the lack of recorded activity in the review window.",
+    "_validator_notes": [],
+    "_validator_result": "PASS"
+  }
+}

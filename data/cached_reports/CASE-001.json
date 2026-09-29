@@ -1,6 +1,6 @@
 {
   "case_id": "CASE-001",
-  "generated_at": "2026-09-28T21:05:05.836613Z",
+  "generated_at": "2026-09-29T12:05:10.669291+00:00",
   "model": "models/gemini-flash-lite-latest",
   "context": {
     "case_id": "CASE-001",
@@ -123,13 +123,18 @@
         "reference_text": "School fee payment"
       }
     ],
+    "evidence_window_empty": false,
     "relationships": [
       {
         "counterparty_account_id": "ACC-1610",
         "relationship": null
       },
       {
-        "counterparty_account_id": "ACC-1587",
+        "counterparty_account_id": "ACC-1637",
+        "relationship": null
+      },
+      {
+        "counterparty_account_id": "ACC-1588",
         "relationship": {
           "relationship_type": "Unknown",
           "source": "Observed",
@@ -139,11 +144,7 @@
         }
       },
       {
-        "counterparty_account_id": "ACC-1637",
-        "relationship": null
-      },
-      {
-        "counterparty_account_id": "ACC-1588",
+        "counterparty_account_id": "ACC-1587",
         "relationship": {
           "relationship_type": "Unknown",
           "source": "Observed",
@@ -179,7 +180,7 @@
       "doc_title": "Escalation criteria for the rapid-movement-of-funds scenario",
       "escalation_criteria": "unresolved high-value unverified transfer after investigation",
       "chunk_text": "Escalation criteria for the rapid-movement-of-funds scenario. Escalation criteria: unresolved high-value unverified transfer after investigation.",
-      "score": 16.541
+      "score": 21.357
     },
     {
       "chunk_id": "PB-AML-07-03-C0",
@@ -187,7 +188,7 @@
       "doc_title": "Verify source of funds",
       "escalation_criteria": "source of funds undeclared or unsupported",
       "chunk_text": "Verify source of funds. Escalation criteria: source of funds undeclared or unsupported.",
-      "score": 4.589
+      "score": 5.981
     },
     {
       "chunk_id": "PB-AML-07-10-C1",
@@ -195,7 +196,7 @@
       "doc_title": "Documentation required before case closure",
       "escalation_criteria": "not applicable - this is the closure checklist",
       "chunk_text": "Before closing a case with no concern identified, confirm four things are true: the customer's KYC status is current, the source of funds is either documented or reasonably explained, the counterparty relationship is understood well enough to account for the activity, and the investigator has recorded a written rationale for the decision in the case file.",
-      "score": 3.525
+      "score": 4.427
     },
     {
       "chunk_id": "PB-AML-07-03-C1",
@@ -203,16 +204,16 @@
       "doc_title": "Verify source of funds",
       "escalation_criteria": "source of funds undeclared or unsupported",
       "chunk_text": "Request documentation supporting the declared source of funds for the flagged credit. Acceptable evidence includes an invoice, a signed contract, a sale deed, or equivalent proof tied to the transaction amount and date.",
-      "score": 3.188
+      "score": 3.717
     }
   ],
   "report": {
     "findings": [
       {
         "type": "red_flag",
-        "description": "Rapid movement of funds with a deviation ratio of 6.6x baseline, involving large inward remittances followed quickly by outward payments to Orion Consulting and Delta Trading.",
+        "description": "Apex Global Trading Ltd. experienced rapid movement of funds with a deviation ratio of 6.6x baseline, receiving large inflows from NewCo Imports and quickly disbursing funds to Orion Consulting and Delta Trading within a short timeframe.",
         "evidence_status": "Verified",
-        "why_it_matters": "Significant volume and velocity deviations from the customer's baseline average warrant investigation to understand the commercial rationale.",
+        "why_it_matters": "Unusual volume and velocity of transactions that deviate significantly from baseline averages warrant further investigation into the business purpose of the flows.",
         "supporting_txn_ids": [
           "TXN-19918",
           "TXN-19919",
@@ -224,28 +225,34 @@
       },
       {
         "type": "missing",
-        "description": "No documentation on file to support the source of funds or business rationale for the large transfers.",
+        "description": "Counterparty relationships for NewCo Imports, Orion Consulting, and Delta Trading are marked as unknown or unverified.",
         "evidence_status": "Missing",
-        "why_it_matters": "Without supporting documentation or contracts, it is difficult to confirm whether the activity aligns with the customer's stated import/export profile.",
-        "supporting_txn_ids": []
+        "why_it_matters": "Without verified counterparty relationships, it is difficult to determine whether large transactions align with the customer's stated import/export profile.",
+        "supporting_txn_ids": [
+          "TXN-19918",
+          "TXN-19919",
+          "TXN-19920",
+          "TXN-19921",
+          "TXN-19922",
+          "TXN-19923"
+        ]
       }
     ],
     "investigation_questions": [
-      "What is the underlying commercial purpose of the rapid fund transfers to Orion Consulting and Delta Trading?",
-      "Do contracts or invoices exist to substantiate the inward remittances from NewCo Imports and the outward payments?",
-      "What is the nature of the relationship between Apex Global Trading Ltd. and the newly observed counterparties?"
+      "What is the business rationale behind the large payments made to Orion Consulting and Delta Trading immediately following the inward remittances from NewCo Imports?",
+      "Are there underlying invoices, contracts, or shipping documents supporting the high-value transactions observed in the review window?"
     ],
     "recommended_next_steps": [
       {
-        "step": "Verify the source of funds by requesting documentation supporting the declared source for the flagged credit.",
+        "step": "Verify the source of funds by requesting documentation such as invoices, signed contracts, or equivalent proof tied to the transaction amounts and dates.",
         "playbook_doc_id": "PB-AML-07-03"
       },
       {
-        "step": "Confirm all requirements under the guidance for closing cases before making a final determination.",
+        "step": "Confirm whether the counterparty relationships and business purposes are sufficiently understood to account for the rapid movement of funds.",
         "playbook_doc_id": "PB-AML-07-10"
       }
     ],
-    "narrative_summary": "Case CASE-001 involves Apex Global Trading Ltd., a medium-risk business specializing in industrial equipment import/export. An alert was generated for unusual transaction activity and rapid movement of funds, showing a deviation ratio of 6.6x baseline. Specifically, large credits from NewCo Imports were quickly followed by large debits to Orion Consulting and Delta Trading. There are currently no supporting documents on file to explain this volume of transactions, prompting further review following established playbook guidance.",
+    "narrative_summary": "Apex Global Trading Ltd. triggered a high-severity alert for unusual transaction activity and rapid movement of funds, operating at 6.6x its baseline average amount. Large inward remittances were received from NewCo Imports and subsequently disbursed in similar quantities to Orion Consulting and Delta Trading over a two-day period. Counterparty relationships remain unverified, and supporting documentation is currently missing from the file. Further review is required to understand the commercial justification for these funds flows.",
     "_validator_notes": [],
     "_validator_result": "PASS"
   }

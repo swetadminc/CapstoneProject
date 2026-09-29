@@ -169,6 +169,9 @@ if state_key in st.session_state:
     c2.metric("Deviation ratio", f"{evidence['deviation_ratio']}x" if evidence["deviation_ratio"] else "—")
     c3.metric("Transactions in window", len(evidence["window_transactions"]))
     c4.metric("Prior cases found", len(evidence["prior_cases"]))
+    if evidence.get("evidence_window_empty"):
+        st.caption("⚠️ No transactions fell inside this alert's review window — the transactions shown below "
+                   "are the nearest ones in time, for background context only, not the trigger event.")
 
     st.divider()
 
@@ -217,6 +220,7 @@ if state_key in st.session_state:
 
         with st.expander("Raw evidence passed to the model (for full transparency)"):
             st.json({
+                "evidence_window_empty": evidence.get("evidence_window_empty", False),
                 "window_transactions": evidence["window_transactions"],
                 "relationships": evidence["relationships"],
                 "documents": evidence["documents"],

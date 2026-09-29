@@ -145,6 +145,30 @@ def discover_evidence(context: dict, window_days: int = 10) -> dict:
     ).fetchall()
     window_txns = [dict(r) for r in window_txns]
 
+    # Broader per-case verification (pending item #6) found that 24 of the
+    # 41 alerts in the dataset have zero transactions in that strict window
+    # — most alerts were generated without a real anchoring
+    # trigger_transaction_id, so alert_date doesn't reliably line up with
+    # actual account activity. Previously this silently produced an empty
+    # evidence set and the LLM had nothing to reason about but "MISSING."
+    # Fallback: show the nearest real transactions to alert_date instead,
+    # clearly labeled as NOT within the review window, so the report is
+    # still grounded in real data rather than a dead end. This never
+    # affects a case that already has real in-window evidence (including
+    # the frozen C1/C2 hero scenario and CASE-041).
+    evidence_window_empty = len(window_txns) == 0
+    if evidence_window_empty:
+        nearest = cur.execute(
+            """SELECT txn_id, txn_datetime, direction, amount, counterparty_name,
+                      counterparty_account_id, reference_text
+               FROM transactions
+               WHERE account_id = ?
+               ORDER BY ABS(julianday(txn_datetime) - julianday(?))
+               LIMIT 5""",
+            (account_id, alert_date),
+        ).fetchall()
+        window_txns = sorted((dict(r) for r in nearest), key=lambda t: t["txn_datetime"])
+
     # Relationships for every counterparty seen in the window.
     counterparty_ids = {t["counterparty_account_id"] for t in window_txns if t["counterparty_account_id"]}
     relationships = []
@@ -174,14 +198,21 @@ def discover_evidence(context: dict, window_days: int = 10) -> dict:
 
     conn.close()
 
-    trigger_amt = window_txns[0]["amount"] if window_txns else 0
-    deviation_ratio = round(trigger_amt / baseline_avg, 1) if baseline_avg else None
+    # deviation_ratio is only meaningful against a real in-window trigger
+    # transaction — with the nearest-activity fallback there is no such
+    # transaction, so leave it unset rather than imply a false precision.
+    if evidence_window_empty:
+        deviation_ratio = None
+    else:
+        trigger_amt = window_txns[0]["amount"]
+        deviation_ratio = round(trigger_amt / baseline_avg, 1) if baseline_avg else None
 
     return {
         "baseline_avg_amount": round(baseline_avg, 2),
         "baseline_txn_count": baseline_n,
         "deviation_ratio": deviation_ratio,
         "window_transactions": window_txns,
+        "evidence_window_empty": evidence_window_empty,
         "relationships": relationships,
         "prior_cases": prior_cases,
         "documents": documents,
@@ -224,8 +255,9 @@ kyc_status: {context['customer']['kyc_status']}
 
 TRANSACTION ANALYSIS (computed, not estimated)
 baseline_avg_amount: {evidence['baseline_avg_amount']}
-deviation_ratio: {evidence['deviation_ratio']}x baseline
-window_transactions: {json.dumps(evidence['window_transactions'], default=str)}
+deviation_ratio: {f"{evidence['deviation_ratio']}x baseline" if evidence['deviation_ratio'] is not None else "not computable — see note below"}
+{"NOTE: no transactions fell within this alert's review window (the account had no recorded activity in that period). The transactions below are the nearest ones in time, shown ONLY as background context — do NOT treat any of them as the transaction that triggered this alert, and say plainly in your findings that the review window itself was empty." if evidence['evidence_window_empty'] else "window_transactions (within the alert's review window):"}
+{json.dumps(evidence['window_transactions'], default=str)}
 
 RELATIONSHIPS
 {json.dumps(evidence['relationships'], default=str)}

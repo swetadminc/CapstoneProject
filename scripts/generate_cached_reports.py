@@ -22,7 +22,10 @@ OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data",
 OUT_DIR = os.path.abspath(OUT_DIR)
 os.makedirs(OUT_DIR, exist_ok=True)
 
-CASES = ["CASE-001", "CASE-002"]
+# One representative case per typology, plus both rapid-movement hero cases —
+# item #6/#7: this also doubles as live-agent verification beyond the original
+# 2 hero cases, since generating a cached report requires a clean investigate() run.
+CASES = ["CASE-001", "CASE-002", "CASE-041", "CASE-003", "CASE-006"]
 
 
 def main():

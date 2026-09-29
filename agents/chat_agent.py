@@ -70,8 +70,9 @@ declared_source_of_funds: {context['customer'].get('declared_source_of_funds')}
 
 TRANSACTION ANALYSIS
 baseline_avg_amount: {evidence['baseline_avg_amount']}
-deviation_ratio: {evidence['deviation_ratio']}x baseline
-window_transactions: {json.dumps(evidence['window_transactions'], default=str)}
+deviation_ratio: {f"{evidence['deviation_ratio']}x baseline" if evidence.get('deviation_ratio') is not None else "not computable — see note below"}
+{"NOTE: no transactions fell within this alert's review window. The transactions below are the nearest ones in time, for background context only — they are NOT the transaction that triggered this alert; say so plainly if asked." if evidence.get('evidence_window_empty') else "window_transactions (within the alert's review window):"}
+{json.dumps(evidence['window_transactions'], default=str)}
 
 RELATIONSHIPS
 {json.dumps(evidence['relationships'], default=str)}

@@ -1,6 +1,6 @@
 {
   "case_id": "CASE-002",
-  "generated_at": "2026-09-28T21:05:21.715311Z",
+  "generated_at": "2026-09-29T12:05:15.037431+00:00",
   "model": "models/gemini-flash-lite-latest",
   "context": {
     "case_id": "CASE-002",
@@ -87,7 +87,28 @@
         "reference_text": "Rent payment"
       }
     ],
+    "evidence_window_empty": false,
     "relationships": [
+      {
+        "counterparty_account_id": "ACC-1591",
+        "relationship": {
+          "relationship_type": "Business - Service Provider",
+          "source": "KYC-declared",
+          "verified": "Yes",
+          "start_date": "2024-07-20",
+          "previously_flagged": 0
+        }
+      },
+      {
+        "counterparty_account_id": "ACC-1590",
+        "relationship": {
+          "relationship_type": "Business - Supplier",
+          "source": "KYC-declared",
+          "verified": "Yes",
+          "start_date": "2024-07-20",
+          "previously_flagged": 0
+        }
+      },
       {
         "counterparty_account_id": "ACC-1589",
         "relationship": {
@@ -101,26 +122,6 @@
       {
         "counterparty_account_id": "ACC-1621",
         "relationship": null
-      },
-      {
-        "counterparty_account_id": "ACC-1590",
-        "relationship": {
-          "relationship_type": "Business - Supplier",
-          "source": "KYC-declared",
-          "verified": "Yes",
-          "start_date": "2024-07-20",
-          "previously_flagged": 0
-        }
-      },
-      {
-        "counterparty_account_id": "ACC-1591",
-        "relationship": {
-          "relationship_type": "Business - Service Provider",
-          "source": "KYC-declared",
-          "verified": "Yes",
-          "start_date": "2024-07-20",
-          "previously_flagged": 0
-        }
       }
     ],
     "prior_cases": [
@@ -154,7 +155,7 @@
       "doc_title": "Escalation criteria for the rapid-movement-of-funds scenario",
       "escalation_criteria": "unresolved high-value unverified transfer after investigation",
       "chunk_text": "Escalation criteria for the rapid-movement-of-funds scenario. Escalation criteria: unresolved high-value unverified transfer after investigation.",
-      "score": 16.541
+      "score": 21.357
     },
     {
       "chunk_id": "PB-AML-07-03-C0",
@@ -162,7 +163,7 @@
       "doc_title": "Verify source of funds",
       "escalation_criteria": "source of funds undeclared or unsupported",
       "chunk_text": "Verify source of funds. Escalation criteria: source of funds undeclared or unsupported.",
-      "score": 4.589
+      "score": 5.981
     },
     {
       "chunk_id": "PB-AML-07-10-C1",
@@ -170,7 +171,7 @@
       "doc_title": "Documentation required before case closure",
       "escalation_criteria": "not applicable - this is the closure checklist",
       "chunk_text": "Before closing a case with no concern identified, confirm four things are true: the customer's KYC status is current, the source of funds is either documented or reasonably explained, the counterparty relationship is understood well enough to account for the activity, and the investigator has recorded a written rationale for the decision in the case file.",
-      "score": 3.525
+      "score": 4.427
     },
     {
       "chunk_id": "PB-AML-07-03-C1",
@@ -178,55 +179,48 @@
       "doc_title": "Verify source of funds",
       "escalation_criteria": "source of funds undeclared or unsupported",
       "chunk_text": "Request documentation supporting the declared source of funds for the flagged credit. Acceptable evidence includes an invoice, a signed contract, a sale deed, or equivalent proof tied to the transaction amount and date.",
-      "score": 3.188
+      "score": 3.717
     }
   ],
   "report": {
     "findings": [
       {
         "type": "red_flag",
-        "description": "Transaction volume shows a significant deviation of 21.3x above the baseline average amount, driven by a large credit of 9,000,000 INR from Continental Buyers Pte Ltd.",
+        "description": "Transaction volume shows a significant deviation of 21.3x above baseline average amount.",
         "evidence_status": "Verified",
-        "why_it_matters": "Rapid movement and high-value transactions that heavily deviate from baseline averages require scrutiny to ensure the activity aligns with the customer's known business profile.",
+        "why_it_matters": "A sudden large spike in transaction amounts compared to the baseline may indicate unusual fund movement requiring review.",
         "supporting_txn_ids": [
-          "TXN-19924"
-        ]
-      },
-      {
-        "type": "counter_evidence",
-        "description": "The large incoming credit of 9,000,000 INR is supported by a verified sales contract (SC-2026-114) on file matching the transaction amount and counterparty.",
-        "evidence_status": "Verified",
-        "why_it_matters": "Supporting documentation helps account for commercial rationale and business legitimacy behind incoming funds.",
-        "supporting_txn_ids": [
-          "TXN-19924"
-        ]
-      },
-      {
-        "type": "counter_evidence",
-        "description": "Subsequent large debits correspond to verified KYC-declared business relationships such as Meridian Steel Suppliers and Coastal Logistics Pvt Ltd.",
-        "evidence_status": "Verified",
-        "why_it_matters": "Outgoing funds directed to known, verified suppliers and service providers indicate consistent commercial operations.",
-        "supporting_txn_ids": [
+          "TXN-19924",
           "TXN-19925",
-          "TXN-19926"
+          "TXN-19926",
+          "TXN-10006"
+        ]
+      },
+      {
+        "type": "counter_evidence",
+        "description": "The large credit transaction of 9,000,000 INR matches a verified sales contract on file with Continental Buyers Pte Ltd.",
+        "evidence_status": "Verified",
+        "why_it_matters": "Provides documentary context supporting the business rationale for the high-value credit.",
+        "supporting_txn_ids": [
+          "TXN-19924"
         ]
       }
     ],
     "investigation_questions": [
-      "Do the outgoing payments to Meridian Steel Suppliers and Coastal Logistics Pvt Ltd directly correspond to the fulfillment of the sales contract SC-2026-114?",
-      "What is the expected timeline for delivery of the industrial equipment under Sales Contract SC-2026-114?"
+      "Does the rapid outbound flow of funds to Meridian Steel Suppliers and Coastal Logistics Pvt Ltd align with standard commercial terms for the import/export business?",
+      "Are there any additional supporting invoices for the freight and logistics payment to Coastal Logistics Pvt Ltd?"
     ],
     "recommended_next_steps": [
       {
-        "step": "Verify the source of funds by ensuring the documentation matches the transaction amount and date.",
+        "step": "Verify the source of funds and ensure all supporting documentation for the flagged credit transaction is reviewed.",
         "playbook_doc_id": "PB-AML-07-03"
       },
       {
-        "step": "Confirm all four required conditions are met before considering closure of the case with no concern.",
+        "step": "Confirm all requirements under the case closure guidance before making a final determination.",
         "playbook_doc_id": "PB-AML-07-10"
       }
     ],
-    "narrative_summary": "Apex Global Trading Ltd. triggered an alert for unusual transaction activity with a deviation ratio of 21.3x their baseline average, driven by a large credit of 9,000,000 INR (TXN-19924). Subsequent rapid movement included payments to suppliers and logistics providers (TXN-19925 and TXN-19926). Review of documents on file confirms that Sales Contract SC-2026-114 supports the inbound credit, and counterparty relationships are KYC-verified. Further checks should ensure all closure criteria are properly documented.",
+    "narrative_summary": "Case CASE-002 was opened for unusual transaction activity and rapid movement of funds regarding Apex Global Trading Ltd. The review window captured a transaction volume representing a 21.3x deviation from the customer's baseline average. Specifically, a large credit of 9,000,000 INR was received from Continental Buyers Pte Ltd (TXN-19924), which is supported by a verified sales contract on file (DOC-2201). Subsequent rapid outward movements occurred to Meridian Steel Suppliers (TXN-19925) and Coastal Logistics Pvt Ltd (TXN-19926). Relationships with these counterparties are KYC-declared and verified. Further investigation is recommended to fully review the documentation supporting the fund movements.",
     "_validator_notes": [],
     "_validator_result": "PASS"
   }
