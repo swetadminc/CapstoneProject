@@ -76,15 +76,15 @@ df["has_cache"] = df["case_id"].isin(HERO_CASES)
 # KPI strip
 # ------------------------------------------------------------------
 kpis = [
-    ("Total alerts", len(df)),
-    ("Open", int((df["queue_status"] == "Open").sum())),
-    ("High severity", int((df["severity"] == "High").sum())),
-    ("Escalated", int((df["queue_status"] == "Escalated").sum())),
-    ("Closed", int((df["queue_status"] == "Closed").sum())),
+    ("Total alerts", len(df), "iq-kpi-blue"),
+    ("Open", int((df["queue_status"] == "Open").sum()), "iq-kpi-amber"),
+    ("High severity", int((df["severity"] == "High").sum()), "iq-kpi-red"),
+    ("Escalated", int((df["queue_status"] == "Escalated").sum()), "iq-kpi-red"),
+    ("Closed", int((df["queue_status"] == "Closed").sum()), "iq-kpi-green"),
 ]
-for col, (label, value) in zip(st.columns(5), kpis):
+for col, (label, value, accent) in zip(st.columns(5), kpis):
     col.markdown(
-        f'<div class="iq-card"><div class="iq-kpi-label">{label}</div>'
+        f'<div class="iq-card {accent}"><div class="iq-kpi-label">{label}</div>'
         f'<div class="iq-kpi-value">{value:,}</div></div>',
         unsafe_allow_html=True,
     )

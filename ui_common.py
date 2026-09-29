@@ -96,6 +96,18 @@ _GLOBAL_CSS = """
 .iq-nav-title { font-size: 17px; font-weight: 700; color: var(--iq-heading); margin: 0 0 2px 0; line-height: 1.3; }
 .iq-kpi-label { color: var(--iq-text-secondary); font-size: 13px; margin-bottom: 2px; }
 .iq-kpi-value { font-size: 26px; font-weight: 700; color: var(--iq-heading); }
+/* KPI tiles (Total/Open/High severity/Escalated/Closed) used to render
+   identically regardless of what they meant — a colored left accent
+   ties each one to the same red/amber/green vocabulary already used for
+   severity and status badges elsewhere, instead of inventing a new
+   palette, so "High severity" reads as urgent at a glance the same way
+   its badge does. A left border, not a full tinted background, so it
+   stays legible against both the light radiance and dark navy page
+   backgrounds without needing separate light/dark variants. */
+.iq-kpi-blue { border-left: 4px solid var(--iq-primary); }
+.iq-kpi-amber { border-left: 4px solid var(--iq-sev-medium); }
+.iq-kpi-red { border-left: 4px solid var(--iq-sev-high); }
+.iq-kpi-green { border-left: 4px solid var(--iq-sev-low); }
 .iq-decision-box {
     border: 2px solid var(--iq-sev-low); border-radius: 10px; padding: 16px;
     background: rgba(39,132,78,0.07);

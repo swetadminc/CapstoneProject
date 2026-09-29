@@ -187,12 +187,12 @@ if os.path.exists(DB_PATH):
 
     st.write("")
     k1, k2, k3, k4 = st.columns(4)
-    for i, (col, label, value) in enumerate([
-        (k1, "Total alerts", total_alerts), (k2, "Open", open_alerts),
-        (k3, "High severity", high_sev), (k4, "Escalated", escalated),
+    for i, (col, label, value, accent) in enumerate([
+        (k1, "Total alerts", total_alerts, "iq-kpi-blue"), (k2, "Open", open_alerts, "iq-kpi-amber"),
+        (k3, "High severity", high_sev, "iq-kpi-red"), (k4, "Escalated", escalated, "iq-kpi-red"),
     ]):
         col.markdown(
-            f'<div class="iq-card iq-rise iq-stagger-{i+1}"><div class="iq-kpi-label">{label}</div>'
+            f'<div class="iq-card {accent} iq-rise iq-stagger-{i+1}"><div class="iq-kpi-label">{label}</div>'
             f'<div class="iq-kpi-value">{value:,}</div></div>',
             unsafe_allow_html=True,
         )
