@@ -129,7 +129,13 @@ for _, row in filtered.iterrows():
     cols[3].markdown(severity_badge(row["severity"]), unsafe_allow_html=True)
     cols[4].markdown(status_badge(row["queue_status"]), unsafe_allow_html=True)
     cols[5].caption(row["trigger_rule"] or "—")
-    if cols[6].button("Investigate →", key=f"inv_{row['case_id']}"):
+    # A full "Investigate →" label doesn't fit this column at most viewport
+    # widths and silently truncates to "I.." — an icon-only button with a
+    # real Streamlit tooltip (the `help` kwarg) says the same thing without
+    # needing the space, and names the actual case rather than a generic
+    # label.
+    if cols[6].button("🔍", key=f"inv_{row['case_id']}", help=f"Investigate {row['case_id']}",
+                       use_container_width=True):
         st.session_state["selected_case_id"] = row["case_id"]
         st.switch_page("pages/2_Investigation_Demo.py")
 
