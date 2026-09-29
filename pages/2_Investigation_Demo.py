@@ -297,15 +297,29 @@ if state_key in st.session_state:
     st.subheader("✅ Human Decision")
     st.caption("This is the accountable action. The AI cannot close, escalate, or file anything on its own (BR1, BR4).")
 
-    investigator = st.text_input("Your name (investigator)", value=user_name, key=f"investigator_{case_id}")
+    investigator = st.text_input(
+        "Your name (investigator)", value=user_name, key=f"investigator_{case_id}",
+        help="Attributed on this decision in the audit log below — required.",
+    )
     action = st.radio(
         "Decision",
         ["Close — no concern", "Request more information", "Escalate to Compliance"],
+        captions=[
+            "No further action — findings reviewed and don't warrant escalation.",
+            "Not enough evidence either way — flags for follow-up, stays open.",
+            "Sends this case to the Compliance Queue for a second review (see BR1: AI never escalates on its own).",
+        ],
         key=f"action_{case_id}",
+        help="What happens to this case next. This, not the AI's report above, is the decision of record.",
     )
-    rationale = st.text_area("Rationale (required)", key=f"rationale_{case_id}",
-                              placeholder="Explain the decision — this is required, and it's what gets audited.")
-    submit = st.button("Submit decision", type="primary", key=f"submit_{case_id}")
+    rationale = st.text_area(
+        "Rationale (required)", key=f"rationale_{case_id}",
+        placeholder="Explain the decision — this is required, and it's what gets audited.",
+        help="Mandatory (BR4) — a decision can't be recorded without a written reason, regardless of which "
+             "option above is chosen.",
+    )
+    submit = st.button("Submit decision", type="primary", key=f"submit_{case_id}",
+                        help="Writes this decision to the persistent audit log — cannot be undone from this screen.")
 
     if submit:
         n_findings = len(report["findings"])

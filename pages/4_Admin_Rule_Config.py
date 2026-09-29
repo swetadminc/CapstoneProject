@@ -32,7 +32,11 @@ if "rules_admin_unlocked" not in st.session_state:
     st.session_state.rules_admin_unlocked = False
 
 if not st.session_state.rules_admin_unlocked:
-    code = st.text_input("Admin passcode", type="password")
+    code = st.text_input(
+        "Admin passcode", type="password",
+        help="Prototype-level gate (not production security) — separates this screen from the "
+             "regular investigator workspace, matching the mock-auth scope used throughout this build.",
+    )
     if st.button("Unlock"):
         if code == ADMIN_PASSCODE:
             st.session_state.rules_admin_unlocked = True
@@ -45,9 +49,14 @@ config = get_rule_config()
 
 st.subheader("Current thresholds (saved)")
 c1, c2, c3 = st.columns(3)
-c1.metric("R1 — Amount deviation", f"{config[('R1','deviation_multiplier')]}x baseline")
-c2.metric("R2 — Pass-through", f"{config[('R2','pass_through_pct')]}% of credit")
-c3.metric("R2 — Window", f"{config[('R2','window_hours')]} hours")
+c1.metric("R1 — Amount deviation", f"{config[('R1','deviation_multiplier')]}x baseline",
+          help="R1 fires when a credit is at least this many times the account's own trailing average — "
+               "the first of the two rules behind the frozen C1/C2 demo scenario.")
+c2.metric("R2 — Pass-through", f"{config[('R2','pass_through_pct')]}% of credit",
+          help="R2 fires when at least this share of an R1-flagged credit leaves the account again within "
+               "the window below — the 'rapid movement of funds' half of the pattern.")
+c3.metric("R2 — Window", f"{config[('R2','window_hours')]} hours",
+          help="How long after the flagged credit R2 keeps watching for it to leave again.")
 
 st.divider()
 st.subheader("Propose new thresholds")
@@ -67,7 +76,9 @@ new_window = pc3.slider("R2: window (hours)", 12.0, 168.0, float(config[("R2", "
 proposed = {("R1", "deviation_multiplier"): new_dev, ("R2", "pass_through_pct"): new_pct, ("R2", "window_hours"): new_window}
 changed = proposed != {k: float(v) for k, v in config.items()}
 
-if st.button("🔍 Preview impact on the real dataset", type="secondary"):
+if st.button("🔍 Preview impact on the real dataset", type="secondary",
+             help="Recomputes R1/R2 against real (fictional) account transaction history using the sliders "
+                  "above — read-only, nothing is saved by clicking this."):
     with st.spinner("Recomputing R1/R2 against real transaction history..."):
         result = preview_trigger_counts(proposed, sample_limit=300)
     st.session_state["rule_preview"] = result
@@ -87,8 +98,15 @@ if "rule_preview" in st.session_state:
 
 st.divider()
 st.subheader("Save")
-admin_name = st.text_input("Your name (for the audit trail)", value=user_name)
-if st.button("💾 Save these thresholds", type="primary", disabled=not changed):
+admin_name = st.text_input(
+    "Your name (for the audit trail)", value=user_name,
+    help="Every threshold change is written to the audit log below with this name attached — required, "
+         "can't be blank.",
+)
+if st.button("💾 Save these thresholds", type="primary", disabled=not changed,
+             help="Saves the sliders above as the new configured thresholds. Disabled until you change at "
+                  "least one slider from its currently saved value. Does not touch the existing dataset's "
+                  "41 alerts — see the scope note below."):
     if not admin_name.strip():
         st.error("Your name is required — this gets logged to the audit trail.")
     else:

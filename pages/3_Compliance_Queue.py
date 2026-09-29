@@ -94,11 +94,27 @@ else:
                 st.success(f"Compliance already acted: **{label}** by {latest_c['investigator']} — \"{latest_c['rationale']}\"")
 
             with st.expander("Compliance action"):
-                officer = st.text_input("Your name (compliance officer)", value=user_name, key=f"officer_{case_id}")
-                action_label = st.radio("Action", list(COMPLIANCE_ACTIONS.keys()), key=f"caction_{case_id}")
-                rationale = st.text_area("Rationale (required)", key=f"crationale_{case_id}",
-                                          placeholder="Why this action — this is required and gets audited, same as an investigator decision.")
-                if st.button("Submit compliance action", key=f"csubmit_{case_id}", type="primary"):
+                officer = st.text_input(
+                    "Your name (compliance officer)", value=user_name, key=f"officer_{case_id}",
+                    help="Attributed on this action in the audit log below — required.",
+                )
+                action_label = st.radio(
+                    "Action", list(COMPLIANCE_ACTIONS.keys()),
+                    captions=[
+                        "Escalation reviewed — no further action needed on this case.",
+                        "Sends it back to the investigator for more evidence before Compliance can decide.",
+                        "Recorded here only — this tool never drafts or files anything with a regulator (see the scope note below).",
+                    ],
+                    key=f"caction_{case_id}",
+                    help="What happens to this escalation next.",
+                )
+                rationale = st.text_area(
+                    "Rationale (required)", key=f"crationale_{case_id}",
+                    placeholder="Why this action — this is required and gets audited, same as an investigator decision.",
+                    help="Mandatory — same BR4 discipline as an investigator's own decision.",
+                )
+                if st.button("Submit compliance action", key=f"csubmit_{case_id}", type="primary",
+                             help="Writes this action to the persistent audit log — cannot be undone from this screen."):
                     if not officer.strip():
                         st.error("Your name is required.")
                     elif not rationale.strip():
