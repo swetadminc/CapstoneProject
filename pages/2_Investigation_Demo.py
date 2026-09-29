@@ -169,95 +169,102 @@ if state_key in st.session_state:
     c4.metric("Prior cases found", len(evidence["prior_cases"]))
 
     st.divider()
-    st.subheader("Findings")
-    status_class = {
-        "Verified": "status-verified", "Inferred": "status-inferred",
-        "Missing": "status-missing", "Conflicting": "status-conflicting",
-    }
-    accepted_flags = []
-    for i, f in enumerate(report["findings"]):
-        with st.container(border=True):
-            cls = status_class.get(f["evidence_status"], "")
-            cols = st.columns([0.06, 0.94])
-            accept = cols[0].checkbox("Accept", key=f"accept_{case_id}_{i}", value=True, label_visibility="collapsed")
-            with cols[1]:
-                st.markdown(f"**[{f['type'].upper()}]** &nbsp; <span class='{cls}'>{f['evidence_status']}</span>", unsafe_allow_html=True)
-                st.write(f["description"])
-                st.caption(f["why_it_matters"])
-                if f.get("supporting_txn_ids"):
-                    st.code(", ".join(f["supporting_txn_ids"]), language=None)
-            accepted_flags.append(accept)
-
-    st.divider()
-    st.subheader("Investigation questions")
-    for q in report["investigation_questions"]:
-        st.write(f"- {q}")
-
-    st.divider()
-    st.subheader("Recommended next steps (RAG-grounded — every step cites a real playbook doc)")
-    for step in report["recommended_next_steps"]:
-        st.markdown(f"- {step['step']}  \n  `[Retrieved: {step['playbook_doc_id']}]`")
-
-    st.divider()
-    st.subheader("Narrative summary")
-    st.write(report["narrative_summary"])
-
-    with st.expander("Raw evidence passed to the model (for full transparency)"):
-        st.json({
-            "window_transactions": evidence["window_transactions"],
-            "relationships": evidence["relationships"],
-            "documents": evidence["documents"],
-            "knowledge_chunks_retrieved": [g["chunk_id"] for g in guidance],
-        })
 
     # -------------------------------------------------------------
+    # Two-panel layout, matching the original wireframe (CEO Playbook,
+    # Section 7): Evidence & Findings on the left, Ask the Copilot on the
+    # right. Both are genuinely independent Streamlit columns — verified
+    # st.chat_input works correctly inside a column in this Streamlit
+    # version before relying on it here.
+    # -------------------------------------------------------------
+    col_evidence, col_chat = st.columns([1.15, 1])
+
+    with col_evidence:
+        st.subheader("📋 Evidence & Findings")
+        status_class = {
+            "Verified": "status-verified", "Inferred": "status-inferred",
+            "Missing": "status-missing", "Conflicting": "status-conflicting",
+        }
+        accepted_flags = []
+        for i, f in enumerate(report["findings"]):
+            with st.container(border=True):
+                cls = status_class.get(f["evidence_status"], "")
+                fcols = st.columns([0.1, 0.9])
+                accept = fcols[0].checkbox("Accept", key=f"accept_{case_id}_{i}", value=True, label_visibility="collapsed")
+                with fcols[1]:
+                    st.markdown(f"**[{f['type'].upper()}]** &nbsp; <span class='{cls}'>{f['evidence_status']}</span>", unsafe_allow_html=True)
+                    st.write(f["description"])
+                    st.caption(f["why_it_matters"])
+                    if f.get("supporting_txn_ids"):
+                        st.code(", ".join(f["supporting_txn_ids"]), language=None)
+                accepted_flags.append(accept)
+
+        st.markdown("**Investigation questions**")
+        for q in report["investigation_questions"]:
+            st.write(f"- {q}")
+
+        st.markdown("**Recommended next steps** (RAG-grounded — cites a real playbook doc)")
+        if report["recommended_next_steps"]:
+            for step in report["recommended_next_steps"]:
+                st.markdown(f"- {step['step']}  \n  `[Retrieved: {step['playbook_doc_id']}]`")
+        else:
+            st.caption("No grounded next step available from the knowledge base for this scenario.")
+
+        st.markdown("**Narrative summary**")
+        st.write(report["narrative_summary"])
+
+        with st.expander("Raw evidence passed to the model (for full transparency)"):
+            st.json({
+                "window_transactions": evidence["window_transactions"],
+                "relationships": evidence["relationships"],
+                "documents": evidence["documents"],
+                "knowledge_chunks_retrieved": [g["chunk_id"] for g in guidance],
+            })
+
+    # ---------------------------------------------------------
     # Ask the Copilot — grounded, cited, multi-turn chat over this case's
     # own evidence. Every answer runs through the same citation-checking
     # discipline as the report (agents/chat_agent.py), and every exchange
     # is written to the audit log — this always makes a live Gemini call
     # (there's nothing sensible to "cache" for an arbitrary question).
-    # -------------------------------------------------------------
-    st.divider()
-    st.subheader("💬 Ask the Copilot")
+    # ---------------------------------------------------------
+    with col_chat:
+        st.subheader("💬 Ask the Copilot")
 
-    chat_key = f"chat_{case_id}"
-    if chat_key not in st.session_state:
-        st.session_state[chat_key] = []
-    chat_history = st.session_state[chat_key]
+        chat_key = f"chat_{case_id}"
+        if chat_key not in st.session_state:
+            st.session_state[chat_key] = []
+        chat_history = st.session_state[chat_key]
 
-    if not GEMINI_API_KEY:
-        st.info("GEMINI_API_KEY is not set — chat requires a live model call and can't run in this environment.")
-    else:
-        SUGGESTED = [
-            "Why was this alert triggered?",
-            "What should I do next?",
-            "Has this customer been flagged before?",
-            "Who are the counterparties?",
-        ]
-        st.caption("Suggested questions:")
-        sugg_cols = st.columns(len(SUGGESTED))
-        clicked_question = None
-        for i, sq in enumerate(SUGGESTED):
-            if sugg_cols[i].button(sq, key=f"sugg_{case_id}_{i}"):
-                clicked_question = sq
+        if not GEMINI_API_KEY:
+            st.info("GEMINI_API_KEY is not set — chat requires a live model call and can't run in this environment.")
+        else:
+            SUGGESTED = [
+                "Why was this alert triggered?",
+                "What should I do next?",
+                "Has this customer been flagged before?",
+                "Who are the counterparties?",
+            ]
+            st.caption("Suggested questions:")
+            for i, sq in enumerate(SUGGESTED):
+                if st.button(sq, key=f"sugg_{case_id}_{i}", use_container_width=True):
+                    st.session_state[f"clicked_q_{case_id}"] = sq
 
-        for turn in chat_history:
-            with st.chat_message(turn["role"]):
-                st.write(turn["content"])
-                if turn.get("citations"):
-                    st.caption("Sources: " + ", ".join(turn["citations"]))
-                if turn.get("validator_notes"):
-                    st.caption(f"⚠️ {len(turn['validator_notes'])} citation(s) adjusted by the Grounding Validator")
+            chat_box = st.container(height=380, border=True)
+            with chat_box:
+                for turn in chat_history:
+                    with st.chat_message(turn["role"]):
+                        st.write(turn["content"])
+                        if turn.get("citations"):
+                            st.caption("Sources: " + ", ".join(turn["citations"]))
+                        if turn.get("validator_notes"):
+                            st.caption(f"⚠️ {len(turn['validator_notes'])} citation(s) adjusted by the Grounding Validator")
 
-        typed_question = st.chat_input("Ask a question about this case...")
-        question = clicked_question or typed_question
+            typed_question = st.chat_input("Ask a question about this case...")
+            question = st.session_state.pop(f"clicked_q_{case_id}", None) or typed_question
 
-        if question:
-            with st.chat_message("user"):
-                st.write(question)
-            chat_history.append({"role": "user", "content": question})
-
-            with st.chat_message("assistant"):
+            if question:
+                chat_history.append({"role": "user", "content": question})
                 with st.spinner("Thinking... (live Gemini call)"):
                     try:
                         answer = ask_question(case_id, question, chat_history[:-1], context, evidence, guidance)
@@ -265,21 +272,12 @@ if state_key in st.session_state:
                         st.error(f"Could not get an answer: {e}")
                         answer = None
                 if answer:
-                    st.write(answer["answer"])
-                    citations = answer["cited_txn_ids"] + [f"[{d}]" for d in answer["cited_doc_ids"]]
-                    if citations:
-                        st.caption("Sources: " + ", ".join(citations))
-                    if answer["validator_notes"]:
-                        with st.expander(f"⚠️ {len(answer['validator_notes'])} citation(s) adjusted"):
-                            for n in answer["validator_notes"]:
-                                st.write(f"- {n}")
-            if answer:
-                chat_history.append({
-                    "role": "assistant", "content": answer["answer"],
-                    "citations": answer["cited_txn_ids"] + [f"[{d}]" for d in answer["cited_doc_ids"]],
-                    "validator_notes": answer["validator_notes"],
-                })
-            st.rerun()
+                    chat_history.append({
+                        "role": "assistant", "content": answer["answer"],
+                        "citations": answer["cited_txn_ids"] + [f"[{d}]" for d in answer["cited_doc_ids"]],
+                        "validator_notes": answer["validator_notes"],
+                    })
+                st.rerun()
 
     # -------------------------------------------------------------
     # Human Decision panel — the accountable action. Separate visual
