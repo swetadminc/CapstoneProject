@@ -179,10 +179,69 @@ _DARK_OVERRIDE_CSS = """
     color: #E8EDF7 !important;
 }
 [data-testid="stCaptionContainer"], .iq-kpi-label, small, caption { color: #9FB0C9 !important; }
-[data-testid="stTextInput"] input, [data-testid="stTextArea"] textarea,
-[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+[data-testid="stTextInput"] input, [data-testid="stTextArea"] textarea {
     background-color: #1B2536 !important; color: #E8EDF7 !important;
     border-color: #2E3B52 !important;
+}
+/* st.selectbox / st.multiselect in this Streamlit version render as React
+   Aria Components (.react-aria-ComboBox), not the older data-baseweb
+   markup the first version of this rule assumed — confirmed by
+   inspecting the live DOM, not guessed. That markup has no data-testid
+   or data-baseweb of its own on the actual field box, so it's targeted
+   via the stable ancestor + a direct-child combinator instead. */
+[data-testid="stSelectbox"] .react-aria-ComboBox > div,
+[data-testid="stMultiSelect"] .react-aria-ComboBox > div {
+    background-color: #1B2536 !important; border-color: #2E3B52 !important;
+}
+[data-testid="stSelectbox"] input, [data-testid="stMultiSelect"] input {
+    color: #E8EDF7 !important;
+}
+/* The dropdown popover (the option list shown after clicking in) portals
+   straight to <body>, entirely outside stAppViewContainer — confirmed by
+   walking the live DOM up from an open dropdown — so none of the rules
+   above reach it no matter how they're scoped. stSelectboxVirtualDropdown
+   is a real, stable Streamlit data-testid; [role="listbox"]/[role="option"]
+   are the standard ARIA roles the same popover exposes, used as a second
+   hook since Streamlit doesn't expose an equivalent testid for every
+   nested piece. */
+[data-testid="stSelectboxVirtualDropdown"], [role="listbox"] {
+    background-color: #1B2536 !important;
+}
+[role="option"] {
+    background-color: #1B2536 !important; color: #E8EDF7 !important;
+}
+/* The rule above sets the TYPED text color but never touched the
+   placeholder — e.g. Case Queue's "Search customer name" field — which
+   kept the browser's own default placeholder gray, unreadable against
+   the now-dark input background. */
+[data-testid="stTextInput"] input::placeholder, [data-testid="stTextArea"] textarea::placeholder {
+    color: #6E85A8 !important; opacity: 1 !important;
+}
+/* Every bordered st.container(border=True) — findings cards and the
+   "Ask the Copilot" chat history on Investigation Demo, the nav cards on
+   Home, any other bordered container — kept its own light background in
+   dark mode, because nothing here ever gave it one. Meanwhile the
+   blanket "* { color: ... !important }" above forces the text INSIDE it
+   to light gray regardless of that background — light text on a
+   still-light box, unreadable. Same bug shape as the badges and
+   backtick-code fixes elsewhere in this file, different component. */
+[data-testid="stVerticalBlockBorderWrapper"], [data-testid="stChatMessage"],
+[data-testid="stChatInput"], [data-testid="stChatInput"] textarea {
+    background-color: #1B2536 !important; border-color: #2E3B52 !important;
+}
+/* st.code()'s <pre> wrapper keeps its own light background even though
+   the inline <code> rule further below already darkens the element
+   nested inside it — the citation blocks under each finding
+   (st.code(", ".join(txn_ids))) render as light padding around dark
+   text, not fully dark. */
+[data-testid="stCode"] pre {
+    background-color: #1B2536 !important;
+}
+/* st.json() (the "Raw evidence passed to the model" expander) renders via
+   the react-json-view library, which keeps its own light background
+   regardless of app theme — same fix shape again. */
+[data-testid="stJson"] .react-json-view {
+    background-color: #1B2536 !important;
 }
 [data-testid="stDataFrame"], [data-testid="stTable"] { filter: invert(0.92) hue-rotate(180deg); }
 hr, [data-testid="stDivider"] { border-color: #2E3B52 !important; }
