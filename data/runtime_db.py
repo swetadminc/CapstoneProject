@@ -38,9 +38,24 @@ def _connect():
     return conn
 
 
+_initialized = False
+
+
 def init_runtime_db():
     """Idempotent — creates tables only if they don't already exist. Never
-    drops or recreates anything, so it's safe to call on every app startup."""
+    drops or recreates anything, so it's safe to call on every app startup.
+
+    Every write/read function below called this unconditionally, which meant
+    a full connect + 4x CREATE TABLE IF NOT EXISTS + 2x CREATE INDEX IF NOT
+    EXISTS + commit + close on every single audit-log write — and the
+    multi-agent split (pending item #5) took audit events per investigation
+    from 3 to 8, nearly tripling that overhead. The DDL is idempotent within
+    a process either way, so a process-lifetime guard changes nothing about
+    correctness — it just stops re-running the same six no-op statements on
+    every call."""
+    global _initialized
+    if _initialized:
+        return
     conn = _connect()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS audit_log (
@@ -79,6 +94,7 @@ def init_runtime_db():
     conn.execute("CREATE INDEX IF NOT EXISTS idx_actions_case ON human_actions(case_id)")
     conn.commit()
     conn.close()
+    _initialized = True
 
 
 def _now():
@@ -144,6 +160,17 @@ def get_human_actions(case_id: str) -> list:
     rows = conn.execute(
         "SELECT * FROM human_actions WHERE case_id = ? ORDER BY timestamp", (case_id,)
     ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_all_human_actions() -> list:
+    """Every recorded decision, across every case — used by the Analytics
+    page's investigator-throughput chart. `get_human_actions` above is
+    scoped to one case; this is the whole table."""
+    init_runtime_db()
+    conn = _connect()
+    rows = conn.execute("SELECT * FROM human_actions ORDER BY timestamp").fetchall()
     conn.close()
     return [dict(r) for r in rows]
 

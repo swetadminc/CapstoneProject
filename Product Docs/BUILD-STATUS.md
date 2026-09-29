@@ -34,6 +34,13 @@ this file is newer and correct.
 | **Admin Rule Configuration** — adjust R1/R2 thresholds, live preview of impact against real transaction data before saving, change history | ✅ Built & verified live | `/Admin_Rule_Config` |
 | **Second alert typology (structuring)** — a genuinely different trigger pattern from the frozen C1/C2 rapid-movement scenario, with its own RAG-grounded playbook | ✅ Built & verified live | CASE-041, `PB-AML-STR-01/02` |
 | **2-panel workspace layout** matching the original wireframe (Evidence & Findings / Ask the Copilot as real side-by-side columns) | ✅ Built & verified live | `/Investigation_Demo` |
+| **Shared design system** — one CSS module instead of six duplicated banner blocks; severity/status badges, KPI cards, dark-mode-aware colors | ✅ Built & verified live | `ui_common.py` |
+| **Dark mode** — real in-app toggle (not just an OS media query, which Streamlit's locked custom theme can't respond to) | ✅ Built & verified live | Sidebar toggle, all 8 pages |
+| **Analytics dashboard** — severity/typology/status mix, alert volume trend, decision throughput by investigator, all live queries | ✅ Built & verified live | `/Analytics` |
+| **Global Search** — find a customer, account, or transaction across the full dataset by name, ID, or reference text | ✅ Built & verified live | `/Global_Search` |
+| **PDF export** — download an investigation report (findings, citations, validator result, human decision) as a real PDF | ✅ Built & verified live | `report_pdf.py`, "Download PDF report" on `/Investigation_Demo` |
+| **Landing page redesign** — dashboard home with live KPI cards and card-based navigation, not a plain link list | ✅ Built & verified live | `app.py` |
+| Audit-log write overhead reduced | ✅ Built & verified | `data/runtime_db.py` — `init_runtime_db()` now runs its DDL once per process instead of on every single audit event (was re-running on every one of the 8 events per investigation after the multi-agent split) |
 
 ## What's still genuinely open
 
@@ -42,6 +49,67 @@ this file is newer and correct.
 | Chat history across cases | Each case's chat history is independent (by design — a fresh case shouldn't inherit another case's conversation) |
 | Cached reports | Only 5 of 41 cases have a pre-generated cached report (one per typology); the rest fall back to a live Gemini call if selected in cached mode with no fixture on file |
 | Dataset labeling (see below) | `alert_type` (display text) and `scenario_id` (the field that actually drives RAG retrieval and trigger logic) are inconsistently paired across the original 40-alert dataset — cosmetic, not a correctness bug, not yet cleaned up |
+| Chart theming in dark mode | `st.bar_chart`/`st.area_chart` render via Vega-Lite, which keeps its own white plot background regardless of app theme — readable in both modes, just not fully re-skinned |
+
+## UI overhaul: optimization, features, and design system — 29 September 2026
+
+Beyond the original 7-item pending list, three more things were added: a real code-level optimization, three
+new features (Analytics, PDF export, Global Search), and a full visual design-system pass including dark mode.
+
+**Optimization.** `data/runtime_db.py`'s `init_runtime_db()` was being called — and re-running its full DDL
+(4 CREATE TABLE + 2 CREATE INDEX statements plus a connect/commit/close cycle) — on every single read/write
+function in that file, including `log_audit_event()`. The multi-agent split had already taken audit events
+from 3 to 8 per investigation, nearly tripling this overhead. Fixed with a process-lifetime guard flag; the
+DDL is idempotent either way, so this changes nothing about correctness, only how often the no-op statements
+re-run. Verified directly (`_initialized` flips True after the first call, stays True) and live through a full
+orchestrator run (8 audit events recorded correctly).
+
+**New features:**
+- **Analytics** (`/Analytics`) — severity/typology/status distribution, high-severity share by typology, weekly
+  alert volume trend, and decisions-recorded-by-investigator, all live queries against the same two databases
+  every other page reads from.
+- **PDF export** (`report_pdf.py`, via `fpdf2`) — a "Download PDF report" button on the Investigation Demo page
+  renders the same findings/citations/next-steps/narrative/validator-result/human-decision shown on screen into
+  a real downloadable PDF. Found and fixed a real bug during testing: fpdf2's `multi_cell()` with `w=0` leaves
+  the cursor at the right margin by default (the deprecated `ln=True` shortcut used to paper over this), so
+  every call after the first raised `FPDFException("Not enough horizontal space")` — fixed by passing
+  `new_x=XPos.LMARGIN, new_y=YPos.NEXT` explicitly on every cell/multi_cell call. Verified by generating and
+  text-extracting real PDFs from two different cached reports, and by clicking the actual button in the
+  running app (network request confirmed 200 OK, correct binary PDF response).
+- **Global Search** (`/Global_Search`) — searches customers, accounts, transactions, and cases by name, ID, or
+  reference text in one box, with parameterized queries only (the search term is never string-formatted into
+  SQL). Verified live: searching "Coastal" correctly returns all 8 real "Coastal *" businesses in the dataset
+  plus the CASE-041 structuring case, with a working "Investigate →" link straight into the workspace.
+
+**Design system.** All six `.iq-banner` CSS blocks (hand-duplicated across every page) were pulled into one
+shared module (`ui_common.py`): a banner component, severity/status badge helpers, KPI cards, and a consistent
+navy/blue palette via CSS custom properties. The landing page (`app.py`) was rebuilt as a real dashboard home
+with live KPI cards and card-based navigation instead of a plain list of links. Case Queue got matching badge
+and KPI-card styling in place of its own local CSS classes.
+
+**Dark mode.** Genuinely harder than it looks in Streamlit: `prefers-color-scheme: dark` CSS does nothing for
+Streamlit's own chrome, and Streamlit removes its native Settings > Theme switcher entirely as soon as
+`.streamlit/config.toml` sets *any* `[theme]` key (confirmed empirically) — which this app needs, to keep the
+custom navy `primaryColor`. Built as a real in-app toggle instead (sidebar, all pages): Python decides which of
+two CSS blocks to emit based on `st.session_state`, with `!important` overrides on Streamlit's stable
+`data-testid` hooks for its own containers. Two real bugs found and fixed during verification, not just
+assumed away:
+1. A blanket `* { color: ... !important }` rule (needed to re-color Streamlit's own text) was also clobbering
+   the severity/status badges' own red/amber/green text, making them invisible (light text on a light tint).
+   Fixed with higher-specificity two-class selectors that win regardless of source order.
+2. Streamlit's native backtick-code spans (`` `CASE-001` ``) keep their own light background regardless of app
+   theme, so the same blanket text-color rule made that text invisible too (light text on near-white). Fixed
+   with a dedicated `code { }` override.
+3. The toggle's value didn't persist across page navigation at first — a freshly-instantiated
+   `st.toggle(key=...)` on a new page (each page in a classic `pages/`-directory app is a separate script) does
+   not reliably pick up a same-named `session_state` entry last written by a different page. Fixed by passing
+   `value=st.session_state.get(...)` explicitly instead of relying on `key=` binding alone. Verified by toggling
+   dark mode on the home page and confirming it held across three further page navigations.
+
+Also surfaced and fixed, unrelated to the code itself: two zombie local test-server processes from earlier in
+this session (ports 8550 and 8560) were still running and racing on the same shared local runtime-database
+file path, causing one intermittent `no such table` error during final verification. Not a production issue —
+Railway serves one process per deploy — but a reminder to kill background test servers between rounds.
 
 ## The multi-agent split (pending item #5), built 29 September 2026
 

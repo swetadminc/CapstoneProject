@@ -17,27 +17,14 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.runtime_db import get_rule_config, set_rule_param, get_audit_log
 from data.trigger_rules import preview_trigger_counts
-from ui_common import require_login, role_warning
+from ui_common import require_login, role_warning, page_banner
 
 st.set_page_config(page_title="InvestigateIQ — Rule Config", page_icon="⚙️", layout="wide")
 user_name, user_role = require_login()
 
 ADMIN_PASSCODE = os.environ.get("ADMIN_PASSCODE", "investigateiq-admin")
 
-st.markdown(
-    """
-    <style>
-    .iq-banner { background-color: #1A2A4A; color: white; padding: 14px 22px; border-radius: 10px; }
-    .iq-banner h1 { margin: 0; font-size: 22px; }
-    .iq-banner p { margin: 2px 0 0 0; color: #C9D6E8; font-size: 13px; }
-    </style>
-    <div class="iq-banner">
-        <h1>⚙️ Admin — Trigger Rule Configuration</h1>
-        <p>Adjust R1/R2 thresholds and preview the real effect before saving.</p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+page_banner("⚙️", "Admin — Trigger Rule Configuration", "Adjust R1/R2 thresholds and preview the real effect before saving.")
 st.write("")
 role_warning(user_role, "Admin")
 

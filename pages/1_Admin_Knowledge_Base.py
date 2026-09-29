@@ -14,26 +14,20 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import search, suggest_terms, DB_PATH
-from ui_common import require_login, role_warning
+from ui_common import require_login, role_warning, page_banner
 
 st.set_page_config(page_title="InvestigateIQ — Admin", page_icon="🔐", layout="wide")
 user_name, user_role = require_login()
 
 ADMIN_PASSCODE = os.environ.get("ADMIN_PASSCODE", "investigateiq-admin")
 
+page_banner("🔐", "Admin — Knowledge Base Inspector", "Internal view. Not part of the investigator workspace. For demonstrating the RAG pipeline to evaluators.")
 st.markdown(
     """
     <style>
-    .iq-banner { background-color: #1A2A4A; color: white; padding: 14px 22px; border-radius: 10px; }
-    .iq-banner h1 { margin: 0; font-size: 22px; }
-    .iq-banner p { margin: 2px 0 0 0; color: #C9D6E8; font-size: 13px; }
     .iq-chip { display:inline-block; background:#EEF3FB; color:#2E63BF; border:1px solid #2E63BF;
                border-radius:6px; padding:2px 8px; font-size:12px; margin-right:6px; }
     </style>
-    <div class="iq-banner">
-        <h1>🔐 Admin — Knowledge Base Inspector</h1>
-        <p>Internal view. Not part of the investigator workspace. For demonstrating the RAG pipeline to evaluators.</p>
-    </div>
     """,
     unsafe_allow_html=True,
 )

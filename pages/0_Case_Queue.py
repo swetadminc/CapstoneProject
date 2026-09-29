@@ -21,7 +21,7 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import DB_PATH
 from data.runtime_db import get_latest_decision_per_case
-from ui_common import require_login
+from ui_common import require_login, page_banner, severity_badge, status_badge
 
 HERO_CASES = {"CASE-001", "CASE-002"}
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "cached_reports")
@@ -29,29 +29,7 @@ CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 st.set_page_config(page_title="InvestigateIQ — Case Queue", page_icon="🗂️", layout="wide")
 user_name, user_role = require_login()
 
-st.markdown(
-    """
-    <style>
-    .iq-banner { background-color: #1A2A4A; color: white; padding: 14px 22px; border-radius: 10px; }
-    .iq-banner h1 { margin: 0; font-size: 22px; }
-    .iq-banner p { margin: 2px 0 0 0; color: #C9D6E8; font-size: 13px; }
-    .case-row { border: 1px solid #E0E0E0; border-radius: 8px; padding: 10px 16px; margin-bottom: 6px; }
-    .sev-high { color: #B02A2A; font-weight: 700; }
-    .sev-medium { color: #B57808; font-weight: 700; }
-    .sev-low { color: #27844E; font-weight: 700; }
-    .status-open { background: #FFF3D6; color: #B57808; padding: 2px 8px; border-radius: 5px; font-size: 12px; font-weight: 600; }
-    .status-escalate { background: #FCE2E2; color: #B02A2A; padding: 2px 8px; border-radius: 5px; font-size: 12px; font-weight: 600; }
-    .status-close { background: #E8F3EC; color: #27844E; padding: 2px 8px; border-radius: 5px; font-size: 12px; font-weight: 600; }
-    .status-info { background: #EEF3FB; color: #2E63BF; padding: 2px 8px; border-radius: 5px; font-size: 12px; font-weight: 600; }
-    .hero-badge { background: #2E63BF; color: white; padding: 1px 7px; border-radius: 5px; font-size: 11px; margin-left: 6px; }
-    </style>
-    <div class="iq-banner">
-        <h1>🗂️ Case Queue</h1>
-        <p>Every open alert from the monitoring system — filter, review, and open a case to investigate</p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+page_banner("🗂️", "Case Queue", "Every open alert from the monitoring system — filter, review, and open a case to investigate")
 st.write("")
 
 
@@ -97,12 +75,19 @@ df["has_cache"] = df["case_id"].isin(HERO_CASES)
 # ------------------------------------------------------------------
 # KPI strip
 # ------------------------------------------------------------------
-c1, c2, c3, c4, c5 = st.columns(5)
-c1.metric("Total alerts", len(df))
-c2.metric("Open", int((df["queue_status"] == "Open").sum()))
-c3.metric("High severity", int((df["severity"] == "High").sum()))
-c4.metric("Escalated", int((df["queue_status"] == "Escalated").sum()))
-c5.metric("Closed", int((df["queue_status"] == "Closed").sum()))
+kpis = [
+    ("Total alerts", len(df)),
+    ("Open", int((df["queue_status"] == "Open").sum())),
+    ("High severity", int((df["severity"] == "High").sum())),
+    ("Escalated", int((df["queue_status"] == "Escalated").sum())),
+    ("Closed", int((df["queue_status"] == "Closed").sum())),
+]
+for col, (label, value) in zip(st.columns(5), kpis):
+    col.markdown(
+        f'<div class="iq-card"><div class="iq-kpi-label">{label}</div>'
+        f'<div class="iq-kpi-value">{value:,}</div></div>',
+        unsafe_allow_html=True,
+    )
 
 st.divider()
 
@@ -130,25 +115,19 @@ st.caption(f"Showing {len(filtered)} of {len(df)} alerts")
 # ------------------------------------------------------------------
 # Queue table
 # ------------------------------------------------------------------
-sev_class = {"High": "sev-high", "Medium": "sev-medium", "Low": "sev-low"}
-status_class = {
-    "Open": "status-open", "Escalated": "status-escalate", "Closed": "status-close",
-    "Info Requested": "status-info", "Closed (Compliance)": "status-close",
-    "Returned to Investigator": "status-info", "Referred (Compliance)": "status-escalate",
-}
-
 header = st.columns([1.6, 2.2, 2.6, 1.3, 1.3, 1.5, 1.2])
 for col, label in zip(header, ["Case", "Customer", "Alert Type", "Severity", "Status", "Rule(s)", ""]):
     col.markdown(f"**{label}**")
+st.markdown('<hr style="margin: 4px 0 8px 0; border-color: var(--iq-card-border);">', unsafe_allow_html=True)
 
 for _, row in filtered.iterrows():
     cols = st.columns([1.6, 2.2, 2.6, 1.3, 1.3, 1.5, 1.2])
-    hero_tag = " <span class='hero-badge'>DEMO</span>" if row["has_cache"] else ""
+    hero_tag = ' <span class="iq-hero-badge">DEMO</span>' if row["has_cache"] else ""
     cols[0].markdown(f"`{row['case_id']}`{hero_tag}", unsafe_allow_html=True)
     cols[1].write(f"{row['customer_name']}")
     cols[2].write(row["alert_type"])
-    cols[3].markdown(f"<span class='{sev_class.get(row['severity'],'')}'>{row['severity']}</span>", unsafe_allow_html=True)
-    cols[4].markdown(f"<span class='{status_class.get(row['queue_status'],'')}'>{row['queue_status']}</span>", unsafe_allow_html=True)
+    cols[3].markdown(severity_badge(row["severity"]), unsafe_allow_html=True)
+    cols[4].markdown(status_badge(row["queue_status"]), unsafe_allow_html=True)
     cols[5].caption(row["trigger_rule"] or "—")
     if cols[6].button("Investigate →", key=f"inv_{row['case_id']}"):
         st.session_state["selected_case_id"] = row["case_id"]

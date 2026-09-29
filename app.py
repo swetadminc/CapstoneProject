@@ -1,58 +1,73 @@
 # -*- coding: utf-8 -*-
 """
-InvestigateIQ — landing / system-health page.
+InvestigateIQ — landing page / dashboard home.
 
-Confirms the deploy pipeline and database connection work, and routes to
-the actual product (Case Queue -> Investigation Workspace). This used to be
-a "placeholder, nothing built yet" page; it no longer is one — see
+Confirms the deploy pipeline and database connection work, gives an
+at-a-glance view of the current queue, and routes to the actual product
+(Case Queue -> Investigation Workspace). This used to be a "placeholder,
+nothing built yet" page; it no longer is one — see
 Product Docs/BUILD-STATUS.md for the full, current picture.
 """
 import sqlite3
 import os
 import streamlit as st
-import pandas as pd
-from ui_common import require_login
+from ui_common import require_login, page_banner
 
-st.set_page_config(page_title="InvestigateIQ", page_icon="🔎", layout="centered")
+st.set_page_config(page_title="InvestigateIQ", page_icon="🔎", layout="wide")
 user_name, user_role = require_login()
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "investigateiq.db")
 
+page_banner("🔎", "InvestigateIQ", "AI-Powered AML Investigation Copilot")
 st.markdown(
-    """
-    <style>
-    .iq-banner {
-        background-color: #1A2A4A; color: white; padding: 18px 24px;
-        border-radius: 10px; margin-bottom: 6px;
-    }
-    .iq-banner h1 { margin: 0; font-size: 28px; }
-    .iq-banner p { margin: 4px 0 0 0; color: #C9D6E8; font-size: 15px; }
-    .iq-proto {
-        background-color: #FCE2E2; color: #B02A2A; padding: 8px 14px;
-        border-radius: 6px; font-size: 13px; margin-top: 14px; margin-bottom: 20px;
-    }
-    </style>
-    <div class="iq-banner">
-        <h1>InvestigateIQ</h1>
-        <p>AI-Powered AML Investigation Copilot</p>
-    </div>
-    <div class="iq-proto">PROTOTYPE — fictional data · AI assists, the investigator decides</div>
-    """,
+    '<div class="iq-badge iq-status-escalate" style="margin: 10px 0 18px 0;">'
+    'PROTOTYPE — fictional data · AI assists, the investigator decides</div>',
     unsafe_allow_html=True,
 )
 
+# ---------------------------------------------------------------------
+# Queue snapshot — the same numbers Case Queue shows, so this page is a
+# real dashboard home, not just a list of links to click through.
+# ---------------------------------------------------------------------
+if os.path.exists(DB_PATH):
+    conn = sqlite3.connect(DB_PATH)
+    total_alerts = conn.execute("SELECT COUNT(*) FROM alerts").fetchone()[0]
+    open_alerts = conn.execute("SELECT COUNT(*) FROM alerts WHERE status = 'Open'").fetchone()[0]
+    high_sev = conn.execute("SELECT COUNT(*) FROM alerts WHERE severity = 'High'").fetchone()[0]
+    escalated = conn.execute("SELECT COUNT(*) FROM alerts WHERE status = 'Escalated'").fetchone()[0]
+    conn.close()
+
+    k1, k2, k3, k4 = st.columns(4)
+    for col, label, value in [
+        (k1, "Total alerts", total_alerts), (k2, "Open", open_alerts),
+        (k3, "High severity", high_sev), (k4, "Escalated", escalated),
+    ]:
+        col.markdown(
+            f'<div class="iq-card"><div class="iq-kpi-label">{label}</div>'
+            f'<div class="iq-kpi-value">{value:,}</div></div>',
+            unsafe_allow_html=True,
+        )
+    st.write("")
+
 st.subheader("Start here")
-c1, c2, c3, c4, c5 = st.columns(5)
-with c1:
-    st.page_link("pages/0_Case_Queue.py", label="🗂️ Case Queue", help="All alerts — the real entry point")
-with c2:
-    st.page_link("pages/2_Investigation_Demo.py", label="🕵️ Investigation Workspace", help="Evidence, chat, decision, audit log")
-with c3:
-    st.page_link("pages/3_Compliance_Queue.py", label="🛡️ Compliance Queue", help="Escalated cases")
-with c4:
-    st.page_link("pages/1_Admin_Knowledge_Base.py", label="🔐 Admin: Knowledge Base", help="Passcode: IQ-Demo-2026")
-with c5:
-    st.page_link("pages/4_Admin_Rule_Config.py", label="⚙️ Admin: Rule Config", help="Passcode: IQ-Demo-2026")
+
+NAV_CARDS = [
+    ("🗂️", "Case Queue", "All alerts — the real entry point", "pages/0_Case_Queue.py"),
+    ("🕵️", "Investigation Workspace", "Evidence, chat, decision, audit log", "pages/2_Investigation_Demo.py"),
+    ("🛡️", "Compliance Queue", "Escalated cases awaiting review", "pages/3_Compliance_Queue.py"),
+    ("📊", "Analytics", "Trends across the alert population", "pages/5_Analytics.py"),
+    ("🔍", "Global Search", "Find a customer, account, or transaction", "pages/6_Global_Search.py"),
+    ("🔐", "Admin: Knowledge Base", "Passcode: IQ-Demo-2026", "pages/1_Admin_Knowledge_Base.py"),
+    ("⚙️", "Admin: Rule Config", "Passcode: IQ-Demo-2026", "pages/4_Admin_Rule_Config.py"),
+]
+
+cols = st.columns(3)
+for i, (icon, label, help_text, target) in enumerate(NAV_CARDS):
+    with cols[i % 3]:
+        with st.container(border=True):
+            st.markdown(f'<p class="iq-nav-title">{icon} {label}</p>', unsafe_allow_html=True)
+            st.caption(help_text)
+            st.page_link(target, label="Open →")
 
 st.divider()
 st.subheader("System health")
@@ -87,9 +102,10 @@ st.divider()
 st.subheader("What's actually built")
 st.markdown(
     """
-    Case Queue (all alerts, filters, KPIs) · Investigation Agent (real Gemini calls, RAG-grounded,
-    validated) · Chat panel (grounded, cited, multi-turn) · Human Decision panel (mandatory rationale) ·
-    Persistent audit log (survives redeploys) · RAG knowledge base covering all three alert scenarios.
+    Case Queue (all alerts, filters, KPIs) · six-agent Investigation pipeline (real Gemini calls,
+    RAG-grounded, validated) · Chat panel (grounded, cited, multi-turn) · Human Decision panel (mandatory
+    rationale) · Persistent audit log (survives redeploys) · Compliance Queue · Admin Rule Config ·
+    Analytics · Global Search · RAG knowledge base covering all four alert scenarios.
 
     See **`Product Docs/BUILD-STATUS.md`** for the full, current breakdown of what's built vs. still open —
     that file is kept accurate; this page is a summary of it.

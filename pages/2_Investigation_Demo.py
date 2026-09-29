@@ -23,7 +23,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agents.investigation_agent import investigate, GEMINI_API_KEY, GEMINI_MODEL
 from agents.chat_agent import ask_question
 from data.runtime_db import record_human_decision, get_audit_log, get_human_actions, log_audit_event
-from ui_common import require_login
+from ui_common import require_login, page_banner
+from report_pdf import build_report_pdf
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "cached_reports")
 
@@ -46,23 +47,17 @@ def fmt_ts(iso_ts):
 st.set_page_config(page_title="InvestigateIQ — Investigation Demo", page_icon="🕵️", layout="wide")
 user_name, user_role = require_login()
 
+page_banner("🕵️", "Investigation Agent — Live Demo",
+            "Real pipeline: database → six-agent orchestration → Gemini → Grounding Validator → human decision → audit log")
 st.markdown(
     """
     <style>
-    .iq-banner { background-color: #1A2A4A; color: white; padding: 14px 22px; border-radius: 10px; }
-    .iq-banner h1 { margin: 0; font-size: 22px; }
-    .iq-banner p { margin: 2px 0 0 0; color: #C9D6E8; font-size: 13px; }
     .status-verified { color: #27844E; font-weight: 600; }
     .status-inferred { color: #6E6E6E; font-weight: 600; }
     .status-missing { color: #B57808; font-weight: 600; }
     .status-conflicting { color: #B02A2A; font-weight: 600; }
-    .decision-box { border: 2px solid #27844E; border-radius: 10px; padding: 16px; background: #F4FBF7; }
-    .audit-row { font-family: monospace; font-size: 12.5px; padding: 3px 0; border-bottom: 1px solid #eee; }
+    .audit-row { font-family: monospace; font-size: 12.5px; padding: 3px 0; border-bottom: 1px solid var(--iq-card-border); }
     </style>
-    <div class="iq-banner">
-        <h1>🕵️ Investigation Agent — Live Demo</h1>
-        <p>Real pipeline: database → deterministic analysis → RAG retrieval → Gemini → Grounding Validator → human decision → audit log</p>
-    </div>
     """,
     unsafe_allow_html=True,
 )
@@ -161,6 +156,13 @@ if state_key in st.session_state:
                 st.write(f"- {note}")
     else:
         st.caption("Grounding Validator: every citation checked out — no corrections needed.")
+
+    latest_decision = (get_human_actions(case_id) or [None])[-1]
+    pdf_bytes = build_report_pdf(case_id, context, evidence, report, human_action=latest_decision)
+    st.download_button(
+        "⬇️ Download PDF report", data=pdf_bytes, file_name=f"{case_id}_investigation_report.pdf",
+        mime="application/pdf",
+    )
 
     st.divider()
     st.subheader(f"{context['customer']['name']} — {context['alert']['alert_type']}")
@@ -291,7 +293,7 @@ if state_key in st.session_state:
     # draft, this is the only place a real decision gets recorded.
     # -------------------------------------------------------------
     st.divider()
-    st.markdown('<div class="decision-box">', unsafe_allow_html=True)
+    st.markdown('<div class="iq-decision-box">', unsafe_allow_html=True)
     st.subheader("✅ Human Decision")
     st.caption("This is the accountable action. The AI cannot close, escalate, or file anything on its own (BR1, BR4).")
 

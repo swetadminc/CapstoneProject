@@ -18,26 +18,13 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import DB_PATH
 from data.runtime_db import get_latest_decision_per_case, get_human_actions, record_human_decision
-from ui_common import require_login, role_warning
+from ui_common import require_login, role_warning, page_banner
 
 st.set_page_config(page_title="InvestigateIQ — Compliance Queue", page_icon="🛡️", layout="wide")
 user_name, user_role = require_login()
 
-st.markdown(
-    """
-    <style>
-    .iq-banner { background-color: #1A2A4A; color: white; padding: 14px 22px; border-radius: 10px; }
-    .iq-banner h1 { margin: 0; font-size: 22px; }
-    .iq-banner p { margin: 2px 0 0 0; color: #C9D6E8; font-size: 13px; }
-    .esc-card { border: 2px solid #B02A2A; border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; background: #FFF9F9; }
-    </style>
-    <div class="iq-banner">
-        <h1>🛡️ Compliance / Escalation Queue</h1>
-        <p>Cases an investigator escalated — Compliance reviews, acknowledges, or sends back. Nothing here is filed automatically.</p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+page_banner("🛡️", "Compliance / Escalation Queue",
+            "Cases an investigator escalated — Compliance reviews, acknowledges, or sends back. Nothing here is filed automatically.")
 st.write("")
 role_warning(user_role, "Compliance Officer")
 
@@ -79,7 +66,7 @@ else:
     for case_id, decision in sorted(escalated.items(), key=lambda kv: kv[1]["timestamp"], reverse=True):
         ctx = case_ctx.get(case_id, {})
         with st.container():
-            st.markdown('<div class="esc-card">', unsafe_allow_html=True)
+            st.markdown('<div class="iq-escalation-card">', unsafe_allow_html=True)
             cols = st.columns([2.5, 1.5, 1])
             with cols[0]:
                 st.markdown(f"**`{case_id}`** — {ctx.get('customer_name', '?')}")
