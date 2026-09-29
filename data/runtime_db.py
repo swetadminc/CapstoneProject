@@ -65,6 +65,16 @@ def init_runtime_db():
             timestamp TEXT NOT NULL
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS rule_config (
+            rule_id TEXT NOT NULL,
+            param_name TEXT NOT NULL,
+            param_value REAL NOT NULL,
+            updated_by TEXT,
+            updated_at TEXT,
+            PRIMARY KEY (rule_id, param_name)
+        )
+    """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_case ON audit_log(case_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_actions_case ON human_actions(case_id)")
     conn.commit()
@@ -154,3 +164,42 @@ def get_latest_decision_per_case() -> dict:
     """).fetchall()
     conn.close()
     return {r["case_id"]: dict(r) for r in rows}
+
+
+# Defaults match the documented rule definitions (CEO Playbook / Functional
+# Requirements: R1 amount deviation >= 5x baseline, R2 rapid pass-through
+# >= 80% of the credit leaves within 72 hours across >= 2 hops).
+DEFAULT_RULE_CONFIG = {
+    ("R1", "deviation_multiplier"): 5.0,
+    ("R2", "pass_through_pct"): 80.0,
+    ("R2", "window_hours"): 72.0,
+}
+
+
+def get_rule_config() -> dict:
+    """{(rule_id, param_name): value} — falls back to the documented default
+    for any parameter that hasn't been explicitly saved yet."""
+    init_runtime_db()
+    conn = _connect()
+    rows = conn.execute("SELECT rule_id, param_name, param_value FROM rule_config").fetchall()
+    conn.close()
+    config = dict(DEFAULT_RULE_CONFIG)
+    for r in rows:
+        config[(r["rule_id"], r["param_name"])] = r["param_value"]
+    return config
+
+
+def set_rule_param(rule_id: str, param_name: str, value: float, updated_by: str):
+    init_runtime_db()
+    conn = _connect()
+    conn.execute(
+        """INSERT INTO rule_config (rule_id, param_name, param_value, updated_by, updated_at)
+           VALUES (?,?,?,?,?)
+           ON CONFLICT(rule_id, param_name) DO UPDATE SET param_value=excluded.param_value,
+               updated_by=excluded.updated_by, updated_at=excluded.updated_at""",
+        (rule_id, param_name, value, updated_by, _now()),
+    )
+    conn.commit()
+    conn.close()
+    log_audit_event("SYSTEM-RULES", actor="human", actor_name=updated_by,
+                     action=f"rule_config_updated: {rule_id}.{param_name} = {value}")

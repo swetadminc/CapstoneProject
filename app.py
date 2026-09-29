@@ -40,7 +40,7 @@ st.markdown(
 )
 
 st.subheader("Start here")
-c1, c2, c3, c4 = st.columns(4)
+c1, c2, c3, c4, c5 = st.columns(5)
 with c1:
     st.page_link("pages/0_Case_Queue.py", label="🗂️ Case Queue", help="All alerts — the real entry point")
 with c2:
@@ -49,6 +49,8 @@ with c3:
     st.page_link("pages/3_Compliance_Queue.py", label="🛡️ Compliance Queue", help="Escalated cases")
 with c4:
     st.page_link("pages/1_Admin_Knowledge_Base.py", label="🔐 Admin: Knowledge Base", help="Passcode: IQ-Demo-2026")
+with c5:
+    st.page_link("pages/4_Admin_Rule_Config.py", label="⚙️ Admin: Rule Config", help="Passcode: IQ-Demo-2026")
 
 st.divider()
 st.subheader("System health")
