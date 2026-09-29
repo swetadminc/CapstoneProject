@@ -52,7 +52,7 @@ A chatbot answers one question at a time and puts the burden of asking the right
 ## 5. Phased Agent Design
 
 - **Prototype (now):** one Investigation Agent orchestrating all tool calls.
-- **Roadmap (documented, not built for the capstone):** split into six specialist agents — Alert Triage, Transaction Investigation, Relationship, Customer/KYC, Evidence, Investigation Summary — as originally proposed by the team. See [14-Delivery-Plan-and-Milestone-Roadmap.md](14-Delivery-Plan-and-Milestone-Roadmap.md). The single-agent prototype is deliberately built so this split is additive, not a rewrite: each future agent takes over one existing tool-call sequence.
+- **Built (29 Sep 2026), ahead of the original capstone scope:** split into six specialist agents — Alert Triage, Transaction Investigation, Relationship, Customer/KYC, Evidence, Investigation Summary — as originally proposed by the team, plus a separate Grounding Validator layer. See [Product Docs/BUILD-STATUS.md](BUILD-STATUS.md) for the file-by-file breakdown and how it was verified. See [14-Delivery-Plan-and-Milestone-Roadmap.md](14-Delivery-Plan-and-Milestone-Roadmap.md) for the original roadmap framing. The single-agent prototype was deliberately built so this split was additive, not a rewrite: each agent took over one existing tool-call sequence, with no change to the report schema, the one-LLM-call budget, or any downstream consumer.
 
 ## 6. Security & Guardrail Notes (architecture-level; full list in [10-Non-Functional-Requirements.md](10-Non-Functional-Requirements.md))
 

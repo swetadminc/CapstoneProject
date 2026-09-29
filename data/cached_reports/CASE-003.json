@@ -1,6 +1,6 @@
 {
   "case_id": "CASE-003",
-  "generated_at": "2026-09-29T12:05:21.812776+00:00",
+  "generated_at": "2026-09-29T12:56:31.925640+00:00",
   "model": "models/gemini-flash-lite-latest",
   "context": {
     "case_id": "CASE-003",
@@ -108,25 +108,36 @@
     "findings": [
       {
         "type": "counter_evidence",
-        "description": "The transaction amount of 33760 is below the baseline average of 35833.0, showing a deviation ratio of 0.9x.",
+        "description": "The transaction amount of 33760 is below the baseline average of 35833.0, showing a deviation ratio of 0.9x baseline.",
         "evidence_status": "Verified",
-        "why_it_matters": "It indicates that the transaction volume does not exceed normal baseline expectations for this customer profile.",
+        "why_it_matters": "It shows that the reviewed window transaction does not exceed normal baseline expectations.",
         "supporting_txn_ids": [
           "TXN-15941"
         ]
+      },
+      {
+        "type": "missing",
+        "description": "No documents are currently on file for the customer.",
+        "evidence_status": "Missing",
+        "why_it_matters": "Lacking supporting documents makes it harder to corroborate the nature of the family transfer.",
+        "supporting_txn_ids": []
       }
     ],
     "investigation_questions": [
-      "What is the frequency of family transfers for Deepak Shetty?",
-      "Is Aditya Pillai a known relative or frequent counterparty?"
+      "What is the ongoing relationship between Deepak Shetty and Aditya Pillai?",
+      "Are there any other supporting documents available to verify the family transfer reference text?"
     ],
     "recommended_next_steps": [
+      {
+        "step": "Assess whether the velocity fits the customer's business.",
+        "playbook_doc_id": "PB-AML-VEL-02"
+      },
       {
         "step": "Complete documentation required before closing a velocity case.",
         "playbook_doc_id": "PB-AML-VEL-05"
       }
     ],
-    "narrative_summary": "Case CASE-003 involves a low severity velocity anomaly for Deepak Shetty, a salaried banking professional with a low risk rating and verified KYC status. Transaction analysis reveals a single transaction within the window (TXN-15941) for 33760, which is slightly below the baseline average with a deviation ratio of 0.9x. The reference text notes it as a family transfer with counterparty Aditya Pillai. No prior cases or documents on file were found. Further investigation can follow standard velocity closure documentation guidelines.",
+    "narrative_summary": "An AML investigation was initiated for customer Deepak Shetty due to a low-severity velocity anomaly alert. Analysis of the review window transaction TXN-15941 indicates an amount of 33760, which is slightly below the customer baseline average of 35833.0 with a deviation ratio of 0.9x. The counterparty account ACC-1635 shows a family transfer reference. No prior cases or documents are on file. Further assessment using the playbook guidelines is recommended to properly document and conclude the review.",
     "_validator_notes": [],
     "_validator_result": "PASS"
   }

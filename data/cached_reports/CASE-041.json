@@ -1,6 +1,6 @@
 {
   "case_id": "CASE-041",
-  "generated_at": "2026-09-29T12:05:18.532756+00:00",
+  "generated_at": "2026-09-29T12:56:27.386814+00:00",
   "model": "models/gemini-flash-lite-latest",
   "context": {
     "case_id": "CASE-041",
@@ -148,9 +148,9 @@
     "findings": [
       {
         "type": "red_flag",
-        "description": "Multiple cash deposits occurring in close succession just below standard reporting thresholds.",
+        "description": "Multiple large cash deposits clustered closely together over consecutive days just below the reporting threshold.",
         "evidence_status": "Verified",
-        "why_it_matters": "Clustered transactions near reporting limits warrant further review to understand the operational context.",
+        "why_it_matters": "Clustered transactions near reporting thresholds warrant review to determine if a structuring pattern exists.",
         "supporting_txn_ids": [
           "TXN-19927",
           "TXN-19928",
@@ -160,26 +160,27 @@
       },
       {
         "type": "missing",
-        "description": "No documents on file explaining the business rationale for the observed transaction patterns.",
+        "description": "No documentation on file providing a plausible business rationale for the observed transaction pattern.",
         "evidence_status": "Missing",
-        "why_it_matters": "Without supporting documentation, it is difficult to determine if the activity aligns with standard wholesale distribution operations."
+        "why_it_matters": "Without explanation, it is difficult to determine if the deposit frequency aligns with standard wholesale distribution operations.",
+        "supporting_txn_ids": []
       }
     ],
     "investigation_questions": [
-      "What is the underlying business agreement supporting the frequent cash deposits from wholesale operations?",
-      "Does the volume of cash align with standard industry practices for wholesale distribution of consumer goods?"
+      "What is the business rationale for the series of cash deposits occurring on consecutive days?",
+      "Do Retail Partner A and Retail Partner B have documented commercial agreements with Coastal Wholesale Traders?"
     ],
     "recommended_next_steps": [
       {
-        "step": "Identify and document the transaction pattern by listing every transaction in the cluster with its exact amount, date, and channel.",
+        "step": "Identify and document the structuring pattern by listing every transaction in the cluster with its exact amount, date, and channel, and compute the total value moved.",
         "playbook_doc_id": "PB-AML-STR-01"
       },
       {
-        "step": "Evaluate whether the customer's declared business generates plausible rationale for the repeated near-threshold deposits.",
+        "step": "Escalate the case since the transaction cluster is confirmed to be structuring-like and the customer's declared business requires further review regarding plausible business rationale.",
         "playbook_doc_id": "PB-AML-STR-02"
       }
     ],
-    "narrative_summary": "Case CASE-041 for Coastal Wholesale Traders involves an alert for a clustering of transactions near reporting thresholds, showing a deviation ratio of 2.5x the baseline average. The review window contains multiple cash deposits and partner payments that require further operational context. Additional documentation and outreach are recommended to gather the business rationale behind these specific transaction patterns.",
+    "narrative_summary": "Case CASE-041 was generated for Coastal Wholesale Traders due to a series of transactions appearing within a review window. The account exhibited a deviation ratio of 2.5x the baseline average amount. Multiple cash and commercial deposits were recorded over consecutive days. Further inquiry is required to establish the business rationale behind the observed deposit frequency and transaction clustering.",
     "_validator_notes": [],
     "_validator_result": "PASS"
   }

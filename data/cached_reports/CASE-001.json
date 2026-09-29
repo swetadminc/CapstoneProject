@@ -1,6 +1,6 @@
 {
   "case_id": "CASE-001",
-  "generated_at": "2026-09-29T12:05:10.669291+00:00",
+  "generated_at": "2026-09-29T12:56:19.693581+00:00",
   "model": "models/gemini-flash-lite-latest",
   "context": {
     "case_id": "CASE-001",
@@ -126,14 +126,6 @@
     "evidence_window_empty": false,
     "relationships": [
       {
-        "counterparty_account_id": "ACC-1610",
-        "relationship": null
-      },
-      {
-        "counterparty_account_id": "ACC-1637",
-        "relationship": null
-      },
-      {
         "counterparty_account_id": "ACC-1588",
         "relationship": {
           "relationship_type": "Unknown",
@@ -144,7 +136,15 @@
         }
       },
       {
-        "counterparty_account_id": "ACC-1587",
+        "counterparty_account_id": "ACC-1637",
+        "relationship": null
+      },
+      {
+        "counterparty_account_id": "ACC-1610",
+        "relationship": null
+      },
+      {
+        "counterparty_account_id": "ACC-1586",
         "relationship": {
           "relationship_type": "Unknown",
           "source": "Observed",
@@ -154,7 +154,7 @@
         }
       },
       {
-        "counterparty_account_id": "ACC-1586",
+        "counterparty_account_id": "ACC-1587",
         "relationship": {
           "relationship_type": "Unknown",
           "source": "Observed",
@@ -211,9 +211,9 @@
     "findings": [
       {
         "type": "red_flag",
-        "description": "Apex Global Trading Ltd. experienced rapid movement of funds with a deviation ratio of 6.6x baseline, receiving large inflows from NewCo Imports and quickly disbursing funds to Orion Consulting and Delta Trading within a short timeframe.",
+        "description": "Rapid movement of high-value funds significantly exceeding the baseline average amount by 6.6x.",
         "evidence_status": "Verified",
-        "why_it_matters": "Unusual volume and velocity of transactions that deviate significantly from baseline averages warrant further investigation into the business purpose of the flows.",
+        "why_it_matters": "Large inflows followed quickly by large outflows can indicate layering or rapid transfer patterns that require verification of economic rationale.",
         "supporting_txn_ids": [
           "TXN-19918",
           "TXN-19919",
@@ -225,34 +225,28 @@
       },
       {
         "type": "missing",
-        "description": "Counterparty relationships for NewCo Imports, Orion Consulting, and Delta Trading are marked as unknown or unverified.",
+        "description": "Lack of supporting documents on file regarding the business relationship or the underlying contracts for NewCo Imports, Orion Consulting, and Delta Trading.",
         "evidence_status": "Missing",
-        "why_it_matters": "Without verified counterparty relationships, it is difficult to determine whether large transactions align with the customer's stated import/export profile.",
-        "supporting_txn_ids": [
-          "TXN-19918",
-          "TXN-19919",
-          "TXN-19920",
-          "TXN-19921",
-          "TXN-19922",
-          "TXN-19923"
-        ]
+        "why_it_matters": "Without supporting documentation or verified relationship details, it is difficult to determine if the high-value transactions align with the customer's stated import/export industry profile.",
+        "supporting_txn_ids": []
       }
     ],
     "investigation_questions": [
-      "What is the business rationale behind the large payments made to Orion Consulting and Delta Trading immediately following the inward remittances from NewCo Imports?",
-      "Are there underlying invoices, contracts, or shipping documents supporting the high-value transactions observed in the review window?"
+      "What is the business purpose and underlying contractual agreement for the large inward remittances from NewCo Imports?",
+      "What services or goods were provided to Orion Consulting and Delta Trading corresponding to the outward payments?",
+      "What is the exact nature of the relationship between Apex Global Trading Ltd. and the counterparties operating accounts ACC-1586, ACC-1587, and ACC-1588?"
     ],
     "recommended_next_steps": [
       {
-        "step": "Verify the source of funds by requesting documentation such as invoices, signed contracts, or equivalent proof tied to the transaction amounts and dates.",
+        "step": "Verify the source of funds by requesting documentation supporting the declared source of funds for the flagged credit, such as an invoice, signed contract, or equivalent proof.",
         "playbook_doc_id": "PB-AML-07-03"
       },
       {
-        "step": "Confirm whether the counterparty relationships and business purposes are sufficiently understood to account for the rapid movement of funds.",
-        "playbook_doc_id": "PB-AML-07-10"
+        "step": "Review escalation criteria for the rapid-movement-of-funds scenario to determine if the case warrants further escalation.",
+        "playbook_doc_id": "PB-AML-07-07"
       }
     ],
-    "narrative_summary": "Apex Global Trading Ltd. triggered a high-severity alert for unusual transaction activity and rapid movement of funds, operating at 6.6x its baseline average amount. Large inward remittances were received from NewCo Imports and subsequently disbursed in similar quantities to Orion Consulting and Delta Trading over a two-day period. Counterparty relationships remain unverified, and supporting documentation is currently missing from the file. Further review is required to understand the commercial justification for these funds flows.",
+    "narrative_summary": "Apex Global Trading Ltd. triggered an alert for unusual transaction activity and rapid movement of funds, exhibiting a deviation ratio of 6.6x its baseline average. Review of the transaction window revealed substantial credit transactions from NewCo Imports followed by large debit transactions to Orion Consulting and Delta Trading within a short timeframe. Relationship data for these counterparties currently indicates unknown and unverified statuses, and no supporting documents are currently on file. Further investigation is required to ascertain the underlying business purpose and verify the source of funds for these high-value movements.",
     "_validator_notes": [],
     "_validator_result": "PASS"
   }

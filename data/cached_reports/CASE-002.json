@@ -1,6 +1,6 @@
 {
   "case_id": "CASE-002",
-  "generated_at": "2026-09-29T12:05:15.037431+00:00",
+  "generated_at": "2026-09-29T12:56:23.237112+00:00",
   "model": "models/gemini-flash-lite-latest",
   "context": {
     "case_id": "CASE-002",
@@ -90,9 +90,13 @@
     "evidence_window_empty": false,
     "relationships": [
       {
-        "counterparty_account_id": "ACC-1591",
+        "counterparty_account_id": "ACC-1621",
+        "relationship": null
+      },
+      {
+        "counterparty_account_id": "ACC-1589",
         "relationship": {
-          "relationship_type": "Business - Service Provider",
+          "relationship_type": "Business - Buyer",
           "source": "KYC-declared",
           "verified": "Yes",
           "start_date": "2024-07-20",
@@ -110,18 +114,14 @@
         }
       },
       {
-        "counterparty_account_id": "ACC-1589",
+        "counterparty_account_id": "ACC-1591",
         "relationship": {
-          "relationship_type": "Business - Buyer",
+          "relationship_type": "Business - Service Provider",
           "source": "KYC-declared",
           "verified": "Yes",
           "start_date": "2024-07-20",
           "previously_flagged": 0
         }
-      },
-      {
-        "counterparty_account_id": "ACC-1621",
-        "relationship": null
       }
     ],
     "prior_cases": [
@@ -186,9 +186,9 @@
     "findings": [
       {
         "type": "red_flag",
-        "description": "Transaction volume shows a significant deviation of 21.3x above baseline average amount.",
+        "description": "Significant transaction volume deviation, reaching 21.3x baseline average.",
         "evidence_status": "Verified",
-        "why_it_matters": "A sudden large spike in transaction amounts compared to the baseline may indicate unusual fund movement requiring review.",
+        "why_it_matters": "A large deviation from normal historical averages indicates unusual activity that warrants further review.",
         "supporting_txn_ids": [
           "TXN-19924",
           "TXN-19925",
@@ -198,29 +198,29 @@
       },
       {
         "type": "counter_evidence",
-        "description": "The large credit transaction of 9,000,000 INR matches a verified sales contract on file with Continental Buyers Pte Ltd.",
+        "description": "The incoming large transaction matches a verified sales contract on file for industrial equipment.",
         "evidence_status": "Verified",
-        "why_it_matters": "Provides documentary context supporting the business rationale for the high-value credit.",
+        "why_it_matters": "Provides contextual business rationale for the incoming funds.",
         "supporting_txn_ids": [
           "TXN-19924"
         ]
       }
     ],
     "investigation_questions": [
-      "Does the rapid outbound flow of funds to Meridian Steel Suppliers and Coastal Logistics Pvt Ltd align with standard commercial terms for the import/export business?",
-      "Are there any additional supporting invoices for the freight and logistics payment to Coastal Logistics Pvt Ltd?"
+      "Do the outgoing payments to Meridian Steel Suppliers and Coastal Logistics fully correlate with ongoing operational fulfillment for the associated sales contract?",
+      "What is the underlying business relationship for the unverified Granite Corp Ltd counterparty account?"
     ],
     "recommended_next_steps": [
       {
-        "step": "Verify the source of funds and ensure all supporting documentation for the flagged credit transaction is reviewed.",
+        "step": "Verify source of funds and confirm acceptable documentation supports the credit transaction.",
         "playbook_doc_id": "PB-AML-07-03"
       },
       {
-        "step": "Confirm all requirements under the case closure guidance before making a final determination.",
+        "step": "Confirm all requirements for closing a case are satisfied, including current KYC, documented source of funds, understood counterparty relationships, and recorded written rationale.",
         "playbook_doc_id": "PB-AML-07-10"
       }
     ],
-    "narrative_summary": "Case CASE-002 was opened for unusual transaction activity and rapid movement of funds regarding Apex Global Trading Ltd. The review window captured a transaction volume representing a 21.3x deviation from the customer's baseline average. Specifically, a large credit of 9,000,000 INR was received from Continental Buyers Pte Ltd (TXN-19924), which is supported by a verified sales contract on file (DOC-2201). Subsequent rapid outward movements occurred to Meridian Steel Suppliers (TXN-19925) and Coastal Logistics Pvt Ltd (TXN-19926). Relationships with these counterparties are KYC-declared and verified. Further investigation is recommended to fully review the documentation supporting the fund movements.",
+    "narrative_summary": "Apex Global Trading Ltd. triggered an alert for unusual transaction activity and rapid movement of funds, with activity reaching 21.3x the baseline average. The review window includes a large credit transaction supported by a verified sales contract on file, along with outgoing payments to verified suppliers and service providers. Further review is needed to fully understand all counterparty relationships and ensure all activity aligns with established business operations.",
     "_validator_notes": [],
     "_validator_result": "PASS"
   }

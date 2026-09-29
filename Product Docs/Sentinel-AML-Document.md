@@ -423,7 +423,7 @@ A chatbot answers one question at a time and puts the burden of asking the right
 ## 5. Phased Agent Design
 
 - **Prototype (now):** one Investigation Agent orchestrating all tool calls.
-- **Roadmap (documented, not built for the capstone):** split into six specialist agents — Alert Triage, Transaction Investigation, Relationship, Customer/KYC, Evidence, Investigation Summary — as originally proposed by the team. See **Section 15 — Delivery Plan / Milestone Roadmap**. The single-agent prototype is deliberately built so this split is additive, not a rewrite: each future agent takes over one existing tool-call sequence.
+- **Built (29 Sep 2026), ahead of the original capstone scope:** split into six specialist agents — Alert Triage, Transaction Investigation, Relationship, Customer/KYC, Evidence, Investigation Summary — as originally proposed by the team, plus a separate Grounding Validator layer. See Product Docs/BUILD-STATUS.md for the file-by-file breakdown and how it was verified. See **Section 15 — Delivery Plan / Milestone Roadmap** for the original roadmap framing. The single-agent prototype was deliberately built so this split was additive, not a rewrite: each agent took over one existing tool-call sequence, with no change to the report schema, the one-LLM-call budget, or any downstream consumer.
 
 ## 6. Security & Guardrail Notes (architecture-level; full list in **Section 10 — Non-Functional Requirements**)
 
@@ -1076,7 +1076,7 @@ Review and update this file at each team check-in alongside **Section 16 — Mee
 |---|---|---|---|
 | Phase 1 — Real data discovery | Validate assumptions in **Section 14 — Risks, Assumptions, Dependencies & Constraints** against a real institution | Process mapping, data inventory, measured baseline (actual hours/alert, false-positive rate) | Entire phase |
 | Phase 2 — Real integrations | Replace mock data with real source systems | Core banking, KYC, case-management integration (see **Section 8 — Integration / API Specifications** target-state table) | Entire phase |
-| Phase 3 — Multi-agent split | Move from single Investigation Agent to the six-agent design (Triage, Transaction, Relationship, KYC, Evidence, Summary) | Agent-by-agent migration, each replacing one tool-call sequence | Documented design only (see **Section 6 — Technical Architecture** §5) |
+| Phase 3 — Multi-agent split | Move from single Investigation Agent to the six-agent design (Triage, Transaction, Relationship, KYC, Evidence, Summary) | Agent-by-agent migration, each replacing one tool-call sequence | **Built 29 Sep 2026** — ahead of the original phasing (see **Section 6 — Technical Architecture** §5 and Product Docs/BUILD-STATUS.md) |
 | Phase 4 — Screening & policy RAG | Add sanctions/PEP/adverse-media review and real policy-document retrieval | Vendor selection, RAG index over approved policy documents | Out of scope; noted as extension |
 | Phase 5 — Governance & model risk | Formal model risk management, bias/drift monitoring, compliance sign-off | Model documentation, monitoring dashboards, periodic review | Out of scope |
 | Phase 6 — Production hardening | Full IAM, encryption, scale testing, SLAs | Security certification, load testing | Out of scope |
