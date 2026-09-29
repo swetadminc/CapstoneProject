@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-InvestigateIQ — placeholder deployment.
+InvestigateIQ — landing / system-health page.
 
-This is not the Investigation Copilot yet (see CEO Playbook, Section 9: that's the
-main build). This page exists to (a) prove the Railway <-> GitHub deploy pipeline
-works end to end, and (b) prove the app can actually connect to and query the
-real database the Copilot will run on — not just render static text.
+Confirms the deploy pipeline and database connection work, and routes to
+the actual product (Case Queue -> Investigation Workspace). This used to be
+a "placeholder, nothing built yet" page; it no longer is one — see
+Product Docs/BUILD-STATUS.md for the full, current picture.
 """
 import sqlite3
 import os
@@ -39,21 +39,24 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.subheader("Deployment is live 🎉")
-st.write(
-    "This page is a placeholder while the Investigation Copilot is being built. "
-    "It's here to confirm the pipeline works: **GitHub → Railway → this app → the database.**"
-)
+st.subheader("Start here")
+c1, c2, c3 = st.columns(3)
+with c1:
+    st.page_link("pages/0_Case_Queue.py", label="🗂️ Case Queue", help="All alerts — the real entry point")
+with c2:
+    st.page_link("pages/2_Investigation_Demo.py", label="🕵️ Investigation Workspace", help="Evidence, chat, decision, audit log")
+with c3:
+    st.page_link("pages/1_Admin_Knowledge_Base.py", label="🔐 Admin: Knowledge Base", help="Passcode: IQ-Demo-2026")
 
 st.divider()
-st.subheader("Database connection")
+st.subheader("System health")
 
 if not os.path.exists(DB_PATH):
     st.error(f"Database not found at `{DB_PATH}`. Run `python data/build_database.py` and redeploy.")
 else:
     try:
         conn = sqlite3.connect(DB_PATH)
-        tables = ["customers", "accounts", "transactions", "relationships", "alerts", "past_cases", "documents"]
+        tables = ["customers", "accounts", "transactions", "relationships", "alerts", "past_cases", "documents", "knowledge_base", "knowledge_chunks"]
         counts = {}
         for t in tables:
             counts[t] = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
@@ -63,50 +66,27 @@ else:
         cols = st.columns(4)
         labels = {
             "customers": "Customers", "accounts": "Accounts", "transactions": "Transactions",
-            "relationships": "Relationships", "alerts": "Alerts", "past_cases": "Past Cases",
-            "documents": "Documents",
+            "alerts": "Alerts", "knowledge_base": "KB Documents", "knowledge_chunks": "KB Chunks",
+            "past_cases": "Past Cases", "documents": "Documents",
         }
         for i, (t, label) in enumerate(labels.items()):
             with cols[i % 4]:
                 st.metric(label, f"{counts[t]:,}")
-
-        st.divider()
-        st.subheader("The frozen demo scenario")
-        hero = pd.read_sql(
-            "SELECT customer_id, name, type, occupation_or_industry, risk_rating "
-            "FROM customers WHERE customer_id = 'CUST-1004'", conn,
-        )
-        st.dataframe(hero, hide_index=True, use_container_width=True)
-
-        alerts = pd.read_sql(
-            "SELECT alert_id, case_id, severity, status, alert_date "
-            "FROM alerts WHERE customer_id = 'CUST-1004' ORDER BY alert_date", conn,
-        )
-        st.caption("Both hero cases (C1 suspicious, C2 legitimate twin) are live in the database:")
-        st.dataframe(alerts, hide_index=True, use_container_width=True)
 
         conn.close()
     except Exception as e:
         st.error(f"Database query failed: {e}")
 
 st.divider()
-st.subheader("Knowledge base — built and live today")
-st.markdown(
-    "The RAG knowledge base (OKF documents → chunked → indexed with SQLite FTS5) is already built and "
-    "queryable, ahead of the agents that will use it. Open **Admin Knowledge Base** in the sidebar to see "
-    "the documents, every chunk, and run a real keyword search against the index."
-)
-
-st.divider()
-st.subheader("What's coming")
+st.subheader("What's actually built")
 st.markdown(
     """
-    - The Investigation Workspace — evidence panel, chat/Q&A, human decision panel
-    - The AI agents (Context → Discovery → Evidence/Validation → Conclusion) with the Grounding Validator
-    - The Conclusion Agent wired to the knowledge-base search that's already live (see above)
-    - The full audit trail
+    Case Queue (all alerts, filters, KPIs) · Investigation Agent (real Gemini calls, RAG-grounded,
+    validated) · Chat panel (grounded, cited, multi-turn) · Human Decision panel (mandatory rationale) ·
+    Persistent audit log (survives redeploys) · RAG knowledge base covering all three alert scenarios.
 
-    See the **CEO Playbook** in `Product Docs/` for the complete architecture, roles, and demo script.
+    See **`Product Docs/BUILD-STATUS.md`** for the full, current breakdown of what's built vs. still open —
+    that file is kept accurate; this page is a summary of it.
     """
 )
 
