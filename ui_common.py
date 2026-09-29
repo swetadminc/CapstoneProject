@@ -52,6 +52,24 @@ _GLOBAL_CSS = """
     --iq-status-close-bg: #E8F3EC; --iq-status-close: #27844E;
     --iq-status-info-bg: #EEF3FB; --iq-status-info: #2E63BF;
 }
+/* Light mode isn't flat white — it's a soft blue radiance instead, the
+   light-side counterpart to dark mode's navy (see _DARK_OVERRIDE_CSS
+   below, which overrides this background-color outright for dark mode).
+   Two overlapping radial glows (upper-left, upper-right) fading into a
+   pale blue base, rather than one centered blob, so it reads as ambient
+   light rather than a single spotlight. */
+[data-testid="stAppViewContainer"], [data-testid="stMain"] {
+    background:
+        radial-gradient(ellipse 900px 560px at 12% -8%, rgba(139, 180, 255, 0.30), transparent 60%),
+        radial-gradient(ellipse 760px 520px at 92% 4%, rgba(120, 165, 255, 0.20), transparent 58%),
+        #F4F8FF;
+}
+[data-testid="stSidebar"] {
+    background: linear-gradient(165deg, #EAF1FF 0%, #F4F8FF 55%);
+}
+.iq-card {
+    box-shadow: 0 1px 3px rgba(26,42,74,0.06);
+}
 .iq-banner {
     background: linear-gradient(135deg, var(--iq-navy), #24365E);
     color: white; padding: 16px 24px; border-radius: 12px;
