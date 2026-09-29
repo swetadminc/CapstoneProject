@@ -13,9 +13,14 @@ different text box on every page. Every page that records a decision still
 requires that name explicitly at submit time — this doesn't remove that
 requirement, it just removes the retyping.
 """
+import os
 import streamlit as st
 
 ROLES = ["Investigator", "Team Lead", "Compliance Officer", "Admin"]
+_ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+LOGO_ICON = os.path.join(_ASSETS_DIR, "logo_icon.svg")
+LOGO_FULL_LIGHT = os.path.join(_ASSETS_DIR, "logo_full.svg")
+LOGO_FULL_DARK = os.path.join(_ASSETS_DIR, "logo_full_dark.svg")
 
 # ---------------------------------------------------------------------------
 # Design system — one shared CSS block instead of six copies of the same
@@ -108,6 +113,15 @@ _GLOBAL_CSS = """
 .iq-kpi-amber { border-left: 4px solid var(--iq-sev-medium); }
 .iq-kpi-red { border-left: 4px solid var(--iq-sev-high); }
 .iq-kpi-green { border-left: 4px solid var(--iq-sev-low); }
+.iq-kpi-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 9px; font-size: 15px;
+    margin-bottom: 6px;
+}
+.iq-kpi-blue .iq-kpi-icon { background: var(--iq-status-info-bg); }
+.iq-kpi-amber .iq-kpi-icon { background: var(--iq-sev-medium-bg); }
+.iq-kpi-red .iq-kpi-icon { background: var(--iq-sev-high-bg); }
+.iq-kpi-green .iq-kpi-icon { background: var(--iq-sev-low-bg); }
 .iq-decision-box {
     border: 2px solid var(--iq-sev-low); border-radius: 10px; padding: 16px;
     background: rgba(39,132,78,0.07);
@@ -358,21 +372,30 @@ def require_login():
     the session doesn't have an identity yet; otherwise renders the small
     sidebar identity badge and returns (name, role) immediately."""
     inject_global_styles()
+    dark = bool(st.session_state.get("dark_mode_toggle"))
+    st.logo(LOGO_FULL_DARK if dark else LOGO_FULL_LIGHT, icon_image=LOGO_ICON, size="large")
+
     if "user_name" not in st.session_state or "user_role" not in st.session_state:
-        st.markdown("### 👤 Who's using InvestigateIQ?")
-        st.caption(
-            "Prototype-level identity, not real authentication (no password) — matches the mock-auth scope "
-            "used throughout this build. This is what gets attributed on every decision you record."
-        )
-        name = st.text_input("Your name")
-        role = st.selectbox("Your role", ROLES)
-        if st.button("Continue", type="primary"):
-            if not name.strip():
-                st.error("Please enter your name.")
-            else:
-                st.session_state["user_name"] = name.strip()
-                st.session_state["user_role"] = role
-                st.rerun()
+        st.write("")
+        lcol1, lcol2, lcol3 = st.columns([1, 2, 1])
+        with lcol2:
+            st.image(LOGO_FULL_DARK if dark else LOGO_FULL_LIGHT, use_container_width=True)
+            st.write("")
+            with st.container(border=True):
+                st.markdown("#### 👤 Who's using InvestigateIQ?")
+                st.caption(
+                    "Prototype-level identity, not real authentication (no password) — matches the mock-auth "
+                    "scope used throughout this build. This is what gets attributed on every decision you record."
+                )
+                name = st.text_input("Your name")
+                role = st.selectbox("Your role", ROLES)
+                if st.button("Continue", type="primary", use_container_width=True):
+                    if not name.strip():
+                        st.error("Please enter your name.")
+                    else:
+                        st.session_state["user_name"] = name.strip()
+                        st.session_state["user_role"] = role
+                        st.rerun()
         st.stop()
 
     with st.sidebar:

@@ -1,0 +1,15 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="iqBadgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A2A4A"/>
+      <stop offset="100%" stop-color="#2E63BF"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="112" height="112" rx="28" fill="url(#iqBadgeGrad)"/>
+  <path d="M52 20 L78 30 L78 60 C78 80 65 94 52 100 C39 94 26 80 26 60 L26 30 Z"
+        fill="#FFFFFF" fill-opacity="0.96"/>
+  <path d="M39 57 L48 66 L67 44" fill="none" stroke="#1A2A4A" stroke-width="7"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="80" cy="80" r="17" fill="none" stroke="#FFFFFF" stroke-width="7"/>
+  <line x1="92" y1="92" x2="104" y2="104" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"/>
+</svg>
