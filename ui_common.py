@@ -156,6 +156,28 @@ _GLOBAL_CSS = """
 .iq-card, [data-testid="stVerticalBlockBorderWrapper"] {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
+/* Mobile responsiveness for the Case Queue table — reported: "the tiles
+   get misaligned, and the text gets misaligned. If the alert type is
+   quite big, then it also gets misaligned." st.columns() DOES stack
+   vertically below Streamlit's own ~640px breakpoint on its own, but
+   that's exactly the problem: a wide header row (Case / Customer / Alert
+   Type / Severity / Status / Rule(s)) and each data row both collapse
+   into one long vertical list with nothing connecting a value to what it
+   means once the column grid that lined them up is gone. Rather than
+   fight Streamlit's own column-stacking (fragile — it's not designed to
+   be overridden), each cell gets a label prefix that's invisible on
+   desktop (where the header row already provides that context) and
+   appears only once stacked, and the now-redundant header row itself
+   hides at that same breakpoint. */
+.iq-mobile-label { display: none; font-weight: 600; color: var(--iq-text-secondary); }
+@media (max-width: 640px) {
+    .iq-mobile-label { display: inline; }
+    [data-testid="stHorizontalBlock"]:has(.iq-queue-header) { display: none; }
+    [data-testid="stHorizontalBlock"]:has(.iq-queue-row) {
+        border-bottom: 1px solid var(--iq-card-border); padding-bottom: 8px; margin-bottom: 8px;
+    }
+}
 div[data-testid="stVerticalBlockBorderWrapper"]:has(.iq-nav-title):hover {
     transform: translateY(-3px);
     box-shadow: 0 10px 24px rgba(26,42,74,0.14);

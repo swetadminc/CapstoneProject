@@ -117,18 +117,31 @@ st.caption(f"Showing {len(filtered)} of {len(df)} alerts")
 # ------------------------------------------------------------------
 header = st.columns([1.6, 2.2, 2.6, 1.3, 1.3, 1.5, 1.2])
 for col, label in zip(header, ["Case", "Customer", "Alert Type", "Severity", "Status", "Rule(s)", ""]):
-    col.markdown(f"**{label}**")
+    col.markdown(f'<span class="iq-queue-header"><strong>{label}</strong></span>', unsafe_allow_html=True)
 st.markdown('<hr style="margin: 4px 0 8px 0; border-color: var(--iq-card-border);">', unsafe_allow_html=True)
 
+# On a narrow viewport, Streamlit stacks these columns vertically on its
+# own — but with the header row hidden at that same breakpoint (see
+# ui_common.py), a bare "Coastal Wholesale Traders" or "Structuring -
+# multiple transactions..." stacked in a long list with no header above
+# it doesn't say what it IS. .iq-mobile-label prefixes are invisible on
+# desktop (redundant next to the real header) and only appear once
+# stacked.
 for _, row in filtered.iterrows():
     cols = st.columns([1.6, 2.2, 2.6, 1.3, 1.3, 1.5, 1.2])
     hero_tag = ' <span class="iq-hero-badge">DEMO</span>' if row["has_cache"] else ""
-    cols[0].markdown(f"`{row['case_id']}`{hero_tag}", unsafe_allow_html=True)
-    cols[1].write(f"{row['customer_name']}")
-    cols[2].write(row["alert_type"])
-    cols[3].markdown(severity_badge(row["severity"]), unsafe_allow_html=True)
-    cols[4].markdown(status_badge(row["queue_status"]), unsafe_allow_html=True)
-    cols[5].caption(row["trigger_rule"] or "—")
+    cols[0].markdown(f'<span class="iq-queue-row"></span><span class="iq-mobile-label">Case: </span>'
+                      f'`{row["case_id"]}`{hero_tag}', unsafe_allow_html=True)
+    cols[1].markdown(f'<span class="iq-mobile-label">Customer: </span>{row["customer_name"]}',
+                      unsafe_allow_html=True)
+    cols[2].markdown(f'<span class="iq-mobile-label">Alert type: </span>{row["alert_type"]}',
+                      unsafe_allow_html=True)
+    cols[3].markdown(f'<span class="iq-mobile-label">Severity: </span>{severity_badge(row["severity"])}',
+                      unsafe_allow_html=True)
+    cols[4].markdown(f'<span class="iq-mobile-label">Status: </span>{status_badge(row["queue_status"])}',
+                      unsafe_allow_html=True)
+    cols[5].markdown(f'<span class="iq-mobile-label">Rule(s): </span>{row["trigger_rule"] or "—"}',
+                      unsafe_allow_html=True)
     # A full "Investigate →" label doesn't fit this column at most viewport
     # widths and silently truncates to "I.." — an icon-only button with a
     # real Streamlit tooltip (the `help` kwarg) says the same thing without
