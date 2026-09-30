@@ -19,10 +19,14 @@ across every other page (see ui_common.py) — a self-contained dark section
 that stays legible regardless of the surrounding theme, not adaptive body
 copy.
 """
-import sqlite3
 import os
+import sqlite3
+import sys
 import streamlit as st
 import streamlit.components.v1 as components
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from data.runtime_db import get_latest_decision_per_case, resolve_status
 from ui_common import require_login
 
 st.set_page_config(page_title="InvestigateIQ", page_icon="🔎", layout="wide")
@@ -179,11 +183,16 @@ with st.container(key="hero_cta"):
 # ---------------------------------------------------------------------
 if os.path.exists(DB_PATH):
     conn = sqlite3.connect(DB_PATH)
-    total_alerts = conn.execute("SELECT COUNT(*) FROM alerts").fetchone()[0]
-    open_alerts = conn.execute("SELECT COUNT(*) FROM alerts WHERE status = 'Open'").fetchone()[0]
-    high_sev = conn.execute("SELECT COUNT(*) FROM alerts WHERE severity = 'High'").fetchone()[0]
-    escalated = conn.execute("SELECT COUNT(*) FROM alerts WHERE status = 'Escalated'").fetchone()[0]
+    conn.row_factory = sqlite3.Row
+    alert_rows = conn.execute("SELECT case_id, status, severity FROM alerts").fetchall()
     conn.close()
+    decisions = get_latest_decision_per_case()
+    statuses = [resolve_status(r["status"], decisions.get(r["case_id"])) for r in alert_rows]
+
+    total_alerts = len(alert_rows)
+    open_alerts = statuses.count("Open")
+    high_sev = sum(1 for r in alert_rows if r["severity"] == "High")
+    escalated = statuses.count("Escalated")
 
     st.write("")
     k1, k2, k3, k4 = st.columns(4)
@@ -210,15 +219,25 @@ NAV_CARDS = [
     ("⚙️", "Admin: Rule Config", "Passcode: IQ-Demo-2026", "pages/4_Admin_Rule_Config.py"),
 ]
 
-cols = st.columns(3)
-for i, (icon, label, help_text, target) in enumerate(NAV_CARDS):
-    with cols[i % 3]:
-        st.markdown(f'<div class="iq-rise iq-stagger-{(i % 3) + 1}">', unsafe_allow_html=True)
-        with st.container(border=True):
-            st.markdown(f'<p class="iq-nav-title">{icon} {label}</p>', unsafe_allow_html=True)
-            st.caption(help_text)
-            st.page_link(target, label="Open →")
-        st.markdown('</div>', unsafe_allow_html=True)
+# Fresh st.columns(3) per row of 3, rather than one set of columns indexed
+# by i % 3 — Streamlit stacks a *set* of columns in order when it collapses
+# them on mobile. Reusing one set across all 7 cards meant mobile showed
+# card 0, then card 3, then card 6 (column 0's cards), then column 1's,
+# then column 2's — the reading order (Case Queue, Investigation
+# Workspace, ...) got scrambled into a column-major order instead.
+# Building columns fresh per row keeps each row's own stack in order, and
+# concatenated across rows that's the original reading order.
+for row_start in range(0, len(NAV_CARDS), 3):
+    row = NAV_CARDS[row_start:row_start + 3]
+    cols = st.columns(3)
+    for j, (icon, label, help_text, target) in enumerate(row):
+        with cols[j]:
+            st.markdown(f'<div class="iq-rise iq-stagger-{j + 1}">', unsafe_allow_html=True)
+            with st.container(border=True):
+                st.markdown(f'<p class="iq-nav-title">{icon} {label}</p>', unsafe_allow_html=True)
+                st.caption(help_text)
+                st.page_link(target, label="Open →")
+            st.markdown('</div>', unsafe_allow_html=True)
 
 st.divider()
 st.subheader("System health")

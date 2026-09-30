@@ -20,7 +20,7 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import DB_PATH
-from data.runtime_db import get_latest_decision_per_case
+from data.runtime_db import get_latest_decision_per_case, resolve_status
 from ui_common import require_login, page_banner, severity_badge, status_badge
 
 HERO_CASES = {"CASE-001", "CASE-002"}
@@ -50,26 +50,7 @@ def load_queue():
 
 df = load_queue()
 decisions = get_latest_decision_per_case()
-
-# Derive a live "queue status" per case: a human decision overrides the
-# original alert.status; otherwise it's whatever the alert record says.
-def queue_status(row):
-    d = decisions.get(row["case_id"])
-    if d:
-        return {
-            "close": "Closed", "escalate": "Escalated", "request_info": "Info Requested",
-            "compliance_ack": "Closed (Compliance)", "compliance_return": "Returned to Investigator",
-            "compliance_refer": "Referred (Compliance)",
-        }.get(d["action"], d["action"])
-    # Normalize the raw alert status ("Closed - No Concern") to the same
-    # vocabulary a human decision produces ("Closed"), so KPI counts and
-    # badge colors are consistent regardless of which source set the status.
-    raw = row["status"]
-    if raw.startswith("Closed"):
-        return "Closed"
-    return raw
-
-df["queue_status"] = df.apply(queue_status, axis=1)
+df["queue_status"] = df.apply(lambda row: resolve_status(row["status"], decisions.get(row["case_id"])), axis=1)
 df["has_cache"] = df["case_id"].isin(HERO_CASES)
 
 # ------------------------------------------------------------------

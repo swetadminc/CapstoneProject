@@ -193,6 +193,28 @@ def get_latest_decision_per_case() -> dict:
     return {r["case_id"]: dict(r) for r in rows}
 
 
+_DECISION_STATUS_LABELS = {
+    "close": "Closed", "escalate": "Escalated", "request_info": "Info Requested",
+    "compliance_ack": "Closed (Compliance)", "compliance_return": "Returned to Investigator",
+    "compliance_refer": "Referred (Compliance)",
+}
+
+
+def resolve_status(raw_alert_status: str, decision: dict | None) -> str:
+    """The one place that decides what "status" means for an alert: a
+    recorded human decision overrides the dataset's original status,
+    otherwise falls back to the raw value. Case Queue, Home, and Analytics
+    all call this instead of each re-deriving it — they used to read
+    `alerts.status` directly, so escalating or closing a case from the
+    workspace showed up on Case Queue but not on Home/Analytics, which kept
+    counting the dataset's original, pre-decision status."""
+    if decision:
+        return _DECISION_STATUS_LABELS.get(decision["action"], decision["action"])
+    if raw_alert_status.startswith("Closed"):
+        return "Closed"
+    return raw_alert_status
+
+
 # Defaults match the documented rule definitions (CEO Playbook / Functional
 # Requirements: R1 amount deviation >= 5x baseline, R2 rapid pass-through
 # >= 80% of the credit leaves within 72 hours across >= 2 hops).

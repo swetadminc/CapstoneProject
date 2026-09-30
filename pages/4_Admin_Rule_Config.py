@@ -110,9 +110,12 @@ if st.button("💾 Save these thresholds", type="primary", disabled=not changed,
     if not admin_name.strip():
         st.error("Your name is required — this gets logged to the audit trail.")
     else:
-        set_rule_param("R1", "deviation_multiplier", new_dev, admin_name.strip())
-        set_rule_param("R2", "pass_through_pct", new_pct, admin_name.strip())
-        set_rule_param("R2", "window_hours", new_window, admin_name.strip())
+        # Only log the sliders that actually moved — logging all three on
+        # every save made the audit trail claim R2 changed even on a
+        # save that only touched R1.
+        for (rule_id, param_name), value in proposed.items():
+            if value != float(config[(rule_id, param_name)]):
+                set_rule_param(rule_id, param_name, value, admin_name.strip())
         st.success("Saved. The existing (frozen) dataset's alerts are unaffected — this only governs "
                    "future rule evaluation, e.g. through the preview above.")
         st.cache_data.clear()

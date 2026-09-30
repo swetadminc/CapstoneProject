@@ -103,7 +103,8 @@ with st.expander("Exactly how a document becomes searchable chunks — the hones
 
         **4. Retrieval.** `data/knowledge_search.py` — `search(query)` — turns a question into indexed terms,
         runs a `MATCH` query against the FTS5 index, and returns the top-k chunks ranked by BM25 score, each
-        with its source document ID. This is the exact function the Conclusion Agent will call.
+        with its source document ID. This is the exact function the Evidence Agent calls during
+        investigation, and the Chat Agent calls for "Ask the Copilot."
 
         **5. What's NOT built yet, stated plainly.** There is no embedding model and no vector database —
         that's a deliberate choice for this phase (see the note below), not an oversight. The `embedding`

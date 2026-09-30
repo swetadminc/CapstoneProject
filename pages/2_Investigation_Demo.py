@@ -5,11 +5,9 @@ analysis -> RAG retrieval -> Gemini -> Grounding Validator) against a chosen
 case, then the Ask-the-Copilot chat panel, a real Human Decision panel, and
 a real, persistent Audit Log.
 
-This is a first working slice, not the finished Investigation Workspace UI
-from the CEO Playbook (Section 7) — no case-queue dashboard yet. It exists
-to prove the pipeline end to end, including the human-in-the-loop boundary,
-and give the team something real to demo today while the full workspace UI
-is built.
+Implements the full Investigation Workspace wireframe (CEO Playbook,
+Section 7): the two-panel Evidence/Copilot layout, the Human Decision
+panel, and the persistent Audit Log below.
 """
 import json
 import os
@@ -375,7 +373,4 @@ if state_key in st.session_state:
             st.json(audit_rows)
 
 st.divider()
-st.caption(
-    "This is a first working slice of the Investigation Agent, not the final Investigation Workspace UI "
-    "(that's the CEO Playbook, Section 7 build). All customer/transaction data is fictional."
-)
+st.caption("All customer/transaction data is fictional.")

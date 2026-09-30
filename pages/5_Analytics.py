@@ -17,7 +17,7 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import DB_PATH
-from data.runtime_db import get_all_human_actions
+from data.runtime_db import get_all_human_actions, get_latest_decision_per_case, resolve_status
 from ui_common import require_login, page_banner
 
 st.set_page_config(page_title="InvestigateIQ — Analytics", page_icon="📊", layout="wide")
@@ -42,6 +42,10 @@ def load_alerts():
 
 df = load_alerts()
 decisions = pd.DataFrame(get_all_human_actions())
+latest_decisions = get_latest_decision_per_case()
+df["current_status"] = df.apply(
+    lambda row: resolve_status(row["status"], latest_decisions.get(row["case_id"])), axis=1
+)
 
 col1, col2 = st.columns(2)
 with col1:
@@ -58,7 +62,7 @@ with col2:
 col3, col4 = st.columns(2)
 with col3:
     st.subheader("Alerts by current status")
-    status_counts = df["status"].value_counts()
+    status_counts = df["current_status"].value_counts()
     st.bar_chart(status_counts, color="#27844E")
 
 with col4:

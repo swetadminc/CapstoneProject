@@ -9,7 +9,7 @@
       "case_id": "CASE-006",
       "customer_id": "CUST-0166",
       "account_id": "ACC-1166",
-      "alert_type": "Velocity anomaly",
+      "alert_type": "Transaction amount anomaly",
       "scenario_id": "amount-anomaly",
       "trigger_rule": "R2",
       "alert_date": "2026-01-31",
@@ -160,9 +160,9 @@
     "findings": [
       {
         "type": "missing",
-        "description": "The review window for this velocity anomaly alert contained no recorded transaction activity.",
+        "description": "The review window for this amount anomaly alert contained no recorded transaction activity.",
         "evidence_status": "Missing",
-        "why_it_matters": "Without activity in the review window, the underlying trigger for the velocity anomaly alert cannot be directly evaluated.",
+        "why_it_matters": "Without activity in the review window, the underlying trigger for the amount anomaly alert cannot be directly evaluated.",
         "supporting_txn_ids": []
       },
       {
@@ -180,7 +180,7 @@
       }
     ],
     "investigation_questions": [
-      "Why did the velocity anomaly alert trigger if there was no recorded transaction activity in the review window?",
+      "Why did the amount anomaly alert trigger if there was no recorded transaction activity in the review window?",
       "Are there any external or system-level factors that caused a reporting delay for the account activity?"
     ],
     "recommended_next_steps": [
@@ -193,7 +193,7 @@
         "playbook_doc_id": "PB-AML-AA-01"
       }
     ],
-    "narrative_summary": "An investigation was initiated for a velocity anomaly alert on the account of Divya Pandey, a low-risk government employee. Notably, the review window itself was empty with no recorded transaction activity. Review of background transactions nearest in time showed normal activity levels. Further review using standard playbook guidelines is recommended to determine the cause of the alert.",
+    "narrative_summary": "An investigation was initiated for an amount anomaly alert on the account of Divya Pandey, a low-risk government employee. Notably, the review window itself was empty with no recorded transaction activity. Review of background transactions nearest in time showed normal activity levels. Further review using standard playbook guidelines is recommended to determine the cause of the alert.",
     "_validator_notes": [],
     "_validator_result": "PASS"
   }
