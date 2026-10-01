@@ -1,5 +1,6 @@
 """Read-only, presenter-friendly proof of the synthetic retrieval workflow."""
 
+import inspect
 import os
 import sqlite3
 import sys
@@ -7,10 +8,11 @@ import sys
 import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from data.build_database import chunk_body
 from data.knowledge_search import DB_PATH, search
+from agents.evidence_agent import EvidenceAgent
+from agents.grounding_validator import GroundingValidator
 from ui_common import require_login, page_banner, page_flow
-
-REPO = "https://github.com/swetadminc/CapstoneProject/blob/main"
 
 st.set_page_config(page_title="InvestigateIQ — Evidence & RAG", page_icon="🧩", layout="wide")
 require_login(allow_guest=True)
@@ -19,7 +21,7 @@ page_flow("Show how source guidance becomes retrievable evidence", [
     ("Open a source", "Choose a synthetic playbook document or follow a citation from an investigation."),
     ("Inspect chunks", "Compare the original body with the metadata and two-sentence body chunks."),
     ("Try retrieval", "Search the same SQLite FTS5 index used by the evidence agent."),
-    ("Inspect the code", "Follow links to the chunking, retrieval and citation-checking implementation."),
+    ("Inspect the code", "Expand the chunking, retrieval and citation-checking implementation below without leaving this page."),
 ], "This page shows retrieval provenance, not proof that every AI-generated sentence is correct. No vector embeddings are used.")
 
 if not os.path.isfile(DB_PATH):
@@ -42,7 +44,12 @@ doc_by_id = {row["doc_id"]: row for row in docs}
 st.caption(f"{len(docs)} synthetic source documents · {total_chunks} indexed chunks · SQLite FTS5 keyword retrieval")
 st.info("A saved investigation cites a source document ID. That identifies the source playbook, but does not by itself prove which individual chunk supported every sentence. Review the text and original records before relying on a draft.")
 
-requested_doc = st.session_state.pop("rag_doc_id", None) or st.query_params.get("doc")
+query_doc = st.query_params.get("doc")
+requested_doc = st.session_state.pop("rag_doc_id", None) or query_doc
+if query_doc is not None:
+    # A deep link chooses the initial document, but must not override later
+    # manual selections on every Streamlit rerun.
+    del st.query_params["doc"]
 doc_ids = list(doc_by_id)
 if requested_doc in doc_by_id:
     st.session_state["rag_doc_choice"] = requested_doc
@@ -98,13 +105,16 @@ if query.strip():
             st.write(result["chunk_text"])
 
 st.subheader("4 · Inspect the implementation")
-st.write("These files show the exact source-to-chunk, retrieval and report-checking steps behind this page.")
-links = [
-    ("Chunk builder", "data/build_database.py"),
-    ("FTS5 retrieval", "data/knowledge_search.py"),
-    ("Evidence agent", "agents/evidence_agent.py"),
-    ("Grounding checks", "agents/grounding_validator.py"),
+st.write("Open any step below to see the actual Python used by this product. You can stay on this page while comparing the code with the source document and search results above.")
+implementation = [
+    ("1 · Split the document", "data/build_database.py", "Groups source sentences into small, ordered chunks that can be inspected individually.", chunk_body),
+    ("2 · Retrieve matching chunks", "data/knowledge_search.py", "Uses a parameterized SQLite FTS5 query and BM25 ranking; no embeddings or vector database are used.", search),
+    ("3 · Gather case guidance", "agents/evidence_agent.py", "Limits the playbook search to the alert scenario and returns the selected guidance with case documents.", EvidenceAgent.guidance_for),
+    ("4 · Check draft citations", "agents/grounding_validator.py", "Checks selected transaction and document IDs, required citations, ratio claims, and unsupported conclusion wording. This is not proof that every sentence is correct.", GroundingValidator.validate),
 ]
-for label, path in links:
-    st.markdown(f"- [{label} — `{path}`]({REPO}/{path})")
+for title, path, explanation, function in implementation:
+    with st.expander(title):
+        st.write(explanation)
+        st.markdown(f"**Source file:** `{path}` · **Function:** `{function.__qualname__}`")
+        st.code(inspect.getsource(function), language="python")
 st.caption("All source documents and case data shown here are fictional course material. Human review remains necessary.")

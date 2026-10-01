@@ -318,7 +318,10 @@ if state_key in st.session_state:
                     if turn.get("validator_notes"):
                         st.caption(f"⚠️ {len(turn['validator_notes'])} citation(s) adjusted by the Grounding Validator")
 
-        st.caption("Review the cited source records before relying on an answer. Saved-evidence Q&A is limited to common case questions.")
+        if offline_qa:
+            st.caption("Review the cited source records before relying on an answer. Saved-evidence Q&A is limited to common case questions.")
+        else:
+            st.caption("Live model answer: review every cited source record before relying on it. Citation checks do not replace human judgement.")
         typed_question = st.chat_input("Ask a question about this case...")
         question = st.session_state.pop(f"clicked_q_{case_id}", None) or typed_question
 

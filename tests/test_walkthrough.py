@@ -23,8 +23,8 @@ class WalkthroughTests(unittest.TestCase):
             header = video.read(12)
         self.assertEqual(header[4:8], b"ftyp")
         contents = OUTPUT.read_bytes()
-        self.assertIn(b"mp4a", contents, "Walkthrough must include an AAC narration track")
-        self.assertIn(b"soun", contents, "Walkthrough must include an audio stream")
+        self.assertTrue(b"mp4a" in contents, "Walkthrough must include an AAC narration track")
+        self.assertTrue(b"soun" in contents, "Walkthrough must include an audio stream")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""Build a narrated, animated guide from captured *real* local app screens.
+"""Build a narrated, animated guide from captured public app screens.
 
 The captured screens live in assets/walkthrough_screens. Cursor movement,
 click rings, and page transitions are animated explanations, not a claim that
@@ -7,6 +7,7 @@ this MP4 is an unedited screen recording. All customer data is fictional.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -27,45 +28,74 @@ WIDTH, HEIGHT, FPS = 1280, 720, 12
 FONT = Path(r"C:\Windows\Fonts\segoeui.ttf")
 FONT_BOLD = Path(r"C:\Windows\Fonts\segoeuib.ttf")
 
-# Every screenshot below came from a browser interaction with the local app.
-# The recorded case decision below uses a fictional display identity.
+# Every screenshot below came from the deployed public application. Cursor
+# movement is explanatory animation, not footage of an unedited interaction.
+# The CASE-041 decision form is shown before submission; no human decision is
+# attributed to the fictional display identity by this video.
 SCENES = [
     {"screen": "01_home_guest.png", "title": "InvestigateIQ Product Walkthrough",
-     "narration": "Welcome to Investigate IQ. Follow a fictional case from workspace entry through investigation and human Compliance review.",
+     "narration": "Welcome to Investigate IQ. This product helps an investigator review a monitoring alert, trace an evidence-linked draft, and own the final decision. All case data in this walkthrough is fictional.",
      "target": None},
-    {"screen": "02_demo_entry.png", "title": "Enter Your Workspace",
-     "narration": "On Home, enter a display name. The name is recorded with decisions and audit events. This environment does not authenticate users.",
-     "target": (1038, 308)},
-    {"screen": "03_demo_name.png", "title": "Choose a Role and Continue",
-     "narration": "Choose a workflow role, then open the workspace. Roles help explain the workflow; access is not enforced by role here.",
-     "target": (1000, 449)},
-    {"screen": "04_demo_ready.png", "title": "Open the Case Queue",
-     "narration": "The sidebar takes us to the Case Queue. Every alert and transaction shown here is fictional and preloaded for consistent review.",
+    {"screen": "02_public_identity.png", "title": "Enter the Workspace",
+     "narration": "On Home, enter a display name and choose a workflow role. Actions are attributed to that name. This course environment uses display identity, not bank-grade authentication.",
+     "target": (1010, 385)},
+    {"screen": "03_public_home_ready.png", "title": "Follow the Product Journey",
+     "narration": "The landing page explains the journey: an alert arrives, the copilot prepares a draft, a human reviews it, and Compliance receives only escalated cases. The sidebar opens every screen.",
      "target": (115, 160)},
-    {"screen": "06_case_filtered.png", "title": "Find and Open a Case",
-     "narration": "Search for Coastal, review the alert row, and open case zero four one. This case has a saved report, so no new model call is needed.",
-     "target": (1154, 379)},
-    {"screen": "08_cached_mode.png", "title": "Run a Cached Investigation",
-     "narration": "In the Investigation Workspace, keep Cached mode selected and run the investigation. Cached replay is fast and costs no new AI request.",
-     "target": (450, 437)},
-    {"screen": "10_evidence.png", "title": "Inspect the Evidence",
-     "narration": "Review the draft against its transaction references. The selected grounding checks passed, but that does not prove every sentence is correct. A person still checks the evidence.",
-     "target": (610, 377)},
-    {"screen": "11_guidance.png", "title": "Read the Questions and Guidance",
-     "narration": "The workspace shows investigation questions and retrieved synthetic playbook guidance. These are prompts for review, not regulatory conclusions.",
-     "target": (591, 431)},
-    {"screen": "14_escalation_choice.png", "title": "Make a Human Decision",
-     "narration": "The investigator chooses whether to close, request more information, or escalate. The AI does not make that decision or submit it automatically.",
-     "target": (404, 371)},
-    {"screen": "16_reasoned_escalation.png", "title": "Explain and Submit the Decision",
-     "narration": "The investigator enters a rationale and submits an escalation for separate human Compliance review. No regulatory filing is made.",
-     "target": (456, 443)},
-    {"screen": "17_decision_audit.png", "title": "Check the Audit Trail",
-     "narration": "The app records who acted, when, and why in the audit trail. The report draft remains advice; the recorded decision belongs to the human investigator.",
-     "target": (798, 459), "caption_top": True},
-    {"screen": "18_compliance_handoff.png", "title": "Hand Off to Compliance",
-     "narration": "The escalated case now appears in the separate Compliance Queue with the investigator's rationale. A Compliance officer can review it; Investigate IQ does not file with a regulator.",
-     "target": (833, 528), "caption_top": True},
+    {"screen": "04_public_queue.png", "title": "Case Queue: Find an Alert",
+     "narration": "The Case Queue lists fictional monitoring alerts with severity, status, and trigger metadata. Filters help an investigator choose a case. It is not a live bank transaction monitor.",
+     "target": (710, 465)},
+    {"screen": "05_public_case_filtered.png", "title": "Open CASE-041",
+     "narration": "Search for Coastal Wholesale Traders. Case zero four one shows repeated near-threshold cash deposits. We open it to examine the evidence, rather than treating the alert itself as proof.",
+     "target": (1153, 512)},
+    {"screen": "06_public_investigation_start.png", "title": "Investigation Workspace",
+     "narration": "Choose the case and run its saved investigation. Cached mode replays an existing AI-generated report with no new model call. Live analysis is a separate option when a model connection is configured.",
+     "target": (510, 555)},
+    {"screen": "07_public_case_summary.png", "title": "Review the Draft Summary",
+     "narration": "The report shows a six-transaction review window, a baseline of three hundred ninety five thousand rupees, and a trigger-to-baseline ratio of two point five. These are case facts to verify, not a verdict.",
+     "target": (684, 239)},
+    {"screen": "08_public_evidence.png", "title": "Check Cited Transactions",
+     "narration": "Here the draft flags a deposit cluster and missing business-rationale documentation. Transaction IDs connect the statement to source records. Selected validation checks passed, but the investigator must still inspect the records.",
+     "target": (595, 402)},
+    {"screen": "09_public_copilot_answer.png", "title": "Ask the Copilot",
+     "narration": "Ask what supports the concern. On this public site, the configured live model responds and cites transaction and playbook IDs. These references still need human checking. Without a model connection, the app offers limited saved-evidence question answering instead.",
+     "target": (1015, 357), "caption_top": True},
+    {"screen": "10_public_rag_overview.png", "title": "Evidence and RAG",
+     "narration": "The Evidence and RAG page exposes the retrieval pipeline. It holds twenty four synthetic source documents and fifty seven chunks. It shows provenance, not proof that every generated sentence is correct.",
+     "target": (149, 329)},
+    {"screen": "10b_public_rag_source.png", "title": "Read the Cited Source",
+     "narration": "The cited structuring playbook is visible as an original source document. It asks the reviewer to list each transaction and calculate the combined amount before judging whether the pattern deserves further scrutiny.",
+     "target": (802, 310)},
+    {"screen": "11_public_rag_chunks.png", "title": "See How the Source Is Chunked",
+     "narration": "The database builder creates a metadata chunk from the title and criteria, then splits the body at sentence endings and groups two sentences per body chunk. These small passages are easier to inspect.",
+     "target": (790, 464)},
+    {"screen": "12_public_rag_retrieval.png", "title": "Try Keyword Retrieval",
+     "narration": "Search for structuring cash deposits. SQLite FTS five finds matching chunks and B M twenty five ranks them. This is lexical retrieval, not vector or semantic search; the displayed result must still be read in context.",
+     "target": (789, 332)},
+    {"screen": "14_public_human_decision.png", "title": "The Investigator Decides",
+     "narration": "The product offers close, request more information, or escalate to Compliance. The AI cannot choose or submit a decision. A rationale is required, and a submitted action is recorded in the audit log.",
+     "target": (542, 334), "caption_top": True},
+    {"screen": "15_public_reasoned_decision.png", "title": "Example: Request More Information",
+     "narration": "For this case, a careful next step is to request the business explanation and counterparty agreements. The form shows that reasoning, but this walkthrough does not submit the decision. Missing evidence prevents a confident final conclusion.",
+     "target": (750, 348)},
+    {"screen": "16_public_compliance_queue.png", "title": "Compliance Queue",
+     "narration": "If an investigator later escalates a case, it enters this separate Compliance Queue for a second human review. At recording time no cases awaited review. The app does not file a report with a regulator.",
+     "target": (130, 230)},
+    {"screen": "17_public_analytics.png", "title": "Analytics",
+     "narration": "Analytics summarizes fictional alerts by severity, typology, status, and time. It helps a team see workload patterns. These charts do not establish model accuracy or real-world crime-detection performance.",
+     "target": (140, 261)},
+    {"screen": "18_public_global_search.png", "title": "Global Search",
+     "narration": "Global Search finds a customer, case, account, or transaction across the synthetic dataset. Searching Coastal shows the same case plus linked records, so investigators can move between an alert and its context.",
+     "target": (785, 501)},
+    {"screen": "19_public_team.png", "title": "Project and Team",
+     "narration": "The Project and Team screen names Capstone Group Seven and shows proposed responsibilities. The group should confirm each name and role before academic submission. The product name is Investigate IQ.",
+     "target": (140, 126)},
+    {"screen": "20_public_admin_knowledge.png", "title": "Admin: Knowledge Base",
+     "narration": "The Knowledge Base inspector is an admin view of fictional playbooks and retrieval. The public Evidence and RAG screen gives a read-only explanation without needing the admin passcode.",
+     "target": (163, 366)},
+    {"screen": "21_public_admin_rules.png", "title": "Admin: Rule Configuration",
+     "narration": "The Rule Configuration screen previews changes to two illustrative alert thresholds and records saves in the audit trail. It does not regenerate existing alerts or replace a bank monitoring engine. The final decision remains human.",
+     "target": (155, 399)},
 ]
 
 
@@ -170,11 +200,12 @@ def build() -> tuple[Path, Path]:
         folder = Path(temp)
         narration = folder / "narration_all.wav"
         durations = join_narration(synthesize_narration(folder, SCENES), narration)
+        pending_output = OUTPUT.with_suffix(".rendering.mp4")
         command = [find_ffmpeg(), "-hide_banner", "-loglevel", "error", "-y",
                    "-f", "rawvideo", "-pixel_format", "rgb24", "-video_size", f"{WIDTH}x{HEIGHT}",
                    "-framerate", str(FPS), "-i", "-", "-i", str(narration),
                    "-c:v", "libopenh264", "-b:v", "2200k", "-pix_fmt", "yuv420p",
-                   "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(OUTPUT)]
+                   "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(pending_output)]
         process = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
         try:
             assert process.stdin is not None
@@ -186,6 +217,7 @@ def build() -> tuple[Path, Path]:
             error = process.stderr.read().decode("utf-8", errors="replace") if process.stderr else ""
             if process.wait() != 0:
                 raise RuntimeError(f"FFmpeg could not render the guided video: {error}")
+            os.replace(pending_output, OUTPUT)
         finally:
             if process.poll() is None:
                 process.kill()
