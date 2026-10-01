@@ -8,3 +8,7 @@ font = "sans serif"
 [server]
 enableCORS = true
 enableXsrfProtection = true
+
+[client]
+# Keep Streamlit's own developer/help menu out of the product experience.
+toolbarMode = "minimal"

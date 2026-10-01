@@ -17,12 +17,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.runtime_db import get_rule_config, set_rule_params, get_audit_log
 from data.trigger_rules import preview_trigger_counts
-from ui_common import require_login, role_warning, page_banner, page_flow
+from ui_common import require_login, role_warning, page_banner, page_flow, get_admin_passcode
 
 st.set_page_config(page_title="InvestigateIQ — Rule Config", page_icon="⚙️", layout="wide")
 user_name, user_role = require_login()
 
-ADMIN_PASSCODE = os.environ.get("ADMIN_PASSCODE", "investigateiq-admin")
+ADMIN_PASSCODE = get_admin_passcode()
 
 page_banner("⚙️", "Admin — Trigger Rule Configuration", "Adjust R1/R2 thresholds and preview the illustrative effect before saving.")
 page_flow("Test how threshold changes would affect this fictional dataset", [

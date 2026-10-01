@@ -14,12 +14,12 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import search, suggest_terms, DB_PATH
-from ui_common import require_login, role_warning, page_banner, page_flow
+from ui_common import require_login, role_warning, page_banner, page_flow, get_admin_passcode
 
 st.set_page_config(page_title="InvestigateIQ — Admin", page_icon="🔐", layout="wide")
 user_name, user_role = require_login()
 
-ADMIN_PASSCODE = os.environ.get("ADMIN_PASSCODE", "investigateiq-admin")
+ADMIN_PASSCODE = get_admin_passcode()
 
 page_banner("🔐", "Admin — Knowledge Base Inspector", "Inspect the retrieval sources used to support investigation drafts.")
 page_flow("Show what guidance the copilot can retrieve", [

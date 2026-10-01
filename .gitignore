@@ -7,3 +7,6 @@ Thumbs.db
 # Local-dev-only runtime DB (human decisions + audit log). Production uses
 # the Railway-mounted volume at /app/runtime_data instead — see data/runtime_db.py.
 data/investigateiq_runtime.db
+
+# Local Streamlit settings containing the prototype admin passcode.
+.streamlit/secrets.toml

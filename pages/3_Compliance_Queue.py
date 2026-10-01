@@ -18,7 +18,7 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import DB_PATH
 from data.runtime_db import get_latest_decision_per_case, get_human_actions, record_human_decision
-from ui_common import require_login, role_warning, page_banner, page_flow
+from ui_common import require_login, role_warning, page_banner, page_flow, plain_text_html
 
 st.set_page_config(page_title="InvestigateIQ — Compliance Queue", page_icon="🛡️", layout="wide")
 user_name, user_role = require_login()
@@ -91,7 +91,8 @@ else:
             history = get_human_actions(case_id)
             escalation_entries = [h for h in history if h["action"] == "escalate"]
             if escalation_entries:
-                st.markdown(f"**Investigator's rationale:** {escalation_entries[-1]['rationale']}")
+                st.markdown("**Investigator's rationale:**")
+                st.markdown(plain_text_html(escalation_entries[-1]["rationale"]), unsafe_allow_html=True)
 
             # Has Compliance already acted on this one?
             compliance_entries = [h for h in history if h["action"].startswith("compliance_")]

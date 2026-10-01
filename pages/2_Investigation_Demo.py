@@ -10,6 +10,7 @@ Section 7): the two-panel Evidence/Copilot layout, the Human Decision
 panel, and the persistent Audit Log below.
 """
 import json
+from html import escape
 import os
 import sqlite3
 import sys
@@ -23,7 +24,7 @@ from agents.chat_agent import ask_question, answer_from_saved_evidence
 from agents.grounding_validator import GroundingValidator
 from agents.transaction_investigation_agent import anchor_cached_evidence
 from data.runtime_db import record_human_decision, get_audit_log, get_human_actions, log_audit_event
-from ui_common import require_login, page_banner, page_flow
+from ui_common import require_login, page_banner, page_flow, plain_text_html
 from report_pdf import build_report_pdf
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "cached_reports")
@@ -241,20 +242,21 @@ if state_key in st.session_state:
                 )
                 with fcols[1]:
                     st.markdown(f"**[{f['type'].upper()}]** &nbsp; <span class='{cls}'>{f['evidence_status']}</span>", unsafe_allow_html=True)
-                    st.write(f["description"])
-                    st.caption(f["why_it_matters"])
+                    st.markdown(plain_text_html(f["description"]), unsafe_allow_html=True)
+                    st.markdown(plain_text_html(f["why_it_matters"], muted=True), unsafe_allow_html=True)
                     if f.get("supporting_txn_ids"):
                         st.code(", ".join(f["supporting_txn_ids"]), language=None)
                 accepted_flags.append(accept)
 
         st.markdown("**Investigation questions**")
         for q in report["investigation_questions"]:
-            st.write(f"- {q}")
+            st.markdown(plain_text_html(f"• {q}"), unsafe_allow_html=True)
 
         st.markdown("**Recommended next steps** (RAG-grounded — cites a real playbook doc)")
         if report["recommended_next_steps"]:
             for step_index, step in enumerate(report["recommended_next_steps"]):
-                st.markdown(f"- {step['step']}  \n  `[Retrieved: {step['playbook_doc_id']}]`")
+                st.markdown(plain_text_html(step["step"]), unsafe_allow_html=True)
+                st.markdown(plain_text_html(f"Retrieved source: {step['playbook_doc_id']}", muted=True), unsafe_allow_html=True)
                 doc_id = step["playbook_doc_id"]
                 if st.button(f"View {doc_id} source and all chunks →", key=f"rag_source_{case_id}_{step_index}",
                              help="Inspect the cited synthetic playbook document and every chunk indexed from it."):
@@ -267,7 +269,7 @@ if state_key in st.session_state:
             st.caption("No grounded next step available from the knowledge base for this scenario.")
 
         st.markdown("**Narrative summary**")
-        st.write(report["narrative_summary"])
+        st.markdown(plain_text_html(report["narrative_summary"]), unsafe_allow_html=True)
 
         with st.expander("Raw evidence passed to the model (for full transparency)"):
             st.json({
@@ -310,7 +312,7 @@ if state_key in st.session_state:
         with chat_box:
             for turn in chat_history:
                 with st.chat_message(turn["role"]):
-                    st.write(turn["content"])
+                    st.markdown(plain_text_html(turn["content"]), unsafe_allow_html=True)
                     if turn.get("source") == "saved_evidence":
                         st.caption("From saved case evidence · no live model call")
                     if turn.get("citations"):
@@ -421,10 +423,10 @@ if state_key in st.session_state:
         with st.container(border=True, key=f"iq_bordered_audit_{case_id}"):
             for row in audit_rows:
                 actor_label = {"ai": "🤖 AI", "human": "🧑 Human", "system": "⚙️ System"}.get(row["actor"], row["actor"])
-                name = f" ({row['actor_name']})" if row.get("actor_name") else ""
+                name = f" ({escape(str(row['actor_name']))})" if row.get("actor_name") else ""
                 st.markdown(
                     f"<div class='audit-row'>{fmt_ts(row['timestamp'])} &nbsp; "
-                    f"<b>{actor_label}{name}</b> &nbsp; — &nbsp; {row['action']}</div>",
+                    f"<b>{escape(actor_label)}{name}</b> &nbsp; — &nbsp; {escape(str(row['action']))}</div>",
                     unsafe_allow_html=True,
                 )
         with st.expander("Full audit detail (JSON)"):

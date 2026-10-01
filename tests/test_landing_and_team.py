@@ -37,11 +37,20 @@ class LandingAndTeamTests(unittest.TestCase):
 
     def test_guest_can_enter_workspace_from_home(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        self.assertEqual(app.radio(key="home_demo_role").value, "Investigator")
         app.text_input(key="home_demo_name").input("Case Reviewer")
         app.button(key="home_demo_continue").click().run(timeout=30)
         self.assertFalse(app.exception)
         self.assertEqual(app.session_state["user_name"], "Case Reviewer")
         self.assertEqual(app.session_state["user_role"], "Investigator")
+
+    def test_guest_can_choose_another_role_with_radio_buttons(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        app.radio(key="home_demo_role").set_value("Compliance Officer")
+        app.text_input(key="home_demo_name").input("Case Reviewer")
+        app.button(key="home_demo_continue").click().run(timeout=30)
+        self.assertFalse(app.exception)
+        self.assertEqual(app.session_state["user_role"], "Compliance Officer")
 
     def test_team_page_shows_source_roster_without_assigned_roles(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)

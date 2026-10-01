@@ -16,6 +16,7 @@ requirement, it just removes the retyping.
 import os
 from html import escape
 import streamlit as st
+from streamlit.errors import StreamlitSecretNotFoundError
 from project_identity import COURSE_LABEL, GROUP_LABEL, PROJECT_SLOGAN
 
 ROLES = ["Investigator", "Team Lead", "Compliance Officer", "Admin"]
@@ -23,6 +24,24 @@ _ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 LOGO_ICON = os.path.join(_ASSETS_DIR, "logo_icon.svg")
 LOGO_FULL_LIGHT = os.path.join(_ASSETS_DIR, "logo_full.svg")
 LOGO_FULL_DARK = os.path.join(_ASSETS_DIR, "logo_full_dark.svg")
+
+
+def get_admin_passcode() -> str:
+    """Use deployment environment first, then an ignored local secret."""
+    configured = os.environ.get("ADMIN_PASSCODE")
+    if configured:
+        return configured
+    try:
+        local_secret = st.secrets.get("ADMIN_PASSCODE")
+    except StreamlitSecretNotFoundError:
+        local_secret = None
+    return str(local_secret) if local_secret else "investigateiq-admin"
+
+
+def plain_text_html(value: object, muted: bool = False) -> str:
+    """Display untrusted source/model text without turning URLs into links."""
+    style = "font-size:0.875rem;color:var(--iq-text-secondary);" if muted else ""
+    return f'<div style="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;{style}">{escape(str(value))}</div>'
 
 # ---------------------------------------------------------------------------
 # Design system — one shared CSS block instead of six copies of the same
@@ -70,6 +89,11 @@ _GLOBAL_CSS = """
         radial-gradient(ellipse 900px 560px at 12% -8%, rgba(139, 180, 255, 0.30), transparent 60%),
         radial-gradient(ellipse 760px 520px at 92% 4%, rgba(120, 165, 255, 0.20), transparent 58%),
         #F4F8FF;
+}
+[data-testid="stMainBlockContainer"] {
+    /* Streamlit's default 96px top padding leaves a large blank band above
+       the first banner. 48px keeps content below its 60px overlay header. */
+    padding-top: 48px !important;
 }
 [data-testid="stSidebar"] {
     background: linear-gradient(165deg, #EAF1FF 0%, #F4F8FF 55%);
@@ -282,6 +306,18 @@ _GLOBAL_CSS = """
 
 .iq-card, [class*="st-key-iq_bordered_"] {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Home navigation descriptions can wrap to different line counts. Keep
+   every tile the same size and anchor its Open link to the bottom. */
+[class*="st-key-iq_bordered_nav_"] {
+    min-height: 180px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+[class*="st-key-iq_bordered_nav_"] > [data-testid="stElementContainer"]:last-child {
+    margin-top: auto;
 }
 
 /* Mobile responsiveness for the Case Queue table — reported: "the tiles
@@ -581,8 +617,8 @@ def require_login(allow_guest: bool = False):
                     "Choose a display name and role for attribution. This environment does not authenticate users."
                 )
                 name = st.text_input("Your name", help="Display name recorded beside decisions and audit events.")
-                role = st.selectbox("Your role", ROLES,
-                                    help="A workflow label; this environment does not enforce role-based access.")
+                role = st.radio("Your role", ROLES, horizontal=True,
+                                help="A workflow label; this environment does not enforce role-based access.")
                 if st.button("Continue", type="primary", use_container_width=True,
                              help="Open the workspace with this display name and role."):
                     if not name.strip():

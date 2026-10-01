@@ -208,8 +208,8 @@ with demo_col:
             st.caption("Choose a display name and role for attribution. This environment does not authenticate users.")
             demo_name = st.text_input("Your name", key="home_demo_name",
                                       help="Display name attributed to decisions and audit events.")
-            demo_role = st.selectbox("Your role", ROLES, key="home_demo_role",
-                                     help="A workflow label only; this environment does not enforce role-based access.")
+            demo_role = st.radio("Your role", ROLES, horizontal=True, key="home_demo_role",
+                                 help="A workflow label only; this environment does not enforce role-based access.")
             if st.button("Open workspace", type="primary", key="home_demo_continue",
                          help="Open the workspace with this display name and role."):
                 if not demo_name.strip():
@@ -226,13 +226,13 @@ if os.path.exists(_walkthrough_path):
     if os.path.exists(_poster_path):
         cover_col, description_col = st.columns([1, 2])
         with cover_col:
-            st.image(_poster_path, caption="Guided walkthrough thumbnail", width="stretch")
+            st.image(_poster_path, caption="CASE-041 walkthrough", width="stretch")
         with description_col:
             st.markdown("#### Follow a case, step by step")
-            st.write("Follow identity selection, a fictional alert, evidence review, a human decision, and the Compliance hand-off.")
-            st.caption("The cursor and highlights are animated over captured app screens; this is not an unedited screen recording.")
+            st.write("Follow CASE-041 from workspace entry through the copilot, source documents, exact RAG chunks, a proposed human next step, and the conditional Compliance path.")
+            st.caption("A decision is recorded only when the investigator submits it. This case walkthrough does not submit one.")
     st.video(_walkthrough_path)
-    st.caption("Narrated and captioned product walkthrough using captured app screens. Use the page links below to try each step yourself.")
+    st.caption("Full narrated product walkthrough. Use the page links below to inspect every step yourself.")
 else:
     st.info("The captioned walkthrough is being prepared. The flowchart and page guides below explain the workflow in the meantime.")
 
