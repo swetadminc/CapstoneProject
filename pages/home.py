@@ -27,10 +27,11 @@ import streamlit.components.v1 as components
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.runtime_db import get_latest_decision_per_case, resolve_status
-from ui_common import require_login
+from project_identity import COURSE_LABEL, GROUP_LABEL, PROJECT_DESCRIPTION, PROJECT_NAME
+from ui_common import ROLES, require_login, page_flow
 
 st.set_page_config(page_title="InvestigateIQ", page_icon="🔎", layout="wide")
-user_name, user_role = require_login()
+user_name, user_role = require_login(allow_guest=True)
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "investigateiq.db")
 
@@ -50,7 +51,7 @@ components.html(
     <style>
         html, body { margin: 0; padding: 0; overflow: hidden; }
         .hero {
-            position: relative; width: 100%; height: 420px; border-radius: 16px;
+            position: relative; width: 100%; height: 320px; border-radius: 16px;
             background: linear-gradient(135deg, #060B16 0%, #12203D 45%, #1F3B73 100%);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             box-shadow: 0 10px 40px rgba(6,11,22,0.35);
@@ -87,6 +88,11 @@ components.html(
         @media (prefers-reduced-motion: reduce) {
             .eyebrow, h1, .tagline, .sub, .fictional { animation: none !important; opacity: 1 !important; }
         }
+        @media (max-width: 600px) {
+            h1 { font-size: 38px; }
+            .tagline { font-size: 16px; }
+            .sub { font-size: 12px; }
+        }
     </style>
     </head>
     <body>
@@ -95,11 +101,11 @@ components.html(
         <div class="hero-content">
             <div class="eyebrow">AI-POWERED AML INVESTIGATION COPILOT</div>
             <h1>InvestigateIQ</h1>
-            <p class="tagline">AI drafts the report. You make the call.</p>
+            <p class="tagline">Trace the evidence. Own the decision.</p>
             <p class="sub">A six-step investigation workflow gathers evidence, links findings to
             transaction records and playbook guidance, and checks selected citations and claims
             before an investigator reviews the draft.</p>
-            <div class="fictional">Prototype · all customer and transaction data is fictional</div>
+            <div class="fictional">Sample environment · all customer and transaction data is fictional</div>
         </div>
     </div>
     <script>
@@ -159,7 +165,7 @@ components.html(
     </body>
     </html>
     """,
-    height=400,
+    height=320,
     scrolling=False,
 )
 
@@ -175,7 +181,69 @@ components.html(
 with st.container(key="hero_cta"):
     _cta_cols = st.columns([1, 1, 1])
     with _cta_cols[1]:
-        st.page_link("pages/0_Case_Queue.py", label="Open the Case Queue →", use_container_width=True)
+        st.page_link("pages/0_Case_Queue.py", label="Open the Case Queue →", use_container_width=True,
+                     help="Start with preloaded fictional alerts; choosing a case opens the investigation workflow.")
+
+st.caption(f"{GROUP_LABEL} · {COURSE_LABEL} · Fictional customer and transaction data")
+intro_col, demo_col = st.columns([1.7, 1])
+with intro_col:
+    st.subheader("What InvestigateIQ does")
+    st.markdown(f"**{PROJECT_NAME} — {PROJECT_DESCRIPTION}.**")
+    st.write(
+        "InvestigateIQ helps an investigator turn a fictional monitoring alert into an "
+        "evidence-linked draft, review that draft, and record a reasoned human decision. "
+        "Escalated cases then move to a separate Compliance review."
+    )
+    st.caption("The AI assists; it does not make the final decision or file anything with a regulator.")
+    st.page_link("pages/7_Project_Team.py", label="Meet the project and team →",
+                 help="See the project identity, draft team roster, and display settings.")
+with demo_col:
+    with st.container(border=True, key="iq_bordered_home_demo"):
+        if user_name:
+            st.markdown("#### Workspace ready")
+            st.write(f"**{user_name}** · {user_role}")
+            st.caption("Use the sidebar to change your display identity or light/dark setting.")
+        else:
+            st.markdown("#### Enter your workspace")
+            st.caption("Choose a display name and role for attribution. This environment does not authenticate users.")
+            demo_name = st.text_input("Your name", key="home_demo_name",
+                                      help="Display name attributed to decisions and audit events.")
+            demo_role = st.selectbox("Your role", ROLES, key="home_demo_role",
+                                     help="A workflow label only; this environment does not enforce role-based access.")
+            if st.button("Open workspace", type="primary", key="home_demo_continue",
+                         help="Open the workspace with this display name and role."):
+                if not demo_name.strip():
+                    st.error("Please enter your name.")
+                else:
+                    st.session_state["user_name"] = demo_name.strip()
+                    st.session_state["user_role"] = demo_role
+                    st.rerun()
+
+st.subheader("Watch how InvestigateIQ works")
+_walkthrough_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "investigateiq_walkthrough.mp4")
+_poster_path = os.path.join(os.path.dirname(_walkthrough_path), "investigateiq_walkthrough_poster.png")
+if os.path.exists(_walkthrough_path):
+    if os.path.exists(_poster_path):
+        cover_col, description_col = st.columns([1, 2])
+        with cover_col:
+            st.image(_poster_path, caption="Guided walkthrough thumbnail", width="stretch")
+        with description_col:
+            st.markdown("#### Follow a case, step by step")
+            st.write("Follow identity selection, a fictional alert, evidence review, a human decision, and the Compliance hand-off.")
+            st.caption("The cursor and highlights are animated over captured app screens; this is not an unedited screen recording.")
+    st.video(_walkthrough_path)
+    st.caption("Narrated and captioned product walkthrough using captured app screens. Use the page links below to try each step yourself.")
+else:
+    st.info("The captioned walkthrough is being prepared. The flowchart and page guides below explain the workflow in the meantime.")
+
+st.subheader("The investigation journey")
+st.image(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "landing_workflow.svg"), width="stretch")
+page_flow("Understand the complete workflow before opening a screen", [
+    ("Alert arrives", "Choose a preloaded fictional case in the Case Queue."),
+    ("Copilot drafts", "Review evidence, synthetic guidance and selected validation checks."),
+    ("Human decides", "An investigator records a reasoned decision and audit event."),
+    ("Compliance follows up", "Escalated cases receive a separate human review."),
+], "Search and Analytics help explore the fictional data; admin screens show retrieval and rule previews. No regulatory filing is automated.")
 
 # ---------------------------------------------------------------------
 # Queue snapshot — the same numbers Case Queue shows, so this page is a
@@ -211,13 +279,15 @@ if os.path.exists(DB_PATH):
 st.subheader("Start here")
 
 NAV_CARDS = [
+    ("👥", "Project & Team", "Project purpose, group identity and draft roster", "pages/7_Project_Team.py"),
     ("🗂️", "Case Queue", "All alerts — the real entry point", "pages/0_Case_Queue.py"),
     ("🕵️", "Investigation Workspace", "Evidence, chat, decision, audit log", "pages/2_Investigation_Demo.py"),
     ("🛡️", "Compliance Queue", "Escalated cases awaiting review", "pages/3_Compliance_Queue.py"),
     ("📊", "Analytics", "Trends across the alert population", "pages/5_Analytics.py"),
     ("🔍", "Global Search", "Find a customer, account, or transaction", "pages/6_Global_Search.py"),
-    ("🔐", "Admin: Knowledge Base", "Passcode: IQ-Demo-2026", "pages/1_Admin_Knowledge_Base.py"),
-    ("⚙️", "Admin: Rule Config", "Passcode: IQ-Demo-2026", "pages/4_Admin_Rule_Config.py"),
+    ("🧩", "Evidence & RAG", "Inspect synthetic source documents and searchable chunks", "pages/8_Evidence_RAG.py"),
+    ("🔐", "Admin: Knowledge Base", "Inspect the synthetic retrieval index", "pages/1_Admin_Knowledge_Base.py"),
+    ("⚙️", "Admin: Rule Config", "Preview rule thresholds (restricted settings)", "pages/4_Admin_Rule_Config.py"),
 ]
 
 # Fresh st.columns(3) per row of 3, rather than one set of columns indexed
@@ -234,10 +304,10 @@ for row_start in range(0, len(NAV_CARDS), 3):
     for j, (icon, label, help_text, target) in enumerate(row):
         with cols[j]:
             st.markdown(f'<div class="iq-rise iq-stagger-{j + 1}">', unsafe_allow_html=True)
-            with st.container(border=True):
-                st.markdown(f'<p class="iq-nav-title">{icon} {label}</p>', unsafe_allow_html=True)
+            with st.container(border=True, key=f"iq_bordered_nav_{row_start + j}"):
+                st.markdown(f'<p class="iq-nav-title"><span class="iq-nav-icon" aria-hidden="true">{icon}</span>{label}</p>', unsafe_allow_html=True)
                 st.caption(help_text)
-                st.page_link(target, label="Open →")
+                st.page_link(target, label="Open →", help=help_text)
             st.markdown('</div>', unsafe_allow_html=True)
 
 st.divider()
@@ -284,4 +354,4 @@ st.markdown(
     """
 )
 
-st.caption("InvestigateIQ · Capstone Group 7 · Leadership with AI, IIT Bombay · All data is fictional.")
+st.caption(f"{PROJECT_NAME} · {GROUP_LABEL} · {COURSE_LABEL} · All data is fictional.")

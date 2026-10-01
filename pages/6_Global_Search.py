@@ -17,17 +17,23 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import DB_PATH
-from ui_common import require_login, page_banner
+from ui_common import require_login, page_banner, page_flow
 
 st.set_page_config(page_title="InvestigateIQ — Global Search", page_icon="🔍", layout="wide")
 user_name, user_role = require_login()
 
 page_banner("🔍", "Global Search", "Find a customer, account, or transaction across the full dataset")
+page_flow("Find a fictional record without knowing its case ID", [
+    ("Enter a query", "Search a name, ID or transaction reference."),
+    ("Review matches", "Inspect matching customers, accounts, transactions and alerts."),
+    ("Open a case", "Follow a linked alert into the Investigation Workspace."),
+], "Search is read-only; result lists are capped to keep review manageable.")
 st.write("")
 
 query = st.text_input(
     "Search", placeholder="Customer name, CUST-/ACC-/TXN-/CASE- ID, or transaction reference text",
     label_visibility="collapsed",
+    help="Searches fictional customers, accounts, transactions and alerts. Enter at least two characters; each result list is capped at 25.",
 )
 
 if not query or len(query.strip()) < 2:

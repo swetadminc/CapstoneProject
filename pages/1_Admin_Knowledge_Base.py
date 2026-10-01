@@ -14,14 +14,19 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import search, suggest_terms, DB_PATH
-from ui_common import require_login, role_warning, page_banner
+from ui_common import require_login, role_warning, page_banner, page_flow
 
 st.set_page_config(page_title="InvestigateIQ — Admin", page_icon="🔐", layout="wide")
 user_name, user_role = require_login()
 
 ADMIN_PASSCODE = os.environ.get("ADMIN_PASSCODE", "investigateiq-admin")
 
-page_banner("🔐", "Admin — Knowledge Base Inspector", "Internal view. Not part of the investigator workspace. For demonstrating the RAG pipeline to evaluators.")
+page_banner("🔐", "Admin — Knowledge Base Inspector", "Inspect the retrieval sources used to support investigation drafts.")
+page_flow("Show what guidance the copilot can retrieve", [
+    ("Unlock", "Enter the admin passcode."),
+    ("Inspect", "View fictional playbooks, document chunks and index contents."),
+    ("Search", "Try the keyword retrieval used to ground report drafts."),
+], "This is a synthetic teaching knowledge base, not an approved bank or RBI policy repository.")
 st.markdown(
     """
     <style>
@@ -39,10 +44,10 @@ if "kb_admin_unlocked" not in st.session_state:
     st.session_state.kb_admin_unlocked = False
 
 if not st.session_state.kb_admin_unlocked:
-    st.info("This is a prototype-level access gate (not production security) — matches the mock-auth "
-            "approach used throughout the prototype. See CEO Playbook, Section 10 — Non-Functional Requirements.")
-    code = st.text_input("Admin passcode", type="password")
-    if st.button("Unlock"):
+    st.info("This passcode is a limited access gate, not production-grade authentication or authorization.")
+    code = st.text_input("Admin passcode", type="password",
+                         help="Limited access gate for the knowledge-base screen; not bank-grade authentication.")
+    if st.button("Unlock", help="Open the read-only knowledge-base explorer after checking the passcode."):
         if code == ADMIN_PASSCODE:
             st.session_state.kb_admin_unlocked = True
             st.rerun()
@@ -64,10 +69,14 @@ n_terms = conn.execute("SELECT COUNT(*) FROM knowledge_chunks_fts_vocab").fetcho
 avg_words = pd.read_sql("SELECT word_count FROM knowledge_chunks", conn)["word_count"].mean()
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Source documents (OKF)", n_docs)
-c2.metric("Chunks (\"tiles\")", n_chunks)
-c3.metric("Indexed terms (vocabulary)", n_terms)
-c4.metric("Avg. words / chunk", f"{avg_words:.0f}")
+c1.metric("Source documents (OKF)", n_docs,
+          help="Synthetic playbook documents available to the retrieval workflow.")
+c2.metric("Chunks (\"tiles\")", n_chunks,
+          help="Smaller source passages that can be retrieved and cited.")
+c3.metric("Indexed terms (vocabulary)", n_terms,
+          help="Distinct indexed terms in the SQLite full-text search vocabulary.")
+c4.metric("Avg. words / chunk", f"{avg_words:.0f}",
+          help="Average passage size; this is descriptive, not a retrieval-quality score.")
 
 st.markdown(
     """
@@ -117,7 +126,7 @@ st.info(
     "**Why keyword search instead of vector embeddings, for now:** our knowledge base is small "
     f"({n_docs} documents, {n_chunks} chunks) — small enough that BM25 keyword ranking finds the right "
     "chunk reliably, without an embedding API call on every query. That removes one more live network "
-    "dependency from the demo (see CEO Playbook, Section 12 — Risks & Win Safeguards) and costs nothing "
+    "dependency from an external model call (see CEO Playbook, Section 12 — Risks & Win Safeguards) and costs nothing "
     "to run. It's an explicit, defensible engineering trade-off for this phase, not a limitation we're "
     "hiding — semantic/vector search is the documented next step once an LLM/embedding API key is chosen."
 )
@@ -129,7 +138,8 @@ st.subheader("2 · The documents")
 docs = pd.read_sql("SELECT doc_id, scenario_id, title, escalation_criteria, version FROM knowledge_base ORDER BY doc_id", conn)
 st.dataframe(docs, hide_index=True, use_container_width=True)
 
-selected_doc = st.selectbox("Open a document", docs["doc_id"].tolist())
+selected_doc = st.selectbox("Open a document", docs["doc_id"].tolist(),
+                            help="Choose a synthetic playbook source to inspect its text and searchable chunks.")
 if selected_doc:
     row = conn.execute("SELECT body, source_file FROM knowledge_base WHERE doc_id=?", (selected_doc,)).fetchone()
     st.caption(f"Source file: `Product Docs/dataset/knowledge_base/{row[1]}`")
@@ -162,7 +172,8 @@ st.caption("This is the exact function the AI agent calls. Nothing here is pre-s
 if "kb_query" not in st.session_state:
     st.session_state.kb_query = ""
 
-query = st.text_input("Type a question or keywords", key="kb_query", placeholder="e.g. source of funds")
+query = st.text_input("Type a question or keywords", key="kb_query", placeholder="e.g. source of funds",
+                      help="Searches the local SQLite FTS5 keyword index; this is not semantic/vector search.")
 
 if query and len(query) >= 2:
     last_word = query.strip().split(" ")[-1]
@@ -172,7 +183,8 @@ if query and len(query) >= 2:
         st.caption("Suggested (from the index's own vocabulary):")
         cols = st.columns(min(len(suggestions), 6))
         for i, term in enumerate(suggestions[:6]):
-            if cols[i].button(term, key=f"sugg_{term}"):
+            if cols[i].button(term, key=f"sugg_{term}",
+                              help="Replace your last word with this term from the indexed vocabulary."):
                 words = query.strip().split(" ")[:-1]
                 st.session_state.kb_query = " ".join(words + [term])
                 st.rerun()
@@ -182,9 +194,10 @@ if query:
     if not results:
         st.warning("No chunks matched. Try different keywords.")
     for r in results:
-        with st.container(border=True):
+        with st.container(border=True, key=f"iq_bordered_kb_{r['chunk_id']}"):
             cols = st.columns([1, 5])
-            cols[0].metric("BM25 score", r["score"])
+            cols[0].metric("BM25 score", r["score"],
+                           help="SQLite FTS5 relevance rank for this keyword query; compare within this result list only.")
             cols[1].markdown(f"**{r['chunk_id']}** · from *{r['doc_title']}* (`{r['doc_id']}`)")
             cols[1].write(r["chunk_text"])
             cols[1].caption(f"If cited by the Copilot, the investigator sees: "

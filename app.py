@@ -22,11 +22,13 @@ import streamlit as st
 pg = st.navigation(
     [
         st.Page("pages/home.py", title="Home", icon="🔎", default=True),
+        st.Page("pages/7_Project_Team.py", title="Project & Team", icon="👥"),
         st.Page("pages/0_Case_Queue.py", title="Case Queue", icon="🗂️"),
-        st.Page("pages/2_Investigation_Demo.py", title="Investigation Workspace", icon="🕵️"),
+        st.Page("pages/2_Investigation_Demo.py", title="Investigation Workspace", icon="🕵️", url_path="Investigation_Workspace"),
         st.Page("pages/3_Compliance_Queue.py", title="Compliance Queue", icon="🛡️"),
         st.Page("pages/5_Analytics.py", title="Analytics", icon="📊"),
         st.Page("pages/6_Global_Search.py", title="Global Search", icon="🔍"),
+        st.Page("pages/8_Evidence_RAG.py", title="Evidence & RAG", icon="🧩"),
         st.Page("pages/1_Admin_Knowledge_Base.py", title="Admin: Knowledge Base", icon="🔐"),
         st.Page("pages/4_Admin_Rule_Config.py", title="Admin: Rule Config", icon="⚙️"),
     ]

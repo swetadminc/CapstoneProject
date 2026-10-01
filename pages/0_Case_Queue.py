@@ -21,7 +21,7 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import DB_PATH
 from data.runtime_db import get_latest_decision_per_case, resolve_status
-from ui_common import require_login, page_banner, severity_badge, status_badge
+from ui_common import require_login, page_banner, page_flow, severity_badge, status_badge
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "cached_reports")
 CACHED_CASES = {name[:-5] for name in os.listdir(CACHE_DIR) if name.endswith(".json")}
@@ -30,6 +30,11 @@ st.set_page_config(page_title="InvestigateIQ — Case Queue", page_icon="🗂️
 user_name, user_role = require_login()
 
 page_banner("🗂️", "Case Queue", "Fictional monitoring alerts — filter, review, and open a case to investigate")
+page_flow("Find a fictional alert that needs an investigator's review", [
+    ("Scan alerts", "See case counts, severity and current status."),
+    ("Filter the queue", "Narrow by the fields shown below."),
+    ("Open a case", "Move to the Investigation Workspace for evidence and a human decision."),
+], "Alerts are preloaded examples; this page does not run live bank monitoring.")
 st.write("")
 
 
@@ -76,10 +81,14 @@ st.divider()
 # Filters
 # ------------------------------------------------------------------
 fc1, fc2, fc3, fc4 = st.columns([1.2, 1.2, 1.2, 2])
-severity_filter = fc1.multiselect("Severity", sorted(df["severity"].unique()), default=[])
-status_filter = fc2.multiselect("Status", sorted(df["queue_status"].unique()), default=[])
-scenario_filter = fc3.multiselect("Scenario", sorted(df["scenario_id"].unique()), default=[])
-search = fc4.text_input("Search customer name", placeholder="e.g. Apex")
+severity_filter = fc1.multiselect("Severity", sorted(df["severity"].unique()), default=[],
+                                  help="Show alerts with any selected severity; leave empty to show all.")
+status_filter = fc2.multiselect("Status", sorted(df["queue_status"].unique()), default=[],
+                                help="Current case status includes any recorded human decision.")
+scenario_filter = fc3.multiselect("Scenario", sorted(df["scenario_id"].unique()), default=[],
+                                  help="Filter by the fictional scenario ID attached to each alert.")
+search = fc4.text_input("Search customer name", placeholder="e.g. Apex",
+                        help="Matches part of a customer name, ignoring letter case.")
 
 filtered = df.copy()
 if severity_filter:
@@ -138,8 +147,8 @@ if len(filtered) == 0:
 
 st.divider()
 st.caption(
-    "CASE-001 and CASE-002 are the frozen twin-case demo scenario (pre-cached for rehearsal — see the CEO "
-    "Playbook). Other cases are alerts from the same fictional dataset and can be investigated "
+    "CASE-001 and CASE-002 are fixed comparison cases with pre-cached reports. Other cases are alerts "
+    "from the same fictional dataset and can be investigated "
     "through the same workflow, but have not all been individually reviewed — some require Live mode. "
     "All data is fictional."
 )

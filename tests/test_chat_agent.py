@@ -1,12 +1,32 @@
 """Chat guardrail tests with model, search and audit calls mocked."""
 
 import unittest
+import json
+from pathlib import Path
 from unittest.mock import patch
 
-from agents.chat_agent import ask_question, _build_chat_prompt
+from agents.chat_agent import ask_question, answer_from_saved_evidence, _build_chat_prompt
 
 
 class ChatGuardrailTests(unittest.TestCase):
+    def test_saved_evidence_qa_cites_only_case_records(self):
+        path = Path(__file__).resolve().parents[1] / "data" / "cached_reports" / "CASE-041.json"
+        case = json.loads(path.read_text(encoding="utf-8"))
+        result = answer_from_saved_evidence(
+            "What evidence supports the concern?", case["context"], case["evidence"],
+            case["guidance"], case["report"],
+        )
+        known = {row["txn_id"] for row in case["evidence"]["window_transactions"]}
+        self.assertEqual(result["source"], "saved_evidence")
+        self.assertTrue(result["cited_txn_ids"])
+        self.assertTrue(set(result["cited_txn_ids"]).issubset(known))
+        self.assertIn("human review", result["answer"])
+
+    def test_saved_evidence_qa_rejects_unrelated_question(self):
+        result = answer_from_saved_evidence("What is the weather?", {"alert": {}}, {}, [], {})
+        self.assertIn("free-form AI needs a model connection", result["answer"])
+        self.assertEqual(result["cited_txn_ids"], [])
+
     def test_chat_prompt_withholds_instruction_like_reference(self):
         context = {
             "case_id": "CASE-TEST",

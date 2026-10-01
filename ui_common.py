@@ -14,7 +14,9 @@ requires that name explicitly at submit time — this doesn't remove that
 requirement, it just removes the retyping.
 """
 import os
+from html import escape
 import streamlit as st
+from project_identity import COURSE_LABEL, GROUP_LABEL, PROJECT_SLOGAN
 
 ROLES = ["Investigator", "Team Lead", "Compliance Officer", "Admin"]
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
@@ -82,9 +84,114 @@ _GLOBAL_CSS = """
 }
 .iq-banner h1 { margin: 0; font-size: 22px; }
 .iq-banner p { margin: 4px 0 0 0; color: var(--iq-navy-light); font-size: 13px; }
+.iq-banner-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; margin-right: 7px; vertical-align: middle;
+    background: #EAF2FF; border: 1px solid #B9D0F5; border-radius: 10px;
+    font-size: 23px; line-height: 1;
+}
+[data-testid="stSidebarNavLink"] [data-testid="stIconEmoji"] {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 27px; height: 27px; flex: 0 0 27px;
+    background: #DCEAFF; border: 1px solid #B8CEF0; border-radius: 8px;
+}
 .iq-card {
     background: var(--iq-card-bg); border: 1px solid var(--iq-card-border);
     border-radius: 12px; padding: 16px 20px;
+}
+.iq-brand-slogan {
+    margin: 5px 0 15px; padding: 9px 11px; border-left: 3px solid #2E63BF;
+    border-radius: 0 9px 9px 0; background: #E5EFFD;
+    color: #173C78; font-size: 13px; font-weight: 700; line-height: 1.45;
+}
+[class*="st-key-iq_bordered_"] {
+    background: #FBFCFF !important; border: 1.5px solid #B8CAE6 !important;
+    border-radius: 14px !important;
+}
+.iq-flow {
+    --iq-flow-connector: #477ABD;
+    margin: 14px 0 22px; padding: 17px 18px 14px;
+    border: 2px solid #A9C6EC; border-radius: 18px;
+    background: linear-gradient(135deg, #F8FBFF, #EDF5FF);
+    box-shadow: 0 5px 20px rgba(31, 75, 136, 0.08);
+}
+.iq-flow-heading { color: var(--iq-heading); font-weight: 800; font-size: 16px; margin-bottom: 3px; }
+.iq-flow-heading::before { content: '🧭'; margin-right: 8px; }
+.iq-flow-purpose, .iq-flow-note { color: var(--iq-text-secondary); font-size: 13px; line-height: 1.45; }
+.iq-flow-steps { display: flex; gap: 30px; list-style: none; padding: 0; margin: 14px 0 10px; }
+.iq-flow-steps li {
+    --iq-step-border: #8FB9EE; --iq-step-bg: #F0F6FF; --iq-step-icon-bg: #DDEBFF;
+    position: relative; box-sizing: border-box; flex: 1; min-width: 0;
+    border: 2px solid var(--iq-step-border); border-radius: 14px;
+    background: var(--iq-step-bg); padding: 13px 14px;
+    box-shadow: 0 3px 10px rgba(28, 61, 106, 0.06);
+}
+.iq-flow-steps li:nth-child(4n+2) {
+    --iq-step-border: #C6A2F0; --iq-step-bg: #F9F3FF; --iq-step-icon-bg: #EEDDFF;
+}
+.iq-flow-steps li:nth-child(4n+3) {
+    --iq-step-border: #7ECDBD; --iq-step-bg: #EEFAF5; --iq-step-icon-bg: #D9F5EC;
+}
+.iq-flow-steps li:nth-child(4n+4) {
+    --iq-step-border: #E9BB72; --iq-step-bg: #FFF9EC; --iq-step-icon-bg: #FFF0D2;
+}
+.iq-flow-steps li:not(:last-child)::after {
+    content: ''; position: absolute; right: -29px; top: 50%;
+    width: 26px; height: 5px; transform: translateY(-50%);
+    background: radial-gradient(circle, var(--iq-flow-connector) 2px, transparent 2.5px) 0 0 / 9px 5px repeat-x;
+    animation: iq-flow-dots 1.5s linear infinite;
+}
+.iq-flow-steps li:not(:last-child)::before {
+    content: ''; position: absolute; right: -31px; top: calc(50% - 4px);
+    width: 7px; height: 7px; border-top: 2px solid var(--iq-flow-connector);
+    border-right: 2px solid var(--iq-flow-connector); transform: rotate(45deg);
+}
+@keyframes iq-flow-dots { to { background-position: 9px 0; } }
+.iq-flow-step-head { display: flex; align-items: center; gap: 8px; }
+.iq-flow-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; flex: 0 0 30px;
+    border-radius: 9px; background: var(--iq-step-icon-bg);
+    font-size: 17px; line-height: 1;
+}
+.iq-flow-number { color: var(--iq-heading); font-size: 11px; font-weight: 800; letter-spacing: .05em; }
+.iq-flow-title { display: block; color: var(--iq-heading); font-size: 13px; font-weight: 700; margin: 8px 0 4px; }
+.iq-flow-detail { color: var(--iq-text-secondary); font-size: 12px; line-height: 1.4; }
+.iq-team-grid {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;
+    margin: 12px 0 22px;
+}
+.iq-team-card {
+    box-sizing: border-box; min-height: 278px; padding: 20px;
+    border: 2px solid #A8C3E8; border-radius: 18px;
+    background: #F7FAFF; box-shadow: 0 5px 18px rgba(26, 42, 74, 0.10);
+}
+.iq-team-initials {
+    display: flex; align-items: center; justify-content: center;
+    width: 46px; height: 46px; border-radius: 13px; margin-bottom: 11px;
+    background: var(--iq-primary); color: #FFFFFF; font-size: 18px; font-weight: 800;
+}
+.iq-team-name { margin: 0 0 6px; color: var(--iq-heading); font-size: 18px; font-weight: 700; }
+.iq-team-role { margin: 0 0 10px; color: #2455A5; font-size: 14px; font-weight: 700; line-height: 1.35; }
+.iq-team-note { margin: 0; color: var(--iq-text-secondary); font-size: 13px; line-height: 1.45; }
+@media (max-width: 900px) { .iq-team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .iq-team-grid { grid-template-columns: 1fr; } }
+@media (max-width: 800px) {
+    .iq-flow-steps { flex-direction: column; gap: 28px; }
+    .iq-flow-steps li:not(:last-child)::after {
+        right: auto; left: 50%; top: auto; bottom: -25px;
+        width: 5px; height: 22px; transform: translateX(-50%);
+        background: radial-gradient(circle, var(--iq-flow-connector) 2px, transparent 2.5px) 0 0 / 5px 9px repeat-y;
+        animation-name: iq-flow-dots-vertical;
+    }
+    .iq-flow-steps li:not(:last-child)::before {
+        right: auto; left: calc(50% - 4px); top: auto; bottom: -27px;
+        transform: rotate(135deg);
+    }
+}
+@keyframes iq-flow-dots-vertical { to { background-position: 0 9px; } }
+@media (prefers-reduced-motion: reduce) {
+    .iq-flow-steps li:not(:last-child)::after { animation: none; }
 }
 .iq-badge {
     display: inline-block; padding: 2px 10px; border-radius: 20px;
@@ -99,6 +206,12 @@ _GLOBAL_CSS = """
 .iq-status-info { background: var(--iq-status-info-bg); color: var(--iq-status-info); }
 .iq-hero-badge { background: var(--iq-primary); color: white; padding: 1px 7px; border-radius: 5px; font-size: 11px; margin-left: 6px; }
 .iq-nav-title { font-size: 17px; font-weight: 700; color: var(--iq-heading); margin: 0 0 2px 0; line-height: 1.3; }
+.iq-nav-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; margin-right: 8px; vertical-align: middle;
+    background: #EAF2FF; border: 1px solid #B9D0F5; border-radius: 8px;
+    font-size: 17px;
+}
 .iq-kpi-label { color: var(--iq-text-secondary); font-size: 13px; margin-bottom: 2px; }
 .iq-kpi-value { font-size: 26px; font-weight: 700; color: var(--iq-heading); }
 /* KPI tiles (Total/Open/High severity/Escalated/Closed) used to render
@@ -167,7 +280,7 @@ _GLOBAL_CSS = """
     color: white !important; font-weight: 700 !important; font-size: 15px !important;
 }
 
-.iq-card, [data-testid="stVerticalBlockBorderWrapper"] {
+.iq-card, [class*="st-key-iq_bordered_"] {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -192,13 +305,13 @@ _GLOBAL_CSS = """
         border-bottom: 1px solid var(--iq-card-border); padding-bottom: 8px; margin-bottom: 8px;
     }
 }
-div[data-testid="stVerticalBlockBorderWrapper"]:has(.iq-nav-title):hover {
+[class*="st-key-iq_bordered_nav_"]:hover {
     transform: translateY(-3px);
     box-shadow: 0 10px 24px rgba(26,42,74,0.14);
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .iq-rise, div[data-testid="stVerticalBlockBorderWrapper"]:has(.iq-nav-title):hover {
+    .iq-rise, [class*="st-key-iq_bordered_nav_"]:hover {
         animation: none !important; transition: none !important; transform: none !important;
     }
 }
@@ -213,15 +326,56 @@ _DARK_OVERRIDE_CSS = """
     --iq-text-secondary: #9FB0C9;
     --iq-heading: #E8EDF7;
 }
+.iq-team-card {
+    background: #1D2D47 !important; border-color: #729BDD !important;
+    box-shadow: 0 0 0 1px rgba(130, 170, 230, 0.22), 0 9px 24px rgba(0, 0, 0, 0.18);
+}
+.iq-banner-icon { background: #EAF2FF !important; border-color: #B9D0F5 !important; }
+.iq-nav-icon { background: #EAF2FF !important; border-color: #B9D0F5 !important; }
+[data-testid="stSidebarNavLink"] [data-testid="stIconEmoji"] {
+    background: #DCEAFF !important; border-color: #8EB1E3 !important;
+}
+.iq-team-role { color: #A9C9FF !important; }
+.iq-brand-slogan {
+    background: #243B5A !important; border-left-color: #96C7FF !important;
+    color: #E8F2FF !important;
+}
+.iq-card {
+    background: #1D2D47 !important; border-color: #648AC4 !important;
+}
+.iq-flow {
+    --iq-flow-connector: #A7C8FF;
+    background: linear-gradient(135deg, #1B2A43, #1D3550) !important;
+    border-color: #78A1DD !important;
+}
+.iq-flow-steps li {
+    --iq-step-border: #76A8ED; --iq-step-bg: #233C62; --iq-step-icon-bg: #315584;
+    background: var(--iq-step-bg) !important; border-color: var(--iq-step-border) !important;
+}
+.iq-flow-steps li:nth-child(4n+2) {
+    --iq-step-border: #BE99ED; --iq-step-bg: #3A3056; --iq-step-icon-bg: #59437C;
+}
+.iq-flow-steps li:nth-child(4n+3) {
+    --iq-step-border: #78D1BA; --iq-step-bg: #214C49; --iq-step-icon-bg: #2E6A60;
+}
+.iq-flow-steps li:nth-child(4n+4) {
+    --iq-step-border: #E6B975; --iq-step-bg: #50432E; --iq-step-icon-bg: #75603B;
+}
+.iq-flow-icon { background: var(--iq-step-icon-bg) !important; }
+.iq-kpi-icon {
+    background: #2A4267 !important; box-shadow: inset 0 0 0 1px #6C91C6;
+}
 /* Streamlit's own chrome — these are its documented-by-convention
    data-testid hooks (stable across 1.x releases, widely relied on by the
    Streamlit community for exactly this kind of app-level theming) rather
    than internal class names, which do change between versions. */
 [data-testid="stAppViewContainer"], [data-testid="stHeader"],
 [data-testid="stBottomBlockContainer"], [data-testid="stMain"] {
-    background-color: #0F1826 !important;
+    background: #0F1826 !important;
 }
-[data-testid="stSidebar"] { background-color: #16213A !important; }
+/* Both the main view and sidebar have light-mode gradients. Replacing only
+   background-color leaves those images visible behind dark-mode text. */
+[data-testid="stSidebar"] { background: #16213A !important; }
 [data-testid="stAppViewContainer"] *, [data-testid="stSidebar"] *,
 [data-testid="stHeader"] * {
     color: #E8EDF7 !important;
@@ -273,9 +427,14 @@ _DARK_OVERRIDE_CSS = """
    to light gray regardless of that background — light text on a
    still-light box, unreadable. Same bug shape as the badges and
    backtick-code fixes elsewhere in this file, different component. */
-[data-testid="stVerticalBlockBorderWrapper"], [data-testid="stChatMessage"],
+[class*="st-key-iq_bordered_"], .st-key-human_decision_panel,
+[data-testid="stChatMessage"],
 [data-testid="stChatInput"], [data-testid="stChatInput"] textarea {
-    background-color: #1B2536 !important; border-color: #2E3B52 !important;
+    background-color: #1D2D47 !important; border-color: #648AC4 !important;
+}
+[class*="st-key-iq_bordered_"], .st-key-human_decision_panel {
+    border-width: 1.5px !important; border-style: solid !important;
+    box-shadow: 0 0 0 1px rgba(105, 149, 212, 0.14) !important;
 }
 /* st.code()'s <pre> wrapper keeps its own light background even though
    the inline <code> rule further below already darkens the element
@@ -329,30 +488,49 @@ def inject_global_styles():
     second, after the base :root declaration, so its redeclared custom
     properties win by CSS source order — no class-toggling needed.
 
-    Reads session_state["dark_mode_toggle"] — the toggle widget's OWN key,
-    not a separately-assigned "dark_mode" flag. A prior version tracked
-    dark mode under its own key, set by a plain assignment further down in
-    require_login()'s sidebar block; since this function runs at the very
-    top of the page, before that assignment line executes, it always read
-    last run's value — every click looked like it took effect one rerun
-    late (toggle showed the new state, but the background didn't change
-    until the NEXT click). Streamlit updates a widget's own key-bound
-    session_state entry before the script starts running, so reading that
-    key directly here has no such lag — confirmed by testing repeated
-    clicks in place on the same page, not just navigating between pages."""
+    Reads a persistent session key. Streamlit can drop a widget's own key
+    during multipage navigation, so the sidebar toggle copies its value
+    into this non-widget key in an on_change callback before rerendering."""
     st.markdown(_GLOBAL_CSS, unsafe_allow_html=True)
-    if st.session_state.get("dark_mode_toggle"):
+    if st.session_state.get("iq_dark_mode"):
         st.markdown(_DARK_OVERRIDE_CSS, unsafe_allow_html=True)
+
+
+def _remember_theme_choice():
+    st.session_state["iq_dark_mode"] = bool(st.session_state["dark_mode_toggle"])
 
 
 def page_banner(icon: str, title: str, subtitle: str):
     """Replaces the six copies of the same hand-written .iq-banner markup
     that used to live at the top of every page."""
     st.markdown(
-        f'<div class="iq-banner"><h1>{icon} {title}</h1><p>{subtitle}</p></div>',
+        f'<div class="iq-banner"><h1><span class="iq-banner-icon" aria-hidden="true">{icon}</span>{title}</h1><p>{subtitle}</p></div>',
         unsafe_allow_html=True,
     )
-    st.caption("Prototype · all customer and transaction data is fictional")
+    st.caption("Sample environment · all customer and transaction data is fictional")
+
+
+def page_flow(purpose: str, steps: list[tuple[str, str]], note: str = ""):
+    """Visible, accessible explanation of a screen's actual workflow."""
+    if not steps:
+        raise ValueError("A page flow needs at least one step")
+    icons = ("🔎", "📋", "✅", "🛡️")
+    items = "".join(
+        '<li><span class="iq-flow-step-head">'
+        f'<span class="iq-flow-icon" aria-hidden="true">{icons[(index - 1) % len(icons)]}</span>'
+        f'<span class="iq-flow-number">STEP {index:02d}</span></span>'
+        f'<span class="iq-flow-title">{escape(title)}</span>'
+        f'<span class="iq-flow-detail">{escape(detail)}</span></li>'
+        for index, (title, detail) in enumerate(steps, 1)
+    )
+    note_html = f'<div class="iq-flow-note">{escape(note)}</div>' if note else ""
+    st.markdown(
+        '<section class="iq-flow" aria-label="How this page works">'
+        '<div class="iq-flow-heading">How this page works</div>'
+        f'<div class="iq-flow-purpose"><strong>Purpose:</strong> {escape(purpose)}</div>'
+        f'<ol class="iq-flow-steps">{items}</ol>{note_html}</section>',
+        unsafe_allow_html=True,
+    )
 
 
 def severity_badge(severity: str) -> str:
@@ -368,29 +546,45 @@ def status_badge(status: str) -> str:
     return f'<span class="iq-badge {cls}">{status}</span>' if cls else str(status)
 
 
-def require_login():
+def require_login(allow_guest: bool = False):
     """Call near the top of every page. Shows a one-time name+role form if
     the session doesn't have an identity yet; otherwise renders the small
-    sidebar identity badge and returns (name, role) immediately."""
+    sidebar identity badge and returns (name, role) immediately. Public
+    orientation screens may instead show the guest sidebar."""
+    if "iq_dark_mode" not in st.session_state:
+        st.session_state["iq_dark_mode"] = bool(st.session_state.get("dark_mode_toggle", False))
+    # Widget keys may be reset when a Streamlit page changes. Restore the
+    # sidebar switch from the persistent value before the widget is created.
+    st.session_state["dark_mode_toggle"] = st.session_state["iq_dark_mode"]
     inject_global_styles()
-    dark = bool(st.session_state.get("dark_mode_toggle"))
+    dark = bool(st.session_state["iq_dark_mode"])
     st.logo(LOGO_FULL_DARK if dark else LOGO_FULL_LIGHT, icon_image=LOGO_ICON, size="large")
 
     if "user_name" not in st.session_state or "user_role" not in st.session_state:
+        if allow_guest:
+            with st.sidebar:
+                st.markdown(f'<div class="iq-brand-slogan">{escape(PROJECT_SLOGAN)}</div>', unsafe_allow_html=True)
+                st.caption(f"{GROUP_LABEL} · {COURSE_LABEL}")
+                st.caption("Guest view · fictional customer and transaction data")
+                st.toggle("🌙 Dark mode", key="dark_mode_toggle",
+                          on_change=_remember_theme_choice,
+                          help="Switch the display theme for this browser session; it does not change case data.")
+            return None, None
         st.write("")
         lcol1, lcol2, lcol3 = st.columns([1, 2, 1])
         with lcol2:
             st.image(LOGO_FULL_DARK if dark else LOGO_FULL_LIGHT, use_container_width=True)
             st.write("")
-            with st.container(border=True):
-                st.markdown("#### 👤 Who's using InvestigateIQ?")
+            with st.container(border=True, key="iq_bordered_login"):
+                st.markdown("#### Enter your workspace")
                 st.caption(
-                    "Prototype-level identity, not real authentication (no password) — matches the mock-auth "
-                    "scope used throughout this build. This is what gets attributed on every decision you record."
+                    "Choose a display name and role for attribution. This environment does not authenticate users."
                 )
-                name = st.text_input("Your name")
-                role = st.selectbox("Your role", ROLES)
-                if st.button("Continue", type="primary", use_container_width=True):
+                name = st.text_input("Your name", help="Display name recorded beside decisions and audit events.")
+                role = st.selectbox("Your role", ROLES,
+                                    help="A workflow label; this environment does not enforce role-based access.")
+                if st.button("Continue", type="primary", use_container_width=True,
+                             help="Open the workspace with this display name and role."):
                     if not name.strip():
                         st.error("Please enter your name.")
                     else:
@@ -400,14 +594,18 @@ def require_login():
         st.stop()
 
     with st.sidebar:
-        st.caption("Capstone Group 7 · Leadership with AI, IIT Bombay")
+        st.markdown(f'<div class="iq-brand-slogan">{escape(PROJECT_SLOGAN)}</div>', unsafe_allow_html=True)
+        st.caption(f"{GROUP_LABEL} · {COURSE_LABEL}")
         st.markdown(f"**👤 {st.session_state['user_name']}**")
         st.caption(f"Role: {st.session_state['user_role']}")
         # key= alone is enough — session_state["dark_mode_toggle"] persists
         # for the whole session (every page reads it, see
         # inject_global_styles() above), the same way user_name does.
-        st.toggle("🌙 Dark mode", key="dark_mode_toggle")
-        if st.button("Switch user", key="switch_user_btn"):
+        st.toggle("🌙 Dark mode", key="dark_mode_toggle",
+                  on_change=_remember_theme_choice,
+                  help="Switch the display theme for this browser session; it does not change case data.")
+        if st.button("Switch user", key="switch_user_btn",
+                     help="Clear this display identity and choose another; saved decisions remain in the audit log."):
             del st.session_state["user_name"]
             del st.session_state["user_role"]
             st.rerun()
@@ -421,7 +619,6 @@ def role_warning(current_role: str, expected_role: str):
     prototype's auth actually is."""
     if current_role != expected_role:
         st.warning(
-            f"You're logged in as **{current_role}**. This screen is normally used by **{expected_role}** — "
-            "you can still proceed (mock auth, no real access control), but the attribution below will reflect "
-            "your actual logged-in identity."
+            f"Your selected role is **{current_role}**. This screen is normally used by **{expected_role}**. "
+            "Access is not enforced here; any action will be attributed to your selected display identity."
         )

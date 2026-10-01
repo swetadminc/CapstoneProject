@@ -18,13 +18,18 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import DB_PATH
 from data.runtime_db import get_latest_decision_per_case, get_human_actions, record_human_decision
-from ui_common import require_login, role_warning, page_banner
+from ui_common import require_login, role_warning, page_banner, page_flow
 
 st.set_page_config(page_title="InvestigateIQ — Compliance Queue", page_icon="🛡️", layout="wide")
 user_name, user_role = require_login()
 
 page_banner("🛡️", "Compliance / Escalation Queue",
             "Cases an investigator escalated — Compliance reviews, acknowledges, or sends back. Nothing here is filed automatically.")
+page_flow("Handle cases an investigator has escalated", [
+    ("Open an escalation", "See the case and the investigator's recorded rationale."),
+    ("Review the context", "Read the rationale; open the Workspace if you need the evidence."),
+    ("Record an action", "Acknowledge, return, or record a referral in the audit trail."),
+], "A recorded referral is not a regulatory filing; a human officer remains responsible.")
 st.write("")
 role_warning(user_role, "Compliance Officer")
 
@@ -55,8 +60,10 @@ escalated = {cid: d for cid, d in decisions.items() if d["action"] == "escalate"
 case_ctx = load_case_context(list(escalated.keys()))
 
 c1, c2 = st.columns(2)
-c1.metric("Cases awaiting Compliance review", len(escalated))
-c2.metric("High-severity among them", sum(1 for cid in escalated if case_ctx.get(cid, {}).get("severity") == "High"))
+c1.metric("Cases awaiting Compliance review", len(escalated),
+          help="Cases whose latest investigator decision is escalation; not a count of regulatory filings.")
+c2.metric("High-severity among them", sum(1 for cid in escalated if case_ctx.get(cid, {}).get("severity") == "High"),
+          help="Escalated cases marked High severity in the fictional source alerts.")
 
 st.divider()
 
@@ -65,8 +72,7 @@ if not escalated:
 else:
     for case_id, decision in sorted(escalated.items(), key=lambda kv: kv[1]["timestamp"], reverse=True):
         ctx = case_ctx.get(case_id, {})
-        with st.container():
-            st.markdown('<div class="iq-escalation-card">', unsafe_allow_html=True)
+        with st.container(border=True, key=f"iq_bordered_escalation_{case_id}"):
             cols = st.columns([2.5, 1.5, 1])
             with cols[0]:
                 st.markdown(f"**`{case_id}`** — {ctx.get('customer_name', '?')}")
@@ -75,7 +81,8 @@ else:
                 st.caption(f"Escalated by **{decision['investigator']}**")
                 st.caption(decision["timestamp"][:19].replace("T", " ") + " UTC")
             with cols[2]:
-                if st.button("Open case →", key=f"open_{case_id}"):
+                if st.button("Open case →", key=f"open_{case_id}",
+                             help="Open this alert in the Investigation Workspace to review its evidence and decision history."):
                     st.session_state["selected_case_id"] = case_id
                     st.switch_page("pages/2_Investigation_Demo.py")
 
@@ -131,7 +138,6 @@ else:
                         except Exception as e:
                             st.error(f"Could not record: {e}")
 
-            st.markdown("</div>", unsafe_allow_html=True)
 
 st.divider()
 st.caption(

@@ -18,12 +18,17 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import DB_PATH
 from data.runtime_db import get_all_human_actions, get_latest_decision_per_case, resolve_status
-from ui_common import require_login, page_banner
+from ui_common import require_login, page_banner, page_flow
 
 st.set_page_config(page_title="InvestigateIQ — Analytics", page_icon="📊", layout="wide")
 user_name, user_role = require_login()
 
 page_banner("📊", "Analytics", "Trends across the alert population and investigator activity")
+page_flow("Summarize the fictional alert population and recorded human activity", [
+    ("Load records", "Read alerts and any saved investigator decisions."),
+    ("Compare groups", "View severity, scenario, status and time-based summaries."),
+    ("Interpret", "Use patterns to guide review, not to infer model accuracy."),
+], "These charts describe fictional records; they do not measure real-world crime-detection performance.")
 st.write("")
 
 

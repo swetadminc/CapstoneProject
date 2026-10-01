@@ -19,11 +19,11 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agents.investigation_agent import investigate, GEMINI_API_KEY, GEMINI_MODEL
-from agents.chat_agent import ask_question
+from agents.chat_agent import ask_question, answer_from_saved_evidence
 from agents.grounding_validator import GroundingValidator
 from agents.transaction_investigation_agent import anchor_cached_evidence
 from data.runtime_db import record_human_decision, get_audit_log, get_human_actions, log_audit_event
-from ui_common import require_login, page_banner
+from ui_common import require_login, page_banner, page_flow
 from report_pdf import build_report_pdf
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "cached_reports")
@@ -44,11 +44,17 @@ def fmt_ts(iso_ts):
         return iso_ts
 
 
-st.set_page_config(page_title="InvestigateIQ — Investigation Demo", page_icon="🕵️", layout="wide")
+st.set_page_config(page_title="InvestigateIQ — Investigation Workspace", page_icon="🕵️", layout="wide")
 user_name, user_role = require_login()
 
-page_banner("🕵️", "Investigation Agent — Live Demo",
-            "Working prototype: database → six-step workflow → Gemini draft → selected grounding checks → human decision → audit log")
+page_banner("🕵️", "Investigation Workspace",
+            "Database → six-step workflow → AI draft → selected grounding checks → human decision → audit log")
+page_flow("Review evidence and make a documented human decision", [
+    ("Choose a case", "Select an alert and cached replay or live analysis."),
+    ("Review the draft", "Inspect evidence, retrieved guidance and selected validation checks."),
+    ("Ask or export", "Question the copilot and download the draft report if useful."),
+    ("Decide and audit", "Record a reasoned human decision; inspect the audit history."),
+], "Cached replay and limited saved-evidence Q&A work without a model connection. Free-form AI chat needs a model key; the copilot never makes the final decision.")
 st.markdown(
     """
     <style>
@@ -77,7 +83,7 @@ def load_case_options():
     hero_ids = {"CASE-001": "suspicious", "CASE-002": "legitimate twin"}
     options = {}
     for cid, name, atype in rows:
-        label = f"{cid} — {name} ({hero_ids[cid]}, demo)" if cid in hero_ids else f"{cid} — {name}"
+        label = f"{cid} — {name} ({hero_ids[cid]}, cached)" if cid in hero_ids else f"{cid} — {name}"
         options[label] = cid
     # pin hero cases first
     ordered = {k: v for k, v in options.items() if v in hero_ids}
@@ -94,9 +100,14 @@ if preselect:
     for i, label in enumerate(labels):
         if CASES[label] == preselect:
             default_idx = i
+            # The queue's explicit choice takes precedence over any earlier
+            # selection; subsequent reruns retain the widget's own keyed value.
+            st.session_state.pop("investigation_case_choice", None)
             break
 
-choice = st.selectbox("Choose a case to investigate", labels, index=default_idx)
+choice = st.selectbox("Choose a case to investigate", labels, index=default_idx,
+                      key="investigation_case_choice",
+                      help="Choose one fictional alert. CASE-001 and CASE-002 are pre-reviewed comparison cases.")
 case_id = CASES[choice]
 
 cached = load_cached(case_id)
@@ -105,19 +116,20 @@ if not cached:
     mode_options = ["Live (real Gemini call)"]
     st.warning(f"No cached report found for {case_id} — run `scripts/generate_cached_reports.py` to create one.")
 mode = st.radio("Mode", mode_options, horizontal=True,
-                 help="Cached replays a stored demo report and checks it with the current validator. "
-                      "Use Live to prove it's not scripted when asked.")
+                 help="Cached replays a stored report and checks it with the current validator. "
+                      "Live requests a fresh model draft when a model key is configured.")
 use_cache = mode.startswith("Cached")
 
 if use_cache:
     st.caption(f"Cached report generated {cached['generated_at']} · model `{cached['model']}`")
 else:
     if not GEMINI_API_KEY:
-        st.error("GEMINI_API_KEY is not set in this environment. Live mode cannot run.")
+        st.error("Live AI is unavailable because no model connection is configured. Cached reports remain available.")
         st.stop()
     st.caption(f"Model: `{GEMINI_MODEL}`")
 
-run = st.button("▶ Run investigation", type="primary")
+run = st.button("▶ Run investigation", type="primary",
+                help="Build the case draft in the selected mode. Live mode calls Gemini; cached mode replays a saved example.")
 
 # Session state holds the last result per case, so it survives the reruns
 # that clicking a checkbox or the decision-submit button triggers — without
@@ -170,6 +182,7 @@ if state_key in st.session_state:
     st.download_button(
         "⬇️ Download PDF report", data=pdf_bytes, file_name=f"{case_id}_investigation_report.pdf",
         mime="application/pdf",
+        help="Download the draft and any recorded human action for review; this is not a regulatory filing.",
     )
 
     st.divider()
@@ -182,14 +195,18 @@ if state_key in st.session_state:
         st.warning("This fictional alert has no trigger-transaction ID in the source data. "
                    "Do not treat its recorded rule label as independently verified.")
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Baseline avg. amount", f"₹{evidence['baseline_avg_amount']:,.0f}")
+    c1.metric("Baseline avg. amount", f"₹{evidence['baseline_avg_amount']:,.0f}",
+              help="Historical average used as context for the alert; inspect source transactions before drawing conclusions.")
     c2.metric("Trigger/baseline ratio", f"{evidence['deviation_ratio']}x"
-              if evidence["deviation_ratio"] is not None else "—")
+              if evidence["deviation_ratio"] is not None else "-",
+              help="Recomputed only when the source alert identifies a trigger transaction; a dash means it cannot be verified here.")
     c3.metric(
         "Nearby transactions (context only)" if evidence.get("evidence_window_empty") else "Transactions in review window",
         len(evidence["window_transactions"]),
+        help="Transactions shown for review. When the alert window is empty, these are nearby context, not trigger evidence.",
     )
-    c4.metric("Prior cases found", len(evidence["prior_cases"]))
+    c4.metric("Prior cases found", len(evidence["prior_cases"]),
+              help="Earlier cases found in this fictional dataset; this does not imply guilt.")
     if evidence.get("evidence_window_empty"):
         st.caption("⚠️ No transactions fell inside this alert's review window — the transactions shown below "
                    "are the nearest ones in time, for background context only, not the trigger event.")
@@ -207,16 +224,21 @@ if state_key in st.session_state:
 
     with col_evidence:
         st.subheader("📋 Evidence & Findings")
+        st.page_link("pages/8_Evidence_RAG.py", label="🧩 See how source documents become searchable chunks",
+                     help="Open the read-only Evidence & RAG page to inspect document text, chunks, retrieval and code links.")
         status_class = {
             "Verified": "status-verified", "Inferred": "status-inferred",
             "Missing": "status-missing", "Conflicting": "status-conflicting",
         }
         accepted_flags = []
         for i, f in enumerate(report["findings"]):
-            with st.container(border=True):
+            with st.container(border=True, key=f"iq_bordered_finding_{case_id}_{i}"):
                 cls = status_class.get(f["evidence_status"], "")
                 fcols = st.columns([0.1, 0.9])
-                accept = fcols[0].checkbox("Accept", key=f"accept_{case_id}_{i}", value=True, label_visibility="collapsed")
+                accept = fcols[0].checkbox(
+                    "Accept", key=f"accept_{case_id}_{i}", value=True, label_visibility="collapsed",
+                    help="Include this draft finding among accepted findings when you submit a human decision. Uncheck if you reject it.",
+                )
                 with fcols[1]:
                     st.markdown(f"**[{f['type'].upper()}]** &nbsp; <span class='{cls}'>{f['evidence_status']}</span>", unsafe_allow_html=True)
                     st.write(f["description"])
@@ -231,8 +253,16 @@ if state_key in st.session_state:
 
         st.markdown("**Recommended next steps** (RAG-grounded — cites a real playbook doc)")
         if report["recommended_next_steps"]:
-            for step in report["recommended_next_steps"]:
+            for step_index, step in enumerate(report["recommended_next_steps"]):
                 st.markdown(f"- {step['step']}  \n  `[Retrieved: {step['playbook_doc_id']}]`")
+                doc_id = step["playbook_doc_id"]
+                if st.button(f"View {doc_id} source and all chunks →", key=f"rag_source_{case_id}_{step_index}",
+                             help="Inspect the cited synthetic playbook document and every chunk indexed from it."):
+                    st.session_state["rag_doc_id"] = doc_id
+                    matching_chunk = next((g["chunk_id"] for g in guidance if g.get("doc_id") == doc_id), None)
+                    if matching_chunk:
+                        st.session_state["rag_chunk_id"] = matching_chunk
+                    st.switch_page("pages/8_Evidence_RAG.py")
         else:
             st.caption("No grounded next step available from the knowledge base for this scenario.")
 
@@ -249,11 +279,9 @@ if state_key in st.session_state:
             })
 
     # ---------------------------------------------------------
-    # Ask the Copilot — grounded, cited, multi-turn chat over this case's
-    # own evidence. Every answer runs through the same citation-checking
-    # discipline as the report (agents/chat_agent.py), and every exchange
-    # is written to the audit log — this always makes a live Gemini call
-    # (there's nothing sensible to "cache" for an arbitrary question).
+    # With a model connection, chat uses a live Gemini call and validates
+    # citations. Without one, a limited Q&A reads only the saved report
+    # and case evidence; it is explicitly labelled as non-generative.
     # ---------------------------------------------------------
     with col_chat:
         st.subheader("💬 Ask the Copilot")
@@ -263,48 +291,55 @@ if state_key in st.session_state:
             st.session_state[chat_key] = []
         chat_history = st.session_state[chat_key]
 
-        if not GEMINI_API_KEY:
-            st.info("GEMINI_API_KEY is not set — chat requires a live model call and can't run in this environment.")
-        else:
-            SUGGESTED = [
-                "Why was this alert triggered?",
-                "What should I do next?",
-                "Has this customer been flagged before?",
-                "Who are the counterparties?",
-            ]
-            st.caption("Suggested questions:")
-            for i, sq in enumerate(SUGGESTED):
-                if st.button(sq, key=f"sugg_{case_id}_{i}", use_container_width=True):
-                    st.session_state[f"clicked_q_{case_id}"] = sq
+        offline_qa = not bool(GEMINI_API_KEY)
+        if offline_qa:
+            st.info("Saved-evidence Q&A is available from this case's stored report. It is rule-based, not live AI chat; free-form AI needs a model connection.")
+        SUGGESTED = [
+            "Why was this alert triggered?",
+            "What evidence supports the concern?",
+            "What is missing?",
+            "What should I do next?",
+        ]
+        st.caption("Suggested questions:")
+        for i, sq in enumerate(SUGGESTED):
+            if st.button(sq, key=f"sugg_{case_id}_{i}", use_container_width=True,
+                         help="Review an answer based on this case; the live model is used only when configured."):
+                st.session_state[f"clicked_q_{case_id}"] = sq
 
-            chat_box = st.container(height=380, border=True)
-            with chat_box:
-                for turn in chat_history:
-                    with st.chat_message(turn["role"]):
-                        st.write(turn["content"])
-                        if turn.get("citations"):
-                            st.caption("Sources: " + ", ".join(turn["citations"]))
-                        if turn.get("validator_notes"):
-                            st.caption(f"⚠️ {len(turn['validator_notes'])} citation(s) adjusted by the Grounding Validator")
+        chat_box = st.container(height=380, border=True, key=f"iq_bordered_chat_{case_id}")
+        with chat_box:
+            for turn in chat_history:
+                with st.chat_message(turn["role"]):
+                    st.write(turn["content"])
+                    if turn.get("source") == "saved_evidence":
+                        st.caption("From saved case evidence · no live model call")
+                    if turn.get("citations"):
+                        st.caption("Sources: " + ", ".join(turn["citations"]))
+                    if turn.get("validator_notes"):
+                        st.caption(f"⚠️ {len(turn['validator_notes'])} citation(s) adjusted by the Grounding Validator")
 
-            typed_question = st.chat_input("Ask a question about this case...")
-            question = st.session_state.pop(f"clicked_q_{case_id}", None) or typed_question
+        st.caption("Review the cited source records before relying on an answer. Saved-evidence Q&A is limited to common case questions.")
+        typed_question = st.chat_input("Ask a question about this case...")
+        question = st.session_state.pop(f"clicked_q_{case_id}", None) or typed_question
 
-            if question:
-                chat_history.append({"role": "user", "content": question})
+        if question:
+            chat_history.append({"role": "user", "content": question})
+            if offline_qa:
+                answer = answer_from_saved_evidence(question, context, evidence, guidance, report)
+            else:
                 with st.spinner("Thinking... (live Gemini call)"):
                     try:
                         answer = ask_question(case_id, question, chat_history[:-1], context, evidence, guidance)
                     except Exception as e:
                         st.error(f"Could not get an answer: {e}")
                         answer = None
-                if answer:
-                    chat_history.append({
-                        "role": "assistant", "content": answer["answer"],
-                        "citations": answer["cited_txn_ids"] + [f"[{d}]" for d in answer["cited_doc_ids"]],
-                        "validator_notes": answer["validator_notes"],
-                    })
-                st.rerun()
+            if answer:
+                chat_history.append({
+                    "role": "assistant", "content": answer["answer"],
+                    "citations": answer["cited_txn_ids"] + [f"[{d}]" for d in answer["cited_doc_ids"]],
+                    "validator_notes": answer["validator_notes"], "source": answer.get("source"),
+                })
+            st.rerun()
 
     # -------------------------------------------------------------
     # Human Decision panel — the accountable action. Separate visual
@@ -380,7 +415,7 @@ if state_key in st.session_state:
     if not audit_rows:
         st.caption("No audit events yet for this case.")
     else:
-        with st.container(border=True):
+        with st.container(border=True, key=f"iq_bordered_audit_{case_id}"):
             for row in audit_rows:
                 actor_label = {"ai": "🤖 AI", "human": "🧑 Human", "system": "⚙️ System"}.get(row["actor"], row["actor"])
                 name = f" ({row['actor_name']})" if row.get("actor_name") else ""

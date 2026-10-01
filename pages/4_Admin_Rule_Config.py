@@ -17,7 +17,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.runtime_db import get_rule_config, set_rule_params, get_audit_log
 from data.trigger_rules import preview_trigger_counts
-from ui_common import require_login, role_warning, page_banner
+from ui_common import require_login, role_warning, page_banner, page_flow
 
 st.set_page_config(page_title="InvestigateIQ — Rule Config", page_icon="⚙️", layout="wide")
 user_name, user_role = require_login()
@@ -25,6 +25,12 @@ user_name, user_role = require_login()
 ADMIN_PASSCODE = os.environ.get("ADMIN_PASSCODE", "investigateiq-admin")
 
 page_banner("⚙️", "Admin — Trigger Rule Configuration", "Adjust R1/R2 thresholds and preview the illustrative effect before saving.")
+page_flow("Test how threshold changes would affect this fictional dataset", [
+    ("Unlock", "Enter the admin passcode."),
+    ("Adjust values", "Change the two saved rule thresholds."),
+    ("Preview", "See an illustrative count from stored transactions."),
+    ("Save", "Persist the settings and an audit event."),
+], "This does not regenerate existing alerts or implement a complete bank monitoring engine.")
 st.write("")
 role_warning(user_role, "Admin")
 
@@ -34,10 +40,9 @@ if "rules_admin_unlocked" not in st.session_state:
 if not st.session_state.rules_admin_unlocked:
     code = st.text_input(
         "Admin passcode", type="password",
-        help="Prototype-level gate (not production security) — separates this screen from the "
-             "regular investigator workspace, matching the mock-auth scope used throughout this build.",
+        help="Limited access gate for settings; not production-grade authentication or authorization.",
     )
-    if st.button("Unlock"):
+    if st.button("Unlock", help="Check the passcode and open the threshold preview controls."):
         if code == ADMIN_PASSCODE:
             st.session_state.rules_admin_unlocked = True
             st.rerun()
@@ -51,7 +56,7 @@ st.subheader("Current thresholds (saved)")
 c1, c2, c3 = st.columns(3)
 c1.metric("R1 — Amount deviation", f"{config[('R1','deviation_multiplier')]}x baseline",
           help="R1 fires when a credit is at least this many times the account's own trailing average — "
-               "the first of the two rules behind the frozen C1/C2 demo scenario.")
+               "the first of the two rules behind the fixed C1/C2 comparison cases.")
 c2.metric("R2 — Outbound proxy", f"{config[('R2','pass_through_pct')]}% of credit",
           help="Illustrative preview: aggregate debits from the same account are compared with one credit. "
                "This does not prove that the credit funded the debits or that funds crossed two linked hops.")
@@ -87,9 +92,12 @@ if "rule_preview" in st.session_state:
     r = st.session_state["rule_preview"]
     st.markdown("**Preview result** (sample of up to 300 accounts, fictional transaction data):")
     pc1, pc2, pc3 = st.columns(3)
-    pc1.metric("Accounts checked", r["accounts_checked"])
-    pc2.metric("Would meet R1", r["r1_only_count"])
-    pc3.metric("R1 + outbound proxy", r["r1_and_r2_count"])
+    pc1.metric("Accounts checked", r["accounts_checked"],
+               help="Number of fictional accounts sampled for this preview, up to 300.")
+    pc2.metric("Would meet R1", r["r1_only_count"],
+               help="Sampled accounts matching the proposed amount-deviation condition.")
+    pc3.metric("R1 + outbound proxy", r["r1_and_r2_count"],
+               help="Sampled accounts matching both preview conditions; not verified alerts or linked-hop tracing.")
     if r["examples"]:
         st.caption("Example accounts matching both preview conditions; not validated alerts:")
         st.dataframe(r["examples"], hide_index=True, use_container_width=True)
@@ -141,7 +149,7 @@ st.divider()
 st.caption(
     "Scope note: this changes the CONFIGURED thresholds only. The 42 alerts already in the dataset were "
     "generated once, deterministically, and are not live-recomputed against these settings — that keeps the "
-    "frozen C1/C2 demo scenario stable regardless of what an admin adjusts here. Playbook content (the RAG "
+    "fixed C1/C2 comparison cases stable regardless of what an admin adjusts here. Playbook content (the RAG "
     "knowledge base) is viewable/searchable on the Admin Knowledge Base page; editing it there is a documented "
     "next step, not yet built. All data is fictional."
 )

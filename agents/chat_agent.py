@@ -39,6 +39,64 @@ CHAT_SCHEMA = {
 MAX_HISTORY_TURNS = 6  # keep the prompt small; near-zero-budget model tier
 
 
+def answer_from_saved_evidence(question: str, context: dict, evidence: dict,
+                               guidance: list, report: dict) -> dict:
+    """Answer a few common questions from an existing report without an LLM.
+
+    This deliberately does not pretend to be free-form AI. Unsupported
+    questions get a scope message, and citations are limited to IDs present
+    in the case evidence or retrieved guidance.
+    """
+    query = " ".join(question.lower().split())
+    findings = report.get("findings", [])
+    known_txns = {str(row.get("txn_id")) for row in evidence.get("window_transactions", [])}
+    known_docs = {str(row.get("doc_id")) for row in guidance}
+    txns: list[str] = []
+    docs: list[str] = []
+
+    if any(word in query for word in ("missing", "gap", "document")):
+        missing = next((item for item in findings if item.get("evidence_status") == "Missing"), None)
+        answer = (f"The saved report identifies this gap: {missing['description']} "
+                  "A person should seek supporting records before treating the draft as a conclusion.") if missing else (
+                  "The saved report does not label a specific finding as missing. Review the source records directly.")
+    elif any(word in query for word in ("before", "prior", "previous", "history")):
+        count = len(evidence.get("prior_cases", []))
+        answer = (f"The case evidence lists {count} prior case(s) for this customer. "
+                  "That count alone does not establish wrongdoing.")
+    elif any(word in query for word in ("counterpart", "relationship", "connected", "who else")):
+        count = len(evidence.get("relationships", []))
+        answer = (f"The case evidence contains {count} relationship record(s). "
+                  "Review the underlying transactions before inferring who is connected.") if count else (
+                  "No relationship records are available in this case evidence; that is not proof that no counterparties exist.")
+    elif any(word in query for word in ("next", "should", "action", "recommend")):
+        steps = report.get("recommended_next_steps", [])
+        if steps:
+            step = steps[0]
+            doc_id = str(step.get("playbook_doc_id", ""))
+            if doc_id in known_docs:
+                docs.append(doc_id)
+            answer = f"The saved draft suggests: {step['step']} This is guidance for human review, not an automatic decision."
+        else:
+            answer = "The saved report has no supported next step. Review the evidence and seek human guidance."
+    elif any(word in query for word in ("why", "trigger", "flag", "evidence", "support", "concern")):
+        finding = next((item for item in findings if item.get("evidence_status") == "Verified"), None)
+        if finding:
+            txns = [str(item) for item in finding.get("supporting_txn_ids", []) if str(item) in known_txns]
+            source_line = f" Supporting transaction IDs: {', '.join(txns)}." if txns else ""
+            answer = (f"The recorded alert is {context['alert']['alert_type']}. "
+                      f"The saved draft's evidence-linked finding says: {finding['description']}"
+                      f"{source_line} The alert still requires human review; it is not a conclusion of wrongdoing.")
+        else:
+            answer = (f"The recorded alert is {context['alert']['alert_type']}, but the saved report has no "
+                      "verified finding to cite. Inspect the source transactions before deciding.")
+    else:
+        answer = ("Saved-evidence Q&A can explain the alert, cited evidence, missing records, prior cases, "
+                  "relationships, or suggested next step. Rephrase within those topics; free-form AI needs a model connection.")
+
+    return {"answer": answer, "cited_txn_ids": txns, "cited_doc_ids": docs,
+            "validator_notes": [], "source": "saved_evidence"}
+
+
 def _build_chat_prompt(context, evidence, guidance, history, question):
     safe_transactions, _ = safe_transactions_for_prompt(evidence["window_transactions"])
     history_text = "\n".join(
