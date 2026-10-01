@@ -47,7 +47,10 @@ def discover_evidence(context: dict, window_days: int = 10) -> dict:
     account_id = context["account"]["account_id"]
     alert_date = context["alert"]["alert_date"]
 
-    txn = TransactionInvestigationAgent().run(account_id, alert_date, window_days=window_days)
+    txn = TransactionInvestigationAgent().run(
+        account_id, alert_date, window_days=window_days,
+        trigger_txn_id=context["alert"].get("trigger_transaction_id"),
+    )
     rel = RelationshipAgent().run(account_id, txn["window_transactions"])
     kyc = CustomerKYCAgent().run(context["alert"], context["case_id"])
     documents = EvidenceAgent().documents_for(context["case_id"])

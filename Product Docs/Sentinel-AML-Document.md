@@ -1,5 +1,7 @@
 # Sentinel AML — Blueprint & Product Requirements Document
 
+> **Historical blueprint, not the current InvestigateIQ implementation record.** This merged document includes target-state and early prototype language such as automatic monitoring/case creation and “immutable” audit logs. For what the code actually does, use [15-Course-Concept-Application-Map.md](15-Course-Concept-Application-Map.md), [16-Course-Source-Evidence-Register.md](16-Course-Source-Evidence-Register.md), and [17-Repository-File-Audit.md](17-Repository-File-Audit.md). Do not present its target-state claims as completed features or measured results.
+
 **AI-Assisted AML Detection & Investigation Platform**
 **Capstone Project — Leadership with AI, IIT Mumbai**
 

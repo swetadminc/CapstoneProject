@@ -1,22 +1,24 @@
 # InvestigateIQ — Synthetic Demo Dataset
 
 100% FICTIONAL. No real people, no real companies, no real account or transaction data.
-Names are generic combinations (common Indian first/last names and generic business-name
-components) — none refer to any real, identifiable person or company. Generated with a fixed
-random seed (42) so the dataset is reproducible for rehearsal and demo day.
+Names were synthetically assembled from common first/last names and generic business-name
+components. Any resemblance to a real person or company is unintended; the data is not
+drawn from a real bank. The original generator used a fixed random seed (42), but that
+generator is not part of this repository; the committed workbook is the reproducible source
+for the current demo database.
 
 ## Contents
 - `InvestigateIQ - Synthetic Bank Dataset.xlsx` — 7 sheets: Customers, Accounts, Transactions,
   Relationships, Alerts, PastCases, Documents.
-- `knowledge_base/` — 10 OKF (Open Knowledge Format) markdown files: the RAG
+- `knowledge_base/` — 24 synthetic OKF (Open Knowledge Format) markdown files: the RAG
   knowledge base referenced in the CEO Playbook, Section 6.
 
 ## Row counts
-- Customers: 550 (420 individual, 130 business)
-- Accounts: 652 (586 internal / 66 external)
-- Transactions: 9926
+- Customers: 552
+- Accounts: 654
+- Transactions: 9950
 - Relationships: 145
-- Alerts: 40
+- Alerts: 42
 - Past Cases: 29
 - Documents: 18
 
@@ -40,5 +42,8 @@ random seed (42) so the dataset is reproducible for rehearsal and demo day.
   no KYC/account-history fields — this is what produces genuine "Missing" evidence findings.
 
 ## Regenerating
-Run `make_dataset.py` with the same seed to reproduce this exact dataset (needed if any number
-in the CEO Playbook or UI mockup is changed and the two must be kept in sync).
+The workbook is the committed source for this demo. Run `python data/build_database.py`
+from the repository root to rebuild the SQLite database from it and the playbook files.
+That rebuild replaces the tracked database file, so review the Git diff before committing.
+The original synthetic-data generator (`make_dataset.py`) is not included in this repository;
+the workbook cannot currently be regenerated from a script here.

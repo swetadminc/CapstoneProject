@@ -1,5 +1,7 @@
 # Flowchart 2 — Investigation Process Flow
 
+> **Historical target-state diagram, not an implementation screenshot.** The current prototype allows a human to request more information and record a rationale, but it does not provide a document-request/response workflow that loops new evidence back into the case or update a bank system of record. “Claim case” is not a production assignment control. Correct this Mermaid diagram before using it in the final presentation; see [17-Repository-File-Audit.md](17-Repository-File-Audit.md) for the verified scope.
+
 **Product:** Sentinel AML
 **How to use this file:** Copy the code block below into [mermaid.live](https://mermaid.live), the Mermaid VS Code extension, or draw.io's "Insert > Mermaid" option to get a rendered, editable diagram.
 

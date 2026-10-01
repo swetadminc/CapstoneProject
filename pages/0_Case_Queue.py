@@ -23,13 +23,13 @@ from data.knowledge_search import DB_PATH
 from data.runtime_db import get_latest_decision_per_case, resolve_status
 from ui_common import require_login, page_banner, severity_badge, status_badge
 
-HERO_CASES = {"CASE-001", "CASE-002"}
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "cached_reports")
+CACHED_CASES = {name[:-5] for name in os.listdir(CACHE_DIR) if name.endswith(".json")}
 
 st.set_page_config(page_title="InvestigateIQ — Case Queue", page_icon="🗂️", layout="wide")
 user_name, user_role = require_login()
 
-page_banner("🗂️", "Case Queue", "Every open alert from the monitoring system — filter, review, and open a case to investigate")
+page_banner("🗂️", "Case Queue", "Fictional monitoring alerts — filter, review, and open a case to investigate")
 st.write("")
 
 
@@ -51,7 +51,7 @@ def load_queue():
 df = load_queue()
 decisions = get_latest_decision_per_case()
 df["queue_status"] = df.apply(lambda row: resolve_status(row["status"], decisions.get(row["case_id"])), axis=1)
-df["has_cache"] = df["case_id"].isin(HERO_CASES)
+df["has_cache"] = df["case_id"].isin(CACHED_CASES)
 
 # ------------------------------------------------------------------
 # KPI strip
@@ -110,7 +110,7 @@ st.markdown('<hr style="margin: 4px 0 8px 0; border-color: var(--iq-card-border)
 # stacked.
 for _, row in filtered.iterrows():
     cols = st.columns([1.6, 2.2, 2.6, 1.3, 1.3, 1.5, 1.2])
-    hero_tag = ' <span class="iq-hero-badge">DEMO</span>' if row["has_cache"] else ""
+    hero_tag = ' <span class="iq-hero-badge">CACHED</span>' if row["has_cache"] else ""
     cols[0].markdown(f'<span class="iq-queue-row"></span><span class="iq-mobile-label">Case: </span>'
                       f'`{row["case_id"]}`{hero_tag}', unsafe_allow_html=True)
     cols[1].markdown(f'<span class="iq-mobile-label">Customer: </span>{row["customer_name"]}',
@@ -138,8 +138,8 @@ if len(filtered) == 0:
 
 st.divider()
 st.caption(
-    "CASE-001 and CASE-002 are the frozen twin-case demo scenario (pre-cached, fully validated — see the CEO "
-    "Playbook). Every other case here is a real alert from the same synthetic dataset and can be investigated "
-    "live through the same agent, but has not been individually pre-validated — expect Live mode only, no cache. "
+    "CASE-001 and CASE-002 are the frozen twin-case demo scenario (pre-cached for rehearsal — see the CEO "
+    "Playbook). Other cases are alerts from the same fictional dataset and can be investigated "
+    "through the same workflow, but have not all been individually reviewed — some require Live mode. "
     "All data is fictional."
 )

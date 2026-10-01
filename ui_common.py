@@ -122,8 +122,8 @@ _GLOBAL_CSS = """
 .iq-kpi-amber .iq-kpi-icon { background: var(--iq-sev-medium-bg); }
 .iq-kpi-red .iq-kpi-icon { background: var(--iq-sev-high-bg); }
 .iq-kpi-green .iq-kpi-icon { background: var(--iq-sev-low-bg); }
-.iq-decision-box {
-    border: 2px solid var(--iq-sev-low); border-radius: 10px; padding: 16px;
+.st-key-human_decision_panel {
+    border: 2px solid var(--iq-sev-low) !important;
     background: rgba(39,132,78,0.07);
 }
 .iq-escalation-card {
@@ -352,6 +352,7 @@ def page_banner(icon: str, title: str, subtitle: str):
         f'<div class="iq-banner"><h1>{icon} {title}</h1><p>{subtitle}</p></div>',
         unsafe_allow_html=True,
     )
+    st.caption("Prototype · all customer and transaction data is fictional")
 
 
 def severity_badge(severity: str) -> str:
@@ -399,6 +400,7 @@ def require_login():
         st.stop()
 
     with st.sidebar:
+        st.caption("Capstone Group 7 · Leadership with AI, IIT Bombay")
         st.markdown(f"**👤 {st.session_state['user_name']}**")
         st.caption(f"Role: {st.session_state['user_role']}")
         # key= alone is enough — session_state["dark_mode_toggle"] persists

@@ -3,11 +3,11 @@
 Chat Agent — the "Ask the Copilot" panel from the UI wireframe (CEO Playbook,
 Section 7), built for real.
 
-Held to the same discipline as the Investigation Agent's report: every
-answer is JSON-schema-constrained, every citation is checked against the
-actual evidence before it's shown, and free-text conversation history from
-the investigator is never treated as instructions to the model — only the
-system prompt is.
+Uses a JSON response schema and checks returned citation IDs against the
+supplied evidence before display. Obvious instruction-like transaction
+references are withheld from the chat prompt, too. These are bounded checks:
+neither the schema nor the prompt can guarantee that all prose is factual or
+that a model will ignore every malicious instruction in free text.
 
 This is a genuinely separate concern from investigation_agent.py's report
 generation (different schema, different prompt shape, multi-turn), so it's
@@ -20,7 +20,9 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from agents.investigation_agent import call_gemini, GEMINI_MODEL, FORBIDDEN_WORDS  # noqa: E402
+from agents.investigation_agent import call_gemini, GEMINI_MODEL  # noqa: E402
+from agents.grounding_validator import sanitize_forbidden_wording  # noqa: E402
+from agents.investigation_summary_agent import safe_transactions_for_prompt  # noqa: E402
 from data.knowledge_search import search as search_knowledge  # noqa: E402
 from data.runtime_db import log_audit_event  # noqa: E402
 
@@ -38,6 +40,7 @@ MAX_HISTORY_TURNS = 6  # keep the prompt small; near-zero-budget model tier
 
 
 def _build_chat_prompt(context, evidence, guidance, history, question):
+    safe_transactions, _ = safe_transactions_for_prompt(evidence["window_transactions"])
     history_text = "\n".join(
         f"{'Investigator' if h['role'] == 'user' else 'Copilot'}: {h['content']}"
         for h in history[-MAX_HISTORY_TURNS:]
@@ -70,9 +73,11 @@ declared_source_of_funds: {context['customer'].get('declared_source_of_funds')}
 
 TRANSACTION ANALYSIS
 baseline_avg_amount: {evidence['baseline_avg_amount']}
-deviation_ratio: {f"{evidence['deviation_ratio']}x baseline" if evidence.get('deviation_ratio') is not None else "not computable — see note below"}
+trigger_transaction_id: {evidence.get('trigger_transaction_id') or 'not identified in the review window'}
+deviation_ratio: {f"{evidence['deviation_ratio']}x baseline" if evidence.get('deviation_ratio') is not None else "unavailable — do not infer a ratio from an arbitrary transaction"}
+{"NOTE: the source alert has no identified trigger transaction in this review window. Do NOT invent one or state a deviation ratio." if not evidence.get('trigger_transaction_id') else ""}
 {"NOTE: no transactions fell within this alert's review window. The transactions below are the nearest ones in time, for background context only — they are NOT the transaction that triggered this alert; say so plainly if asked." if evidence.get('evidence_window_empty') else "window_transactions (within the alert's review window):"}
-{json.dumps(evidence['window_transactions'], default=str)}
+{json.dumps(safe_transactions, default=str)}
 
 RELATIONSHIPS
 {json.dumps(evidence['relationships'], default=str)}
@@ -109,6 +114,7 @@ def ask_question(case_id: str, question: str, history: list, context: dict, evid
     combined_guidance = list(guidance) + [g for g in extra if g["chunk_id"] not in seen]
 
     prompt = _build_chat_prompt(context, evidence, combined_guidance, history, question)
+    _, withheld_txn_ids = safe_transactions_for_prompt(evidence["window_transactions"])
     raw = call_gemini(prompt, CHAT_SCHEMA)
 
     known_txn_ids = {t["txn_id"] for t in evidence["window_transactions"]}
@@ -125,13 +131,10 @@ def ask_question(case_id: str, question: str, history: list, context: dict, evid
     if dropped_docs:
         notes.append(f"Dropped unverifiable document citation(s): {dropped_docs}")
 
-    answer_lower = raw.get("answer", "").lower()
-    for word in FORBIDDEN_WORDS:
-        if word in answer_lower:
-            notes.append(f"Flagged forbidden wording in answer: '{word}'")
+    answer = sanitize_forbidden_wording(raw.get("answer", ""), notes, "chat answer")
 
     result = {
-        "answer": raw.get("answer", ""),
+        "answer": answer,
         "cited_txn_ids": cited_txns,
         "cited_doc_ids": cited_docs,
         "validator_notes": notes,
@@ -140,7 +143,7 @@ def ask_question(case_id: str, question: str, history: list, context: dict, evid
     log_audit_event(
         case_id, actor="ai", action="chat_answer",
         details={"question": question, "cited_txn_ids": cited_txns, "cited_doc_ids": cited_docs,
-                  "validator_notes": notes, "model": GEMINI_MODEL},
+                  "validator_notes": notes, "withheld_txn_ids": withheld_txn_ids, "model": GEMINI_MODEL},
     )
 
     return result

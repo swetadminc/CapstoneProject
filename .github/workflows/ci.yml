@@ -26,3 +26,6 @@ jobs:
 
       - name: Rebuild database and run sanity checks
         run: python scripts/ci_check.py
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v

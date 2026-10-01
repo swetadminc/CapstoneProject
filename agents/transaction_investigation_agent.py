@@ -14,10 +14,33 @@ import sqlite3
 from data.knowledge_search import DB_PATH
 
 
+def anchor_cached_evidence(evidence: dict, alert: dict) -> dict:
+    """Refresh a stored report's ratio from a real, cited trigger if possible.
+
+    Older cached reports may have calculated a ratio from the first window
+    transaction even when the source alert identified no trigger at all.
+    Keep the cache file unchanged, but do not replay that unsupported number.
+    """
+    checked = dict(evidence)
+    trigger_id = alert.get("trigger_transaction_id")
+    trigger_txn = next(
+        (txn for txn in evidence.get("window_transactions", []) if txn.get("txn_id") == trigger_id),
+        None,
+    ) if trigger_id and not evidence.get("evidence_window_empty") else None
+    baseline = evidence.get("baseline_avg_amount")
+    checked["trigger_transaction_id"] = trigger_id if trigger_txn else None
+    checked["deviation_ratio"] = (
+        round(trigger_txn["amount"] / baseline, 1)
+        if trigger_txn and baseline else None
+    )
+    return checked
+
+
 class TransactionInvestigationAgent:
     name = "Transaction Investigation Agent"
 
-    def run(self, account_id: str, alert_date: str, window_days: int = 10) -> dict:
+    def run(self, account_id: str, alert_date: str, window_days: int = 10,
+            trigger_txn_id: str = None) -> dict:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
@@ -50,8 +73,8 @@ class TransactionInvestigationAgent:
         ).fetchall()
         window_txns = [dict(r) for r in window_txns]
 
-        # Broader per-case verification (pending item #6) found that 24 of
-        # the 41 alerts in the dataset have zero transactions in that strict
+        # Broader per-case verification found that 24 of the 42 current
+        # fictional alerts have zero transactions in that strict
         # window — most alerts were generated without a real anchoring
         # trigger_transaction_id, so alert_date doesn't reliably line up
         # with actual account activity. Fallback: show the nearest real
@@ -75,20 +98,21 @@ class TransactionInvestigationAgent:
 
         conn.close()
 
-        # deviation_ratio is only meaningful against a real in-window
-        # trigger transaction — with the nearest-activity fallback there is
-        # no such transaction, so leave it unset rather than imply a false
-        # precision.
-        if evidence_window_empty:
-            deviation_ratio = None
-        else:
-            trigger_amt = window_txns[0]["amount"]
-            deviation_ratio = round(trigger_amt / baseline_avg, 1) if baseline_avg else None
+        # Never infer the trigger from the first convenient transaction.
+        # Most fictional alerts have no trigger_transaction_id, even when
+        # activity happens to fall inside the review window. An unanchored
+        # ratio would imply precision that the source alert cannot support.
+        trigger_txn = next((t for t in window_txns if t["txn_id"] == trigger_txn_id), None)
+        deviation_ratio = (
+            round(trigger_txn["amount"] / baseline_avg, 1)
+            if trigger_txn and not evidence_window_empty and baseline_avg else None
+        )
 
         return {
             "baseline_avg_amount": round(baseline_avg, 2),
             "baseline_txn_count": baseline_n,
             "deviation_ratio": deviation_ratio,
+            "trigger_transaction_id": trigger_txn_id if trigger_txn else None,
             "window_transactions": window_txns,
             "evidence_window_empty": evidence_window_empty,
         }

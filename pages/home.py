@@ -95,9 +95,10 @@ components.html(
         <div class="hero-content">
             <div class="eyebrow">AI-POWERED AML INVESTIGATION COPILOT</div>
             <h1>InvestigateIQ</h1>
-            <p class="tagline">AI drafts the evidence. You make the call.</p>
-            <p class="sub">A six-agent pipeline gathers evidence, cites real transactions and playbook
-            guidance, and a Grounding Validator checks every claim before a human ever sees it.</p>
+            <p class="tagline">AI drafts the report. You make the call.</p>
+            <p class="sub">A six-step investigation workflow gathers evidence, links findings to
+            transaction records and playbook guidance, and checks selected citations and claims
+            before an investigator reviews the draft.</p>
             <div class="fictional">Prototype · all customer and transaction data is fictional</div>
         </div>
     </div>
@@ -272,14 +273,15 @@ st.divider()
 st.subheader("What's actually built")
 st.markdown(
     """
-    Case Queue (all alerts, filters, KPIs) · six-agent Investigation pipeline (real Gemini calls,
-    RAG-grounded, validated) · Chat panel (grounded, cited, multi-turn) · Human Decision panel (mandatory
+    Case Queue (all alerts, filters, KPIs) · six-step investigation workflow (Gemini-assisted
+    report drafting, playbook retrieval, selected grounding checks) · Chat panel (multi-turn with
+    evidence references) · Human Decision panel (mandatory
     rationale) · Persistent audit log (survives redeploys) · Compliance Queue · Admin Rule Config ·
     Analytics · Global Search · RAG knowledge base covering five alert scenarios.
 
-    See **`Product Docs/BUILD-STATUS.md`** for the full, current breakdown of what's built vs. still open —
-    that file is kept accurate; this page is a summary of it.
+    See **`Product Docs/BUILD-STATUS.md`** for the detailed build history and
+    **`Product Docs/16-Course-Source-Evidence-Register.md`** for current evidence and limitations.
     """
 )
 
-st.caption("InvestigateIQ · Capstone Project — Leadership with AI, IIT Mumbai · All data is fictional.")
+st.caption("InvestigateIQ · Capstone Group 7 · Leadership with AI, IIT Bombay · All data is fictional.")

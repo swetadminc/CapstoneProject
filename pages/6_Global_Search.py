@@ -3,7 +3,7 @@
 Global Search — find a customer, account, or transaction without knowing
 which case it belongs to first.
 
-The Case Queue's filters only search within the 41 alerts; this searches
+The Case Queue's filters only search within the current alert list; this searches
 the full dataset (551 customers, ~9,940 transactions) by name, ID, or
 reference text, and links straight into the Investigation Workspace for any
 matching customer that has an alert. Read-only, parameterized queries only

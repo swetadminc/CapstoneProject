@@ -1,5 +1,14 @@
 # 11 — Acceptance Criteria / Definition of Done
 
+> **Target-state checklist, not a pass report (30 September 2026).** Several items below
+> are not implemented or not verified in this academic prototype: automatic alert
+> creation from linked two-hop transfers, semantic proof of every AI finding,
+> production-grade audit/identity, a live prompt-injection model result, and
+> regulatory reporting. For the current demonstrable scope and tested gaps,
+> use [15-Course-Concept-Application-Map.md](15-Course-Concept-Application-Map.md)
+> and [HANDOVER.md](HANDOVER.md). Do not mark an item done merely because a
+> related screen or design exists.
+
 **Product:** Sentinel AML
 
 ---

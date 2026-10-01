@@ -1,5 +1,7 @@
 # Sentinel AML — Documentation Pack Index
 
+> **Archive index for the original blueprint pack.** The product is now called InvestigateIQ. Some linked documents describe planned features or old counts, not the current prototype. Start with [15-Course-Concept-Application-Map.md](15-Course-Concept-Application-Map.md) and [17-Repository-File-Audit.md](17-Repository-File-Audit.md) for verified present state.
+
 Product: **Sentinel AML** — AI-Assisted AML Detection & Investigation Platform
 Status: Draft, awaiting team confirmation on open items in [12-Meeting-Notes-and-Decisions.md](12-Meeting-Notes-and-Decisions.md)
 

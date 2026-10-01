@@ -20,6 +20,8 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agents.investigation_agent import investigate, GEMINI_API_KEY, GEMINI_MODEL
 from agents.chat_agent import ask_question
+from agents.grounding_validator import GroundingValidator
+from agents.transaction_investigation_agent import anchor_cached_evidence
 from data.runtime_db import record_human_decision, get_audit_log, get_human_actions, log_audit_event
 from ui_common import require_login, page_banner
 from report_pdf import build_report_pdf
@@ -46,7 +48,7 @@ st.set_page_config(page_title="InvestigateIQ — Investigation Demo", page_icon=
 user_name, user_role = require_login()
 
 page_banner("🕵️", "Investigation Agent — Live Demo",
-            "Real pipeline: database → six-agent orchestration → Gemini → Grounding Validator → human decision → audit log")
+            "Working prototype: database → six-step workflow → Gemini draft → selected grounding checks → human decision → audit log")
 st.markdown(
     """
     <style>
@@ -63,7 +65,7 @@ st.write("")
 
 @st.cache_data(ttl=30)
 def load_case_options():
-    """All 40 alerts, not just the two hero cases — the queue dashboard can
+    """All available alerts, not just the two hero cases — the queue dashboard can
     send any of them here. Hero cases are pinned to the top and labeled."""
     conn = sqlite3.connect(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "investigateiq.db"))
     rows = conn.execute("""
@@ -103,7 +105,7 @@ if not cached:
     mode_options = ["Live (real Gemini call)"]
     st.warning(f"No cached report found for {case_id} — run `scripts/generate_cached_reports.py` to create one.")
 mode = st.radio("Mode", mode_options, horizontal=True,
-                 help="Cached replays a pre-validated real run (see CEO Playbook, Section 12 — demo reliability). "
+                 help="Cached replays a stored demo report and checks it with the current validator. "
                       "Use Live to prove it's not scripted when asked.")
 use_cache = mode.startswith("Cached")
 
@@ -125,8 +127,12 @@ state_key = f"result_{case_id}"
 
 if run:
     if use_cache:
-        result = {"context": cached["context"], "evidence": cached["evidence"],
-                  "guidance": cached["guidance"], "report": cached["report"]}
+        checked_evidence = anchor_cached_evidence(cached["evidence"], cached["context"]["alert"])
+        checked_report = GroundingValidator().validate(
+            cached["report"], checked_evidence, cached["guidance"]
+        )
+        result = {"context": cached["context"], "evidence": checked_evidence,
+                  "guidance": cached["guidance"], "report": checked_report}
         elapsed = 0.0
         log_audit_event(case_id, actor="system", action="report_replayed_from_cache",
                          details={"cached_at": cached["generated_at"], "model": cached["model"]})
@@ -147,13 +153,17 @@ if state_key in st.session_state:
     context, evidence, guidance, report = result["context"], result["evidence"], result["guidance"], result["report"]
 
     status_msg = f"Validator result: **{report['_validator_result']}**"
-    st.success(f"Done in {elapsed:.1f}s. {status_msg}" if not use_cache else status_msg)
+    completion_msg = f"Done in {elapsed:.1f}s. {status_msg}" if not use_cache else status_msg
     if report["_validator_notes"]:
-        with st.expander(f"⚠️ Grounding Validator made {len(report['_validator_notes'])} correction(s) — click to see what and why"):
+        st.warning(completion_msg)
+    else:
+        st.success(completion_msg)
+    if report["_validator_notes"]:
+        with st.expander(f"⚠️ Grounding Validator recorded {len(report['_validator_notes'])} note(s) — review before deciding"):
             for note in report["_validator_notes"]:
                 st.write(f"- {note}")
     else:
-        st.caption("Grounding Validator: every citation checked out — no corrections needed.")
+        st.caption("Grounding Validator: no issues found by its selected checks; human review is still required.")
 
     latest_decision = (get_human_actions(case_id) or [None])[-1]
     pdf_bytes = build_report_pdf(case_id, context, evidence, report, human_action=latest_decision)
@@ -164,10 +174,21 @@ if state_key in st.session_state:
 
     st.divider()
     st.subheader(f"{context['customer']['name']} — {context['alert']['alert_type']}")
+    st.caption(
+        f"Recorded alert rule: {context['alert'].get('trigger_rule') or 'not supplied'} · "
+        "this is source-dataset metadata, not a rule result independently recalculated by this screen."
+    )
+    if not context["alert"].get("trigger_transaction_id"):
+        st.warning("This fictional alert has no trigger-transaction ID in the source data. "
+                   "Do not treat its recorded rule label as independently verified.")
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Baseline avg. amount", f"₹{evidence['baseline_avg_amount']:,.0f}")
-    c2.metric("Deviation ratio", f"{evidence['deviation_ratio']}x" if evidence["deviation_ratio"] else "—")
-    c3.metric("Transactions in window", len(evidence["window_transactions"]))
+    c2.metric("Trigger/baseline ratio", f"{evidence['deviation_ratio']}x"
+              if evidence["deviation_ratio"] is not None else "—")
+    c3.metric(
+        "Nearby transactions (context only)" if evidence.get("evidence_window_empty") else "Transactions in review window",
+        len(evidence["window_transactions"]),
+    )
     c4.metric("Prior cases found", len(evidence["prior_cases"]))
     if evidence.get("evidence_window_empty"):
         st.caption("⚠️ No transactions fell inside this alert's review window — the transactions shown below "
@@ -291,15 +312,15 @@ if state_key in st.session_state:
     # draft, this is the only place a real decision gets recorded.
     # -------------------------------------------------------------
     st.divider()
-    st.markdown('<div class="iq-decision-box">', unsafe_allow_html=True)
-    st.subheader("✅ Human Decision")
-    st.caption("This is the accountable action. The AI cannot close, escalate, or file anything on its own (BR1, BR4).")
+    decision_panel = st.container(border=True, key="human_decision_panel")
+    decision_panel.subheader("✅ Human Decision")
+    decision_panel.caption("This is the accountable action. The AI cannot close, escalate, or file anything on its own (BR1, BR4).")
 
-    investigator = st.text_input(
+    investigator = decision_panel.text_input(
         "Your name (investigator)", value=user_name, key=f"investigator_{case_id}",
         help="Attributed on this decision in the audit log below — required.",
     )
-    action = st.radio(
+    action = decision_panel.radio(
         "Decision",
         ["Close — no concern", "Request more information", "Escalate to Compliance"],
         captions=[
@@ -310,13 +331,13 @@ if state_key in st.session_state:
         key=f"action_{case_id}",
         help="What happens to this case next. This, not the AI's report above, is the decision of record.",
     )
-    rationale = st.text_area(
+    rationale = decision_panel.text_area(
         "Rationale (required)", key=f"rationale_{case_id}",
         placeholder="Explain the decision — this is required, and it's what gets audited.",
         help="Mandatory (BR4) — a decision can't be recorded without a written reason, regardless of which "
              "option above is chosen.",
     )
-    submit = st.button("Submit decision", type="primary", key=f"submit_{case_id}",
+    submit = decision_panel.button("Submit decision", type="primary", key=f"submit_{case_id}",
                         help="Writes this decision to the persistent audit log — cannot be undone from this screen.")
 
     if submit:
@@ -327,9 +348,9 @@ if state_key in st.session_state:
                        "Escalate to Compliance": "escalate"}[action]
 
         if not investigator.strip():
-            st.error("Investigator name is required.")
+            decision_panel.error("Investigator name is required.")
         elif not rationale.strip():
-            st.error("Rationale is required — a decision cannot be recorded without one (BR4).")
+            decision_panel.error("Rationale is required — a decision cannot be recorded without one (BR4).")
         else:
             try:
                 record_human_decision(
@@ -338,10 +359,9 @@ if state_key in st.session_state:
                     findings_accepted=[report["findings"][i]["description"] for i in accepted_idx],
                     findings_rejected=[report["findings"][i]["description"] for i in rejected_idx],
                 )
-                st.success(f"Decision recorded: **{action}** by {investigator}. Written to the audit log below.")
+                decision_panel.success(f"Decision recorded: **{action}** by {investigator}. Written to the audit log below.")
             except Exception as e:
-                st.error(f"Could not record decision: {e}")
-    st.markdown("</div>", unsafe_allow_html=True)
+                decision_panel.error(f"Could not record decision: {e}")
 
     # -------------------------------------------------------------
     # Audit Log — every AI action and every human decision, in order.

@@ -101,18 +101,27 @@ def _now():
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
+def _insert_audit_event(conn, case_id: str, actor: str, action: str,
+                        actor_name: str | None = None, details: dict | None = None,
+                        timestamp: str | None = None):
+    """Insert on the caller's connection so related writes can be atomic."""
+    conn.execute(
+        "INSERT INTO audit_log (event_id, case_id, actor, actor_name, action, details, timestamp) VALUES (?,?,?,?,?,?,?)",
+        (f"AUD-{uuid.uuid4().hex[:10]}", case_id, actor, actor_name, action,
+         json.dumps(details, default=str) if details else None, timestamp or _now()),
+    )
+
+
 def log_audit_event(case_id: str, actor: str, action: str, actor_name: str | None = None, details: dict | None = None):
     """actor: 'ai' | 'human' | 'system'. Append-only — this function never
     updates or deletes an existing row."""
     init_runtime_db()
     conn = _connect()
-    conn.execute(
-        "INSERT INTO audit_log (event_id, case_id, actor, actor_name, action, details, timestamp) VALUES (?,?,?,?,?,?,?)",
-        (f"AUD-{uuid.uuid4().hex[:10]}", case_id, actor, actor_name, action,
-         json.dumps(details, default=str) if details else None, _now()),
-    )
-    conn.commit()
-    conn.close()
+    try:
+        with conn:
+            _insert_audit_event(conn, case_id, actor, action, actor_name, details)
+    finally:
+        conn.close()
 
 
 def record_human_decision(case_id: str, investigator: str, action: str, rationale: str,
@@ -127,20 +136,22 @@ def record_human_decision(case_id: str, investigator: str, action: str, rational
     conn = _connect()
     action_id = f"HACT-{uuid.uuid4().hex[:10]}"
     ts = _now()
-    conn.execute(
-        """INSERT INTO human_actions
-           (action_id, case_id, investigator, action, rationale, findings_accepted, findings_rejected, timestamp)
-           VALUES (?,?,?,?,?,?,?,?)""",
-        (action_id, case_id, investigator, action, rationale,
-         json.dumps(findings_accepted, default=str), json.dumps(findings_rejected, default=str), ts),
-    )
-    conn.commit()
-    conn.close()
-
-    log_audit_event(
-        case_id, actor="human", actor_name=investigator, action=f"decision: {action}",
-        details={"rationale": rationale, "findings_accepted": len(findings_accepted), "findings_rejected": len(findings_rejected)},
-    )
+    try:
+        with conn:
+            conn.execute(
+                """INSERT INTO human_actions
+                   (action_id, case_id, investigator, action, rationale, findings_accepted, findings_rejected, timestamp)
+                   VALUES (?,?,?,?,?,?,?,?)""",
+                (action_id, case_id, investigator, action, rationale,
+                 json.dumps(findings_accepted, default=str), json.dumps(findings_rejected, default=str), ts),
+            )
+            _insert_audit_event(
+                conn, case_id, actor="human", actor_name=investigator, action=f"decision: {action}",
+                details={"rationale": rationale, "findings_accepted": len(findings_accepted),
+                         "findings_rejected": len(findings_rejected)}, timestamp=ts,
+            )
+    finally:
+        conn.close()
     return action_id
 
 
@@ -238,17 +249,37 @@ def get_rule_config() -> dict:
     return config
 
 
-def set_rule_param(rule_id: str, param_name: str, value: float, updated_by: str):
+def set_rule_params(changes: dict, updated_by: str):
+    """Save one or more rule parameters and their audit entries atomically."""
+    updated_by = str(updated_by or "").strip()
+    if not updated_by:
+        raise ValueError("An actor name is required for rule changes")
+    unknown = set(changes) - set(DEFAULT_RULE_CONFIG)
+    if unknown:
+        raise ValueError(f"Unknown rule parameter(s): {sorted(unknown)}")
+    if not changes:
+        return
     init_runtime_db()
     conn = _connect()
-    conn.execute(
-        """INSERT INTO rule_config (rule_id, param_name, param_value, updated_by, updated_at)
-           VALUES (?,?,?,?,?)
-           ON CONFLICT(rule_id, param_name) DO UPDATE SET param_value=excluded.param_value,
-               updated_by=excluded.updated_by, updated_at=excluded.updated_at""",
-        (rule_id, param_name, value, updated_by, _now()),
-    )
-    conn.commit()
-    conn.close()
-    log_audit_event("SYSTEM-RULES", actor="human", actor_name=updated_by,
-                     action=f"rule_config_updated: {rule_id}.{param_name} = {value}")
+    ts = _now()
+    try:
+        with conn:
+            for (rule_id, param_name), value in changes.items():
+                conn.execute(
+                    """INSERT INTO rule_config (rule_id, param_name, param_value, updated_by, updated_at)
+                       VALUES (?,?,?,?,?)
+                       ON CONFLICT(rule_id, param_name) DO UPDATE SET param_value=excluded.param_value,
+                           updated_by=excluded.updated_by, updated_at=excluded.updated_at""",
+                    (rule_id, param_name, value, updated_by, ts),
+                )
+                _insert_audit_event(
+                    conn, "SYSTEM-RULES", actor="human", actor_name=updated_by,
+                    action=f"rule_config_updated: {rule_id}.{param_name} = {value}", timestamp=ts,
+                )
+    finally:
+        conn.close()
+
+
+def set_rule_param(rule_id: str, param_name: str, value: float, updated_by: str):
+    """Single-parameter compatibility wrapper around the batch transaction."""
+    set_rule_params({(rule_id, param_name): value}, updated_by)

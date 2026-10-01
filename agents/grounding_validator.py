@@ -5,40 +5,64 @@ Grounding Validator — the hallucination backstop.
 Deliberately NOT one of the six specialist agents (Alert Triage, Customer/
 KYC, Transaction Investigation, Relationship, Evidence, Investigation
 Summary). Technical Architecture §2 lists it as its own "Validation layer",
-separate from the "AI layer" the six agents belong to — it runs after the
-Investigation Summary Agent drafts a report and checks every claim in that
-draft against the real evidence, before anything reaches a human.
+separate from the six specialist workflow components. It runs after the
+Investigation Summary Agent drafts a report and checks selected citations,
+verified-finding requirements, ratio claims, and wording patterns against
+the supplied evidence before a human reviews the draft. It cannot verify
+every sentence or guarantee that the report is correct.
 
 Citation checks (transaction/doc IDs) catch an invented source. They don't
 catch the LLM correctly citing a real source but misquoting a number about
 it in its own prose (e.g. writing "9x" when the computed deviation_ratio is
-6.6x) — _check_deviation_claims below closes that specific gap.
+6.6x) — ratio checks below flag that specific gap for human review.
 """
 import re
 
 FORBIDDEN_WORDS = ["illegal", "criminal", "guilty", "launderer", "confirmed money laundering", "money laundering confirmed"]
+_FORBIDDEN_RE = re.compile(
+    r"(?<!\w)(?:" + "|".join(re.escape(word) for word in sorted(FORBIDDEN_WORDS, key=len, reverse=True)) + r")(?!\w)",
+    re.IGNORECASE,
+)
 _RATIO_RE = re.compile(r"(\d+(?:\.\d+)?)\s*x\b", re.IGNORECASE)
+
+
+def sanitize_forbidden_wording(value: str, notes: list, where: str) -> str:
+    """Remove unsupported verdict language before it can be displayed."""
+    text = str(value or "")
+    if _FORBIDDEN_RE.search(text):
+        notes.append(f"Removed unsupported conclusion wording from {where}")
+        return _FORBIDDEN_RE.sub("[conclusion removed for human review]", text)
+    return text
 
 
 class GroundingValidator:
     name = "Grounding Validator"
 
-    def _check_ratio_claims(self, text: str, real_ratio: float, notes: list, where: str):
-        """Flags a "9x"-style claim in free prose that doesn't match the
-        real computed deviation_ratio — citation checks alone wouldn't
-        catch a real source misquoted in the model's own sentence."""
-        for match in _RATIO_RE.finditer(text):
+    def _check_ratio_claims(self, value: str, real_ratio: float, notes: list, where: str):
+        """Withhold unsupported "9x"-style prose before it is displayed.
+
+        A cited ID alone cannot establish the numerical wording. With no
+        identified trigger, even a previously cached ratio is unsupported.
+        """
+        mismatch = False
+        def replace(match):
+            nonlocal mismatch
             claimed = float(match.group(1))
-            if abs(claimed - real_ratio) > 0.05:
-                notes.append(
-                    f"Flagged a number mismatch in {where}: text says {claimed}x but the computed "
-                    f"deviation_ratio is {real_ratio}x"
-                )
+            if real_ratio is None or abs(claimed - real_ratio) > 0.05:
+                mismatch = True
+                reason = "no identified trigger transaction" if real_ratio is None else f"computed deviation_ratio is {real_ratio}x"
+                notes.append(f"Withheld an unsupported ratio in {where}: text said {claimed}x; {reason}")
+                return "[ratio withheld for source review]"
+            return match.group(0)
+        cleaned = _RATIO_RE.sub(replace, str(value or ""))
+        return cleaned, mismatch
 
     def validate(self, report: dict, evidence: dict, guidance: list) -> dict:
         known_txn_ids = {t["txn_id"] for t in evidence["window_transactions"]}
         known_doc_ids = {g["doc_id"] for g in guidance}
-        real_ratio = evidence.get("deviation_ratio")
+        trigger_id = evidence.get("trigger_transaction_id")
+        real_ratio = (evidence.get("deviation_ratio") if trigger_id in known_txn_ids
+                      and not evidence.get("evidence_window_empty") else None)
         notes = []
 
         for finding in report.get("findings", []):
@@ -51,31 +75,35 @@ class GroundingValidator:
             if finding["evidence_status"] == "Verified" and not finding.get("supporting_txn_ids"):
                 notes.append("Downgraded a finding: 'Verified' with no citation")
                 finding["evidence_status"] = "Inferred"
+            if finding["evidence_status"] == "Verified" and evidence.get("evidence_window_empty"):
+                notes.append("Downgraded a finding: cited transactions are background context outside the alert review window")
+                finding["evidence_status"] = "Inferred"
 
-            raw_text = f"{finding.get('description', '')} {finding.get('why_it_matters', '')}"
-            text = raw_text.lower()
-            for word in FORBIDDEN_WORDS:
-                if word in text:
-                    notes.append(f"Flagged forbidden wording in a finding: '{word}'")
-            if real_ratio is not None:
-                self._check_ratio_claims(raw_text, real_ratio, notes, "a finding")
+            for field in ("description", "why_it_matters"):
+                cleaned = sanitize_forbidden_wording(finding.get(field, ""), notes, "a finding")
+                finding[field], ratio_issue = self._check_ratio_claims(cleaned, real_ratio, notes, "a finding")
+                if ratio_issue:
+                    finding["evidence_status"] = "Inferred"
 
         valid_steps = []
         for step in report.get("recommended_next_steps", []):
             if step.get("playbook_doc_id") in known_doc_ids:
+                cleaned = sanitize_forbidden_wording(step.get("step", ""), notes, "a next step")
+                step["step"], _ = self._check_ratio_claims(cleaned, real_ratio, notes, "a next step")
                 valid_steps.append(step)
             else:
                 notes.append(f"Dropped a next step: cited unknown playbook doc_id '{step.get('playbook_doc_id')}'")
         report["recommended_next_steps"] = valid_steps
 
-        narrative = report.get("narrative_summary", "")
-        summary_lower = narrative.lower()
-        for word in FORBIDDEN_WORDS:
-            if word in summary_lower:
-                notes.append(f"Flagged forbidden wording in narrative_summary: '{word}'")
-        if real_ratio is not None:
-            self._check_ratio_claims(narrative, real_ratio, notes, "narrative_summary")
+        questions = []
+        for question in report.get("investigation_questions", []):
+            cleaned = sanitize_forbidden_wording(question, notes, "an investigation question")
+            checked, _ = self._check_ratio_claims(cleaned, real_ratio, notes, "an investigation question")
+            questions.append(checked)
+        report["investigation_questions"] = questions
+        narrative = sanitize_forbidden_wording(report.get("narrative_summary", ""), notes, "narrative_summary")
+        report["narrative_summary"], _ = self._check_ratio_claims(narrative, real_ratio, notes, "narrative_summary")
 
         report["_validator_notes"] = notes
-        report["_validator_result"] = "PASS" if not notes else "PASS_WITH_CORRECTIONS"
+        report["_validator_result"] = "PASS" if not notes else "REVIEW_REQUIRED"
         return report

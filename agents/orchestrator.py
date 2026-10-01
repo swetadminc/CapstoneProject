@@ -25,7 +25,7 @@ from agents.customer_kyc_agent import CustomerKYCAgent
 from agents.transaction_investigation_agent import TransactionInvestigationAgent
 from agents.relationship_agent import RelationshipAgent
 from agents.evidence_agent import EvidenceAgent
-from agents.investigation_summary_agent import InvestigationSummaryAgent
+from agents.investigation_summary_agent import InvestigationSummaryAgent, safe_transactions_for_prompt
 from agents.grounding_validator import GroundingValidator
 from agents.llm_client import GEMINI_MODEL
 from data.runtime_db import log_audit_event
@@ -56,7 +56,10 @@ class InvestigationOrchestrator:
                                    "kyc_status": kyc["customer"]["kyc_status"],
                                    "prior_cases_found": len(kyc["prior_cases"])})
 
-        txn = self.transaction_investigation.run(alert["account_id"], alert["alert_date"])
+        txn = self.transaction_investigation.run(
+            alert["account_id"], alert["alert_date"],
+            trigger_txn_id=alert.get("trigger_transaction_id"),
+        )
         log_audit_event(case_id, actor="ai", action="transaction_investigation_complete",
                          actor_name=self.transaction_investigation.name,
                          details={"transactions_in_window": len(txn["window_transactions"]),
@@ -80,6 +83,12 @@ class InvestigationOrchestrator:
             "documents": evi["documents"],
         }
         guidance = evi["guidance"]
+
+        _, flagged_reference_ids = safe_transactions_for_prompt(evidence["window_transactions"])
+        if flagged_reference_ids:
+            log_audit_event(case_id, actor="system", action="untrusted_transaction_reference_withheld",
+                            details={"txn_ids": flagged_reference_ids,
+                                     "reason": "instruction-like reference text excluded from model prompt"})
 
         raw_report = self.investigation_summary.run(context, evidence, guidance)
         log_audit_event(case_id, actor="ai", action="investigation_summary_complete",

@@ -1,5 +1,7 @@
 # Flowchart 1 — End-to-End Data Flow
 
+> **Historical target-state diagram, not an implementation screenshot.** InvestigateIQ currently loads pre-seeded fictional alerts; it does not ingest a bank transaction feed or automatically create cases from R1/R2. The SQLite audit log is persistent for the prototype but not immutable, and the validator checks selected claims/IDs rather than every statement. Use [15-Course-Concept-Application-Map.md](15-Course-Concept-Application-Map.md) and [17-Repository-File-Audit.md](17-Repository-File-Audit.md) for the verified current flow. Correct this Mermaid diagram before using it in the final presentation.
+
 **Product:** Sentinel AML
 **How to use this file:** Copy the code block below into [mermaid.live](https://mermaid.live), the Mermaid VS Code extension, or draw.io's "Insert > Mermaid" option to get a rendered, editable diagram for the blueprint document and the slide deck.
 

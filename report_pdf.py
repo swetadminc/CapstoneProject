@@ -83,9 +83,14 @@ def build_report_pdf(case_id: str, context: dict, evidence: dict, report: dict,
         f"Alert type: {context['alert']['alert_type']}\n"
         f"Severity: {context['alert']['severity']}\n"
         f"Scenario: {context['alert'].get('scenario_id')}\n"
+        f"Recorded rule label: {context['alert'].get('trigger_rule') or 'not supplied'} "
+        f"(source dataset; not recalculated in this report)\n"
+        f"Trigger transaction ID: {context['alert'].get('trigger_transaction_id') or 'not supplied'}\n"
         f"Customer risk rating: {context['customer'].get('risk_rating')} | "
         f"KYC status: {context['customer'].get('kyc_status')}"
     )
+    if not context["alert"].get("trigger_transaction_id"):
+        pdf.body("Source alert has no trigger-transaction ID; recorded rule label is not independently verified.")
     pdf.ln(3)
 
     pdf.section_title("Transaction Analysis")
@@ -94,7 +99,7 @@ def build_report_pdf(case_id: str, context: dict, evidence: dict, report: dict,
         if evidence.get("evidence_window_empty") else ""
     pdf.body(
         f"Baseline avg. transaction amount: Rs {evidence['baseline_avg_amount']:,.2f}\n"
-        f"Deviation ratio: {dev}\n"
+        f"Trigger/baseline ratio: {dev}\n"
         f"Transactions considered: {len(evidence['window_transactions'])}{window_note}\n"
         f"Prior cases on file for this customer: {len(evidence.get('prior_cases', []))}"
     )
@@ -137,7 +142,8 @@ def build_report_pdf(case_id: str, context: dict, evidence: dict, report: dict,
     notes = report.get("_validator_notes") or []
     pdf.body(
         f"Result: {report.get('_validator_result', 'N/A')}\n"
-        + ("No corrections needed." if not notes else "Corrections:\n" + "\n".join(f"- {n}" for n in notes))
+        + ("No issues found by selected checks; human review is still required."
+           if not notes else "Validator notes for human review:\n" + "\n".join(f"- {n}" for n in notes))
     )
     pdf.ln(3)
 

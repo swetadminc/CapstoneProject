@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Live rule evaluation — makes the Admin rule-config screen's thresholds
-actually mean something, rather than a form that saves a number nobody
-sees the effect of.
+Illustrative threshold evaluation — makes the Admin rule-config screen's
+sliders show a sensitivity preview rather than only saving numbers.
 
 The dataset's alerts table is fixed (generated once, deterministic — see
 data/build_database.py) and is NOT regenerated when thresholds change; that
 would risk breaking the frozen C1/C2 hero scenario. Instead, this module
-recomputes R1/R2 against the real transaction data using whatever
-thresholds are currently configured, so an admin can see "how many accounts
-would trigger under these settings" before saving — the live effect of the
-change, without touching the frozen dataset.
+recomputes R1 plus a limited outbound-activity proxy against fictional
+transactions using proposed thresholds. An admin can see which accounts
+match these conditions before saving, without touching the frozen alerts.
+It is not a full linked-transfer trigger engine.
 """
 import sqlite3
 from data.knowledge_search import DB_PATH
@@ -37,12 +36,16 @@ def would_trigger_r1(conn, account_id: str, as_of: str, deviation_multiplier: fl
 
 def would_trigger_r2(conn, account_id: str, trigger_txn_datetime: str, trigger_amount: float,
                       pass_through_pct: float, window_hours: float):
-    """R2: does at least pass_through_pct% of trigger_amount leave the
-    account within window_hours across at least 2 outbound transactions?"""
+    """Outbound-activity proxy: compare aggregate debits with one credit.
+
+    Two outbound debits are NOT proof of two linked transfer hops, nor is
+    their combined amount necessarily funded by this specific credit.
+    This helper supports an illustrative rule preview, not alert creation.
+    """
     rows = conn.execute(
         """SELECT amount FROM transactions
-           WHERE account_id=? AND direction='DR' AND txn_datetime >= ?
-             AND txn_datetime <= datetime(?, '+' || ? || ' hours')""",
+           WHERE account_id=? AND direction='DR' AND datetime(txn_datetime) >= datetime(?)
+             AND datetime(txn_datetime) <= datetime(?, '+' || ? || ' hours')""",
         (account_id, trigger_txn_datetime, trigger_txn_datetime, window_hours),
     ).fetchall()
     if len(rows) < 2:
@@ -53,14 +56,15 @@ def would_trigger_r2(conn, account_id: str, trigger_txn_datetime: str, trigger_a
 
 
 def preview_trigger_counts(thresholds: dict, sample_limit: int = 200) -> dict:
-    """Runs R1 (and R2 where R1 fires) across a sample of internal accounts'
+    """Runs R1 and an outbound-activity proxy across a sample of accounts'
     largest credit transactions, using the GIVEN thresholds (not necessarily
     what's saved) — this is what powers the admin screen's live "if you save
     this, here's roughly what would trigger" preview.
 
     sample_limit caps how many accounts get checked, purely so the preview
     stays fast in this SQLite-per-request setup; it's a preview, not a
-    production monitoring pass."""
+    production monitoring pass. In particular, it cannot establish linked
+    two-hop movement or create a validated R1+R2 alert."""
     conn = sqlite3.connect(DB_PATH)
     dev_mult = thresholds[("R1", "deviation_multiplier")]
     pass_pct = thresholds[("R2", "pass_through_pct")]

@@ -1,5 +1,7 @@
 # InvestigateIQ — Build Status
 
+> **Historical snapshot (29 September 2026).** The “current” wording below was true when this snapshot was written but is no longer authoritative for all counts or claims. The local database now has 42 alerts, 24 playbook documents, and 57 chunks; its fixed six-step workflow is not six independently planning AI agents. See [16-Course-Source-Evidence-Register.md](16-Course-Source-Evidence-Register.md) and [17-Repository-File-Audit.md](17-Repository-File-Audit.md) for the verified present state. Keep this file as build history until a deliberate full refresh.
+
 **As of:** 29 September 2026
 **Purpose:** The CEO Playbook and the original documentation pack describe the *plan*. A great deal has since
 been built and verified live — this file is the honest, current snapshot, so nobody reads the earlier
