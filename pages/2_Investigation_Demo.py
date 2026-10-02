@@ -21,7 +21,8 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agents.investigation_agent import investigate, GEMINI_API_KEY, GEMINI_MODEL
-from agents.chat_agent import ask_question, answer_from_saved_evidence
+from agents.chat_agent import ask_question, answer_from_saved_evidence, answer_fictional_case_question
+from agents.imported_copilot import answer_imported_case_question
 from agents.grounding_validator import GroundingValidator
 from agents.transaction_investigation_agent import anchor_cached_evidence
 from data.runtime_db import record_human_decision, get_audit_log, get_human_actions, log_audit_event
@@ -60,7 +61,7 @@ page_flow("Review evidence and make a documented human decision", [
     ("Review the draft", "Inspect evidence, retrieved guidance and selected validation checks."),
     ("Ask or export", "Question the copilot and download the draft report if useful."),
     ("Decide and audit", "Record a reasoned human decision; inspect the audit history."),
-], "Cached replay and limited saved-evidence Q&A work without a model connection. Free-form AI chat needs a model key; the copilot never makes the final decision.")
+], "Case-scoped database questions, exact source-chunk citations and limited saved-evidence Q&A work without a model connection. Free-form AI chat needs a model key; the copilot never makes the final decision.")
 st.markdown(
     """
     <style>
@@ -146,23 +147,45 @@ if case_id.startswith("FIC-CASE-"):
         st.session_state["fictional_intake_case_id"] = case_id
         st.session_state["rag_view"] = "Fictional Intake"
         st.switch_page("pages/8_Evidence_RAG.py")
-    st.subheader("Evidence guide · calculated, no AI call")
-    question = st.selectbox("Ask about this packet", [
-        "Why did this activity trigger review?", "What KYC evidence is available?",
-        "Can we conclude the funds are unlawful?", "What should the investigator request?",
-    ])
-    signal = packet["signal"]
-    if question.startswith("Why"):
-        if assessment["review_signal_recomputed"]:
-            st.info(f"The completed rows show INR {assessment['observed']['incoming_inr']:,.0f} incoming, INR {assessment['observed']['outgoing_inr']:,.0f} outgoing, {signal['incoming_multiplier']}x the asserted monthly baseline, {signal['outbound_percent']}% outgoing/incoming, and {assessment['observed']['distinct_beneficiaries']} distinct beneficiaries. Source: FIC-ALERT-{case_id} and FIC-LEDGER-{case_id}. These aggregates do not trace the same rupees.")
-        else:
-            st.error("The saved signal does not match the current stored rows. Resolve the integrity gap before explaining a trigger result.")
-    elif question.startswith("What KYC"):
-        st.info(f"The packet has generated profile and sample PAN/passport text under FIC-KYC-{case_id}, FIC-PAN-{case_id}, and FIC-OVD-{case_id}; original identity files: 0. No independent verification is recorded.")
-    elif question.startswith("Can"):
-        st.info("No. A review signal and generated sample records cannot establish lawful or unlawful funds. A human investigator must examine independent evidence and decide the next action.")
-    else:
-        st.info(assessment["recommended_action"])
+    st.subheader("💬 Ask the Copilot")
+    st.caption("Ask about this case in your own words. Answers are calculated from its stored fictional rows; "
+               "this is evidence-backed Q&A, not a live AI model or a verdict.")
+    chat_key = f"fictional_chat_{case_id}"
+    if chat_key not in st.session_state:
+        st.session_state[chat_key] = []
+    with st.container(height=600, border=True, key=f"fictional_chat_box_{case_id}"):
+        for turn_index, turn in enumerate(st.session_state[chat_key]):
+            with st.chat_message(turn["role"]):
+                st.markdown(plain_text_html(turn["content"]), unsafe_allow_html=True)
+                if turn.get("sources"):
+                    st.caption("Stored sources: " + ", ".join(turn["sources"]))
+                    if st.button("Inspect cited records and chunks", key=f"fic_chat_sources_{case_id}_{turn_index}"):
+                        st.session_state["fictional_intake_case_id"] = case_id
+                        st.session_state["rag_view"] = "Fictional Intake"
+                        if turn.get("chunk_ids"):
+                            st.session_state["fictional_intake_chunk_id"] = turn["chunk_ids"][0]
+                        st.switch_page("pages/8_Evidence_RAG.py")
+    suggestions = [
+        "Show me the transaction sequence: when, from whom, and to whom.",
+        "How many transactions are stored in one month, and which need review?",
+        "Why did this case trigger review?",
+        "What KYC and counterparty evidence is missing?",
+        "Can you establish the source of funds?",
+        "Can we say the funds are illegal?",
+    ]
+    suggestion_cols = st.columns(2)
+    for index, suggested in enumerate(suggestions):
+        if suggestion_cols[index % 2].button(suggested, key=f"fic_question_{case_id}_{index}",
+                                             use_container_width=True):
+            st.session_state[f"fic_clicked_q_{case_id}"] = suggested
+    typed_question = st.chat_input("Ask the copilot about this case...", key=f"fic_chat_input_{case_id}")
+    question = st.session_state.pop(f"fic_clicked_q_{case_id}", None) or typed_question
+    if question:
+        response = answer_fictional_case_question(question, packet, assessment)
+        st.session_state[chat_key].append({"role": "user", "content": question})
+        st.session_state[chat_key].append({"role": "assistant", "content": response["answer"],
+                                           "sources": response["sources"], "chunk_ids": response["chunk_ids"]})
+        st.rerun()
     decision_panel = st.container(border=True)
     decision_panel.subheader("Human review action")
     decision_panel.caption("Only a named human can record a follow-up. Closing as no concern is unavailable for this packet because independent evidence is missing.")
@@ -405,9 +428,13 @@ if state_key in st.session_state:
 
         offline_qa = not bool(GEMINI_API_KEY)
         if offline_qa:
-            st.info("Saved-evidence Q&A is available from this case's stored report. It is rule-based, not live AI chat; free-form AI needs a model connection.")
+            st.info("Ask about the selected case's stored transactions, month count, alert and KYC. "
+                    "These database answers cite exact source chunks; broader free-form AI needs a model connection.")
         SUGGESTED = [
             "Why was this alert triggered?",
+            "How many transactions were stored in one month, which need review, and is KYC verified?",
+            "Show me the transaction sequence.",
+            "Can you establish the source of funds?",
             "What evidence supports the concern?",
             "What is missing?",
             "What should I do next?",
@@ -418,15 +445,25 @@ if state_key in st.session_state:
                          help="Review an answer based on this case; the live model is used only when configured."):
                 st.session_state[f"clicked_q_{case_id}"] = sq
 
-        chat_box = st.container(height=380, border=True, key=f"iq_bordered_chat_{case_id}")
+        chat_box = st.container(height=600, border=True, key=f"iq_bordered_chat_{case_id}")
         with chat_box:
-            for turn in chat_history:
+            for turn_index, turn in enumerate(chat_history):
                 with st.chat_message(turn["role"]):
                     st.markdown(plain_text_html(turn["content"]), unsafe_allow_html=True)
                     if turn.get("source") == "saved_evidence":
                         st.caption("From saved case evidence · no live model call")
+                    if turn.get("source") == "imported_case_database":
+                        st.caption("From the selected case's stored account rows and exact source chunks · no model call")
                     if turn.get("citations"):
                         st.caption("Sources: " + ", ".join(turn["citations"]))
+                    if turn.get("chunk_ids") and st.button(
+                        "Inspect cited source chunk", key=f"copilot_chunk_{case_id}_{turn_index}"
+                    ):
+                        first_chunk = turn["chunk_ids"][0]
+                        st.session_state["rag_case_id"] = case_id
+                        st.session_state["rag_case_doc_id"] = first_chunk.rsplit("-C", 1)[0]
+                        st.session_state["rag_case_chunk_id"] = first_chunk
+                        st.switch_page("pages/8_Evidence_RAG.py")
                     if turn.get("validator_notes"):
                         st.caption(f"⚠️ {len(turn['validator_notes'])} citation(s) adjusted by the Grounding Validator")
 
@@ -439,7 +476,14 @@ if state_key in st.session_state:
 
         if question:
             chat_history.append({"role": "user", "content": question})
-            if offline_qa:
+            structured = any(term in question.lower() for term in
+                             ("month", "transaction", "trail", "sequence", "kyc", "identity",
+                              "suspicious", "flagged", "source of funds", "origin of funds",
+                              "counterparty", "counterparties", "how much", "amount",
+                              "credit", "debit", "when", "where", "need review"))
+            if structured:
+                answer = answer_imported_case_question(question, case_id, evidence, report)
+            elif offline_qa:
                 answer = answer_from_saved_evidence(question, context, evidence, guidance, report)
             else:
                 with st.spinner("Thinking... (live Gemini call)"):
@@ -451,9 +495,12 @@ if state_key in st.session_state:
             if answer:
                 chat_history.append({
                     "role": "assistant", "content": answer["answer"],
-                    "citations": answer["cited_txn_ids"] + [f"[{d}]" for d in answer["cited_doc_ids"]]
-                    + [f"[{c}]" for c in answer.get("cited_case_chunk_ids", [])],
-                    "validator_notes": answer["validator_notes"], "source": answer.get("source"),
+                    "citations": answer["sources"] if "sources" in answer else (
+                        answer["cited_txn_ids"] + [f"[{d}]" for d in answer["cited_doc_ids"]]
+                        + [f"[{c}]" for c in answer.get("cited_case_chunk_ids", [])]
+                    ),
+                    "validator_notes": answer.get("validator_notes", []), "source": answer.get("source"),
+                    "chunk_ids": answer.get("chunk_ids", answer.get("cited_case_chunk_ids", [])),
                 })
             st.rerun()
 

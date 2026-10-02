@@ -5,10 +5,39 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from agents.chat_agent import ask_question, answer_from_saved_evidence, _build_chat_prompt
+from agents.chat_agent import (
+    ask_question, answer_from_saved_evidence, answer_fictional_case_question, _build_chat_prompt,
+)
 
 
 class ChatGuardrailTests(unittest.TestCase):
+    def test_fictional_copilot_trail_uses_stored_rows_and_states_limit(self):
+        packet = {
+            "case_id": "FIC-CASE-TEST", "account_id": "FIC-ACC-TEST",
+            "transactions": [
+                {"txn_id": "FIC-TXN-2", "txn_datetime": "2026-01-02T10:00:00",
+                 "direction": "DR", "counterparty_account_id": "FIC-EXT-B",
+                 "amount": "180000", "status": "Completed"},
+                {"txn_id": "FIC-TXN-1", "txn_datetime": "2026-01-01T09:00:00",
+                 "direction": "CR", "counterparty_account_id": "FIC-EXT-A",
+                 "amount": "300000", "status": "Completed"},
+            ],
+        }
+        assessment = {"review_signal_recomputed": True, "source_integrity_confirmed": True}
+        result = answer_fictional_case_question("Show the transaction sequence", packet, assessment)
+        self.assertLess(result["answer"].index("FIC-TXN-1"), result["answer"].index("FIC-TXN-2"))
+        self.assertIn("IN from FIC-EXT-A", result["answer"])
+        self.assertIn("OUT to FIC-EXT-B", result["answer"])
+        self.assertIn("do not prove", result["answer"])
+        self.assertEqual(result["txn_ids"], ["FIC-TXN-1", "FIC-TXN-2"])
+
+    def test_fictional_copilot_blocks_inference_when_integrity_fails(self):
+        packet = {"case_id": "FIC-CASE-TEST", "account_id": "FIC-ACC-TEST", "transactions": []}
+        assessment = {"review_signal_recomputed": False, "source_integrity_confirmed": True}
+        result = answer_fictional_case_question("Is this fraud?", packet, assessment)
+        self.assertIn("Stop:", result["answer"])
+        self.assertEqual(result["sources"], [])
+
     def test_saved_evidence_qa_cites_only_case_records(self):
         path = Path(__file__).resolve().parents[1] / "data" / "cached_reports" / "CASE-041.json"
         case = json.loads(path.read_text(encoding="utf-8"))
@@ -21,6 +50,17 @@ class ChatGuardrailTests(unittest.TestCase):
         self.assertTrue(result["cited_txn_ids"])
         self.assertTrue(set(result["cited_txn_ids"]).issubset(known))
         self.assertIn("human review", result["answer"])
+
+    def test_saved_evidence_qa_can_explain_ordered_trail(self):
+        path = Path(__file__).resolve().parents[1] / "data" / "cached_reports" / "CASE-041.json"
+        case = json.loads(path.read_text(encoding="utf-8"))
+        result = answer_from_saved_evidence(
+            "Show the transaction sequence", case["context"], case["evidence"],
+            case["guidance"], case["report"],
+        )
+        self.assertIn("TXN-19927", result["answer"])
+        self.assertIn("true source of funds", result["answer"])
+        self.assertTrue(result["cited_txn_ids"])
 
     def test_saved_evidence_qa_rejects_unrelated_question(self):
         result = answer_from_saved_evidence("What is the weather?", {"alert": {}}, {}, [], {})

@@ -236,7 +236,40 @@ def _case_sources(conn: sqlite3.Connection, alert: sqlite3.Row) -> list[dict]:
         ("source_rows_only" if in_window else "background_context_only"),
         "transactions", ids, _value(alert["alert_date"]),
     )
-    return [alert_doc, ledger_doc]
+    full_rows = conn.execute(
+        "SELECT txn_id, txn_datetime, direction, amount, status, channel, "
+        "counterparty_account_id FROM transactions WHERE account_id=? "
+        "ORDER BY txn_datetime, txn_id", (account_id,),
+    ).fetchall()
+    full_sections = [
+        "FICTIONAL COURSE DATA — all recorded rows for this account in the supplied dataset, "
+        "not a complete bank statement or a guarantee of uninterrupted coverage.",
+        f"Case ID: {case_id}; account ID: {account_id}; stored rows: {len(full_rows)}. "
+        "A calendar-month count refers only to these stored rows, not all real account activity.",
+    ]
+    if ambiguous_account:
+        full_sections.append(
+            "SOURCE-DATA COLLISION: this account ID has multiple customer owners in the supplied tables. "
+            "Do not attribute these account rows to one customer until the identifier is resolved."
+        )
+    for offset in range(0, len(full_rows), 4):
+        full_sections.append("\n".join(
+            f"{row['txn_id']} | {row['txn_datetime']} | {row['direction']} | "
+            f"{_money(row['amount'])} | {row['status']} | {row['channel']} | "
+            f"counterparty account: {_value(row['counterparty_account_id'])}"
+            for row in full_rows[offset:offset + 4]
+        ))
+    if not full_rows:
+        full_sections.append("No transaction row is stored for this account.")
+    full_ledger_doc = _source(
+        f"CASE-LEDGER-ALL-{case_id}", cid, case_id, "transaction_record",
+        "All stored account rows", f"All stored ledger rows for {case_id}", full_sections,
+        "assembled_from_all_stored_account_rows",
+        "ambiguous_account_owner" if ambiguous_account else "source_rows_only",
+        "transactions", [row["txn_id"] for row in full_rows],
+        _value(alert["alert_date"]),
+    )
+    return [alert_doc, ledger_doc, full_ledger_doc]
 
 
 def build_case_evidence(conn: sqlite3.Connection) -> tuple[int, int]:

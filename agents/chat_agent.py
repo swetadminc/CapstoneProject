@@ -17,6 +17,9 @@ and the knowledge-base search, rather than duplicating any of that.
 import json
 import sys
 import os
+import re
+from decimal import Decimal
+from agents.fictional_copilot import answer_fictional_case_question
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -69,6 +72,22 @@ def answer_from_saved_evidence(question: str, context: dict, evidence: dict,
         answer = (f"The case evidence contains {count} relationship record(s). "
                   "Review the underlying transactions before inferring who is connected.") if count else (
                   "No relationship records are available in this case evidence; that is not proof that no counterparties exist.")
+    elif any(re.search(r"(?<!\w)" + term + r"(?!\w)", query) for term in
+             ("trail", "sequence", "timeline", "transactions?", "when", "from", "where", "transfers?")):
+        rows = sorted(evidence.get("window_transactions", []),
+                      key=lambda row: (str(row.get("txn_datetime", "")), str(row.get("txn_id", ""))))
+        txns = [str(row["txn_id"]) for row in rows if str(row.get("txn_id")) in known_txns]
+        lines = []
+        for row in rows:
+            endpoint = row.get("counterparty_account_id") or row.get("counterparty_name") or "unidentified endpoint"
+            direction = "IN from" if row.get("direction") == "CR" else "OUT to"
+            lines.append(f"{row.get('txn_datetime', 'time unavailable')}: {row.get('txn_id', 'ID unavailable')} — "
+                         f"{direction} {endpoint}, INR {Decimal(str(row.get('amount') or 0)):,.2f}")
+        scope = ("These are nearby historical rows, not the alert's trigger transaction. "
+                 if evidence.get("evidence_window_empty") else "These rows are in the alert review window. ")
+        answer = (scope + ("\n".join(lines) if lines else "No transaction rows are available for this case.") +
+                  "\nThe records do not establish the true source of funds or prove that an incoming amount "
+                  "funded a later outgoing payment.")
     elif any(word in query for word in ("next", "should", "action", "recommend")):
         steps = report.get("recommended_next_steps", [])
         if steps:

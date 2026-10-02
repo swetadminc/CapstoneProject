@@ -99,6 +99,10 @@ if "rule_preview" in st.session_state:
     pc3.metric("R1 + outbound proxy", r["r1_and_r2_count"],
                help="Sampled accounts matching both preview conditions; not verified alerts or linked-hop tracing.")
     if r["examples"]:
+        st.error(
+            f"🔴 {r['r1_and_r2_count']} sampled account(s) meet both proposed review conditions. "
+            "Red marks a review signal, not confirmed laundering or a verified money trail."
+        )
         st.caption("Example accounts matching both preview conditions; not validated alerts:")
         st.dataframe(r["examples"], hide_index=True, use_container_width=True)
     else:

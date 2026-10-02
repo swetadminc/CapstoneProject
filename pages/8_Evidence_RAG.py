@@ -372,7 +372,12 @@ elif view == "Fictional Intake":
         with st.expander("Inspect stored transaction rows"):
             st.dataframe(packet["transactions"], hide_index=True, height=350)
         document_by_id = {doc["doc_id"]: doc for doc in packet["documents"]}
-        doc_id = st.selectbox("Generated source record", list(document_by_id))
+        requested_intake_chunk = st.session_state.pop("fictional_intake_chunk_id", None)
+        requested_intake_doc = requested_intake_chunk.rsplit("-C", 1)[0] if requested_intake_chunk else None
+        document_ids = list(document_by_id)
+        doc_id = st.selectbox("Generated source record", document_ids,
+                              index=document_ids.index(requested_intake_doc)
+                              if requested_intake_doc in document_by_id else 0)
         doc = document_by_id[doc_id]
         st.caption(f"{doc['category']} · {doc['verification_status']} · SHA-256 {doc['content_sha256']}")
         with st.expander("Read full generated source text"):
@@ -382,7 +387,8 @@ elif view == "Fictional Intake":
         st.caption(f"{len(source_chunks)} exact indexed passage(s) in this source record")
         for chunk in source_chunks:
             with st.expander(f"Passage {chunk['chunk_index'] + 1} · {doc['title']}",
-                             expanded=chunk["chunk_index"] == 0):
+                             expanded=chunk["chunk_id"] == requested_intake_chunk or
+                             (requested_intake_chunk is None and chunk["chunk_index"] == 0)):
                 st.caption(f"Chunk ID: {chunk['chunk_id']}")
                 st.write(chunk["chunk_text"])
         phrase = st.text_input("Search this case's indexed chunks", key=f"fic_chunk_search_{chosen}",
