@@ -39,12 +39,13 @@ class LandingAndTeamTests(unittest.TestCase):
                         app.switch_page(page).run(timeout=30)
                         self.assertFalse(app.exception)
 
-    def test_walkthrough_distinguishes_saved_case_from_gated_fictional_intake(self):
+    def test_walkthrough_distinguishes_saved_case_from_public_fictional_intake(self):
         narration = " ".join(scene["narration"].lower() for scene in SCENES)
-        visuals = {scene.get("visual") for scene in SCENES}
-        self.assertTrue({"intake", "intake_evidence", "intake_review"} <= visuals)
-        self.assertIn("feature-gated fictional intake", narration)
-        self.assertIn("generated samples, not uploaded bank documents", narration)
+        screens = {scene["screen"] for scene in SCENES}
+        self.assertTrue({"22_public_intake_form.jpg", "24_public_intake_chunks.jpg",
+                         "25_public_intake_review.jpg", "26_public_intake_compliance.jpg"} <= screens)
+        self.assertIn("fictional intake on the public evidence", narration)
+        self.assertIn("they are not uploaded bank documents", narration)
         self.assertIn("a no-concern closure is not offered", narration)
         self.assertNotIn("forty two alerts", narration)
         self.assertNotIn("four expandable steps", narration)

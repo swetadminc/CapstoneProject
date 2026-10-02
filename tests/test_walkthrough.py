@@ -19,8 +19,11 @@ class WalkthroughTests(unittest.TestCase):
         for unwanted in ("team", "capstone", "course", "professor", "I I T Bombay"):
             self.assertNotIn(unwanted.lower(), narration.lower())
         for required in ("Case zero four one", "Cash", "R A G", "Grounding Validator",
-                         "Request more information", "no cases await Compliance", "no decision is recorded"):
+                         "Request more information", "separate fictional transaction packet", "no decision is recorded"):
             self.assertIn(required.lower(), narration.lower())
+        for captured_public_screen in ("22_public_intake_form.jpg", "24_public_intake_chunks.jpg",
+                                       "25_public_intake_review.jpg", "26_public_intake_compliance.jpg"):
+            self.assertIn(captured_public_screen, [scene["screen"] for scene in SCENES])
         self.assertGreaterEqual(sum(bool(scene.get("visual")) for scene in SCENES), 3)
         self.assertTrue(POSTER.is_file())
         self.assertGreater(POSTER.stat().st_size, 20_000)

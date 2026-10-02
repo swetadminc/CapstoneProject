@@ -100,9 +100,9 @@ SCENES = [
     {"screen": "15_public_reasoned_decision.png", "title": "Our Proposed Next Step",
      "narration": "For this example, Request more information is the cautious option shown in the form. The proposed rationale asks for the business explanation of the cash-deposit cluster and agreements with Retail Partner A and B before a final conclusion. That is not the same as declaring the activity harmless; it keeps the issue open for follow-up. The rationale is drafted here. Until Submit decision is pressed, no decision is recorded and the case does not move to Compliance.",
      "caption": "A draft rationale alone does not record a decision.", "target": (747, 350)},
-    {"screen": "16_public_compliance_queue.png", "title": "8 · What Compliance Receives",
-     "narration": "Now we open the Compliance Queue to show the conditional next stage. If an investigator submits an escalation, that case appears here for a second human review. Compliance can acknowledge it, send it back for more information, or record a referral decision. No cases await Compliance because the example form was not submitted. The product does not automatically file a suspicious transaction report or communicate with a regulator.",
-     "caption": "Only a submitted escalation moves into this queue.", "target": (132, 228)},
+    {"screen": "26_public_intake_compliance.jpg", "title": "8 · What Compliance Receives",
+     "narration": "Now we open the Compliance Queue. The Case zero four one form was not submitted, so that example did not create an escalation. The case shown here is a separate fictional transaction packet that an investigator explicitly escalated with a written reason. We will inspect how that packet was created shortly. Compliance can review the reason, acknowledge the case, return it for information, or record a referral decision. The product does not automatically file a suspicious transaction report or communicate with a regulator.",
+     "caption": "A submitted fictional escalation appears with its human rationale.", "target": (825, 421)},
     {"screen": "17_public_analytics.png", "title": "9 · Analytics",
      "narration": "Analytics summarizes the fictional alert set by severity, scenario, status, and time. It is a workload and exploration view: users can see how many alerts are open or resolved and which patterns occur in the sample. It does not measure real-world crime detection, false positives, or model accuracy. Those claims would need independent evaluation and real bank data, which Investigate IQ does not have.",
      "caption": "Descriptive workload charts, not model-performance proof.", "target": (142, 262)},
@@ -118,18 +118,15 @@ SCENES = [
     {"screen": "21_public_admin_rules.png", "title": "13 · Admin Rule Configuration",
      "narration": "Rule Configuration previews changes to two illustrative alert thresholds before an admin saves them. Saving records the configuration action in the audit trail, but it does not regenerate existing alerts or replace a bank's monitoring engine. We therefore do not present a threshold preview as a live compliance control. It illustrates configurable logic and separates a preview from a recorded change.",
      "caption": "Preview rule effects; do not claim live bank enforcement.", "target": (155, 399)},
-    {"screen": "01_home_guest.png", "title": "14 · Add a Fictional Transaction Packet",
-     "visual": "intake",
-     "narration": "There is also a separate, feature-gated Fictional Intake path. A user supplies numeric values and an expected activity level; the application generates ten labeled synthetic transfers. It calculates the pass-through signal from those rows. If the configured threshold is met, it saves a case, all ten transaction rows, and five generated text records together in SQLite. Those records are a customer profile, an intentionally invalid P A N sample, an intentionally invalid passport sample, a transfer ledger, and an alert summary. They are generated samples, not uploaded bank documents. The saved case appears in the queue when the feature is enabled; it is not a live third-party alert feed.",
-     "caption": "Numeric input → computed signal → atomic saved packet", "target": None},
-    {"screen": "01_home_guest.png", "title": "15 · Inspect the Evidence Boundary",
-     "visual": "intake_evidence",
-     "narration": "Open the saved fictional packet in Evidence and R A G. Each generated record can be read in full. The system splits the source text into exact passages, stores a S H A two five six digest, and makes those passages searchable within the case using SQLite F T S five. That lets an investigator trace an answer back to the text that was actually saved. But the identity samples are deliberately invalid, no original identity file was uploaded, counterparty K Y C is unknown, and there is no independent source-of-funds proof. The product must show those gaps. A transfer chain and a citation alone cannot establish whether money is legal or illegal.",
-     "caption": "Full source → exact chunks → scoped search → explicit gaps", "target": None},
-    {"screen": "01_home_guest.png", "title": "16 · Review the Calculated Case",
-     "visual": "intake_review",
+    {"screen": "22_public_intake_form.jpg", "title": "14 · Add a Fictional Transaction Packet",
+     "narration": "Here is Fictional Intake on the public Evidence and R A G page. A user supplies numeric transfer amounts and an expected monthly activity level. The application creates ten labeled synthetic transfers, calculates a review signal from those rows, and saves a case with five generated text records in SQLite. These include a profile, deliberately invalid P A N and passport samples, a transfer ledger, and an alert summary. They are not uploaded bank documents or a live third-party alert feed. The saved case appears in the Case Queue.",
+     "caption": "Numeric input → calculated signal → saved fictional case", "target": (786, 579)},
+    {"screen": "24_public_intake_chunks.jpg", "title": "15 · Inspect the Evidence Boundary",
+     "narration": "In the saved packet, each generated record can be read in full. Here the exact indexed passages and the case-scoped search are visible. The source text is split into passages, given a S H A two five six digest, and searched with SQLite F T S five. The result shows the saved transaction text, not a model's invented answer. But identity samples are deliberately invalid, no original identity file was uploaded, counterparty K Y C is unknown, and independent source-of-funds proof is missing. A transfer chain and a citation cannot establish whether money is legal or illegal.",
+     "caption": "Exact source chunk → case-scoped search → explicit gaps", "target": (650, 559)},
+    {"screen": "25_public_intake_review.jpg", "title": "16 · Review the Calculated Case",
      "narration": "This intake case follows a separate calculated review, not the six-agent saved report shown earlier. The workspace reloads the saved transfer rows, checks their links and integrity, and offers fixed questions grounded in those records. A human can request more information or escalate with a name and written reason. A no-concern closure is not offered for this flagged intake packet. Only a submitted escalation enters Compliance. The calculation is real application logic operating on fictional rows; it is not proof of fraud, verified identity, or a regulator filing.",
-     "caption": "Saved rows → calculated review → reasoned human action", "target": None},
+     "caption": "Saved rows → calculated review → reasoned human action", "target": (835, 606)},
     {"screen": "01_home_guest.png", "title": "What the Case Actually Concludes",
      "visual": "closing", "narration": "We started with Case zero four one, checked its cited cash deposits, asked the copilot, followed the playbook citation into original text and indexed chunks, and examined the human-decision choices. We also saw how a separate fictional transfer packet is generated, saved, chunked, searched, and reviewed through calculated logic. In both paths, evidence supports further questions, not a finding of misconduct. A human must record any next step with a reason. No regulator filing occurred. Investigate IQ helps trace the evidence; it does not replace the investigator's judgment.",
      "caption": "Evidence supports follow-up; a human owns any recorded conclusion.", "target": None},
@@ -217,6 +214,9 @@ SCENE_FOCUS = {
     23: [(495, 165), (795, 450), (935, 627)],
     24: [(503, 165), (777, 449), (1040, 449)],
     25: [(478, 165), (690, 480), (900, 479), (1073, 480)],
+    26: [(620, 309), (785, 580), (474, 639)],
+    27: [(592, 165), (583, 480), (635, 643)],
+    28: [(660, 356), (700, 512), (840, 609)],
 }
 
 # A short, fixed-position label gives orientation without obscuring the
@@ -245,6 +245,9 @@ SCENE_LABELS = {
     23: "About InvestigateIQ",
     24: "Knowledge Base",
     25: "Rule Configuration",
+    26: "Fictional Intake",
+    27: "Exact Evidence Chunks",
+    28: "Calculated Review",
 }
 
 
@@ -436,7 +439,7 @@ def build() -> tuple[Path, Path]:
         command = [find_ffmpeg(), "-hide_banner", "-loglevel", "error", "-y",
                    "-f", "rawvideo", "-pixel_format", "rgb24", "-video_size", f"{WIDTH}x{HEIGHT}",
                    "-framerate", str(FPS), "-i", "-", "-i", str(narration),
-                   "-c:v", "libopenh264", "-b:v", "800k", "-pix_fmt", "yuv420p",
+                   "-c:v", "libopenh264", "-b:v", "690k", "-pix_fmt", "yuv420p",
                    "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(pending_output)]
         process = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
         try:
