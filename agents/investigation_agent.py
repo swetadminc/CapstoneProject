@@ -51,7 +51,8 @@ def discover_evidence(context: dict, window_days: int = 10) -> dict:
         account_id, alert_date, window_days=window_days,
         trigger_txn_id=context["alert"].get("trigger_transaction_id"),
     )
-    rel = RelationshipAgent().run(account_id, txn["window_transactions"])
+    rel = ({"relationships": []} if txn.get("account_ownership_ambiguous") else
+           RelationshipAgent().run(account_id, txn["window_transactions"]))
     kyc = CustomerKYCAgent().run(context["alert"], context["case_id"])
     documents = EvidenceAgent().documents_for(context["case_id"])
 
@@ -79,8 +80,8 @@ def validate_report(report: dict, evidence: dict, guidance: list) -> dict:
     return GroundingValidator().validate(report, evidence, guidance)
 
 
-def investigate(case_id: str) -> dict:
-    return InvestigationOrchestrator().investigate(case_id)
+def investigate(case_id: str, draft_mode: str = "model") -> dict:
+    return InvestigationOrchestrator().investigate(case_id, draft_mode=draft_mode)
 
 
 if __name__ == "__main__":

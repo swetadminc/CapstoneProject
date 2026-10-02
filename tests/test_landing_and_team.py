@@ -104,6 +104,17 @@ class LandingAndTeamTests(unittest.TestCase):
         app.run(timeout=30)
         self.assertIn("CASE-041", app.selectbox(key="investigation_case_choice").value)
 
+    def test_new_matched_case_offers_current_database_calculation(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        app.text_input(key="home_demo_name").input("Case Reviewer")
+        app.button(key="home_demo_continue").click().run(timeout=30)
+        app.session_state["selected_case_id"] = "CASE-043"
+        app.switch_page("pages/2_Investigation_Demo.py").run(timeout=30)
+        self.assertFalse(app.exception)
+        self.assertIn("CASE-043", app.selectbox(key="investigation_case_choice").value)
+        mode = next(item for item in app.radio if item.label == "Mode")
+        self.assertIn("Calculated (current database, no AI call)", mode.options)
+
 
 if __name__ == "__main__":
     unittest.main()

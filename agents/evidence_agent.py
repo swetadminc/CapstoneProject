@@ -4,15 +4,15 @@ Evidence Agent — fifth of the six specialist agents (see
 alert_triage_agent.py for the roadmap reference).
 
 Owns everything outside the transaction ledger that supports an
-investigation: retrieving relevant playbook guidance from the RAG knowledge
-base (FTS5/BM25 keyword search today), and pulling any documents already on
-file for this case. This is where "what does policy say to do here" and
-"what evidence has already been collected" come together, before the
-Investigation Summary Agent reasons over all of it.
+investigation: retrieving relevant playbook guidance and fictional case
+source passages from two separately scoped FTS5/BM25 indexes, then pulling
+document-summary rows on file. Retrieval is not independent verification.
 """
 import sqlite3
+from contextlib import closing
 
 from data.knowledge_search import DB_PATH, search as search_knowledge
+from data.case_evidence import search_case_chunks
 
 
 class EvidenceAgent:
@@ -35,7 +35,12 @@ class EvidenceAgent:
         return [dict(r) for r in documents]
 
     def run(self, alert: dict, case_id: str, k: int = 4) -> dict:
+        with closing(sqlite3.connect(DB_PATH)) as conn:
+            activity = search_case_chunks(conn, case_id, f"{alert['alert_type']} transaction explanation", limit=max(1, k // 2))
+            identity = search_case_chunks(conn, case_id, "KYC profile declared source funds", limit=max(1, k - len(activity)))
+            case_chunks = list({row["chunk_id"]: row for row in activity + identity}.values())
         return {
             "guidance": self.guidance_for(alert, k=k),
             "documents": self.documents_for(case_id),
+            "case_chunks": case_chunks,
         }

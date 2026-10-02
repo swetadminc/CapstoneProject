@@ -10,6 +10,8 @@ number here is computed by plain code — the LLM only ever interprets these
 results, never recalculates them.
 """
 import sqlite3
+from contextlib import closing
+from datetime import datetime, timedelta
 
 from data.knowledge_search import DB_PATH
 
@@ -22,16 +24,21 @@ def anchor_cached_evidence(evidence: dict, alert: dict) -> dict:
     Keep the cache file unchanged, but do not replay that unsupported number.
     """
     checked = dict(evidence)
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        owner_rows = conn.execute(
+            "SELECT COUNT(*) FROM accounts WHERE account_id=?", (alert["account_id"],)
+        ).fetchone()[0]
+    checked["account_ownership_ambiguous"] = owner_rows != 1
     trigger_id = alert.get("trigger_transaction_id")
     trigger_txn = next(
         (txn for txn in evidence.get("window_transactions", []) if txn.get("txn_id") == trigger_id),
         None,
     ) if trigger_id and not evidence.get("evidence_window_empty") else None
     baseline = evidence.get("baseline_avg_amount")
-    checked["trigger_transaction_id"] = trigger_id if trigger_txn else None
+    checked["trigger_transaction_id"] = trigger_id if trigger_txn and not checked["account_ownership_ambiguous"] else None
     checked["deviation_ratio"] = (
         round(trigger_txn["amount"] / baseline, 1)
-        if trigger_txn and baseline else None
+        if trigger_txn and baseline and not checked["account_ownership_ambiguous"] else None
     )
     return checked
 
@@ -44,6 +51,10 @@ class TransactionInvestigationAgent:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
+        owner_count = cur.execute(
+            "SELECT COUNT(*) FROM accounts WHERE account_id=?", (account_id,)
+        ).fetchone()[0]
+        account_ownership_ambiguous = owner_count != 1
 
         # Baseline: average transaction amount for this account, excluding
         # the alert window itself, so the "how unusual is this" comparison
@@ -55,6 +66,15 @@ class TransactionInvestigationAgent:
         ).fetchone()
         baseline_avg = baseline_row["avg_amt"] or 0
         baseline_n = baseline_row["n"]
+        # Separate monthly-credit baseline for the matched 24-hour activity
+        # rule. This is not the single-transaction average used above.
+        monthly_credit_row = cur.execute(
+            "SELECT SUM(amount) AS total FROM transactions WHERE account_id=? AND direction='CR' "
+            "AND julianday(txn_datetime)>=julianday(date(?, 'start of month', '-6 months')) "
+            "AND julianday(txn_datetime)<julianday(date(?, 'start of month'))",
+            (account_id, alert_date, alert_date),
+        ).fetchone()
+        monthly_credit_baseline = round((monthly_credit_row["total"] or 0) / 6, 2)
 
         # Bounded on both ends: some accounts have multiple historical
         # alerts (e.g. the frozen C1/C2 twin case both sit on ACC-1004), so
@@ -66,15 +86,15 @@ class TransactionInvestigationAgent:
             """SELECT txn_id, txn_datetime, direction, amount, counterparty_name,
                       counterparty_account_id, reference_text
                FROM transactions
-               WHERE account_id = ? AND txn_datetime >= ?
-                 AND txn_datetime <= datetime(?, '+' || ? || ' days')
+               WHERE account_id = ? AND julianday(txn_datetime) >= julianday(?)
+                 AND julianday(txn_datetime) < julianday(?, '+' || ? || ' days')
                ORDER BY txn_datetime""",
             (account_id, alert_date, alert_date, window_days),
         ).fetchall()
         window_txns = [dict(r) for r in window_txns]
 
-        # Broader per-case verification found that 24 of the 42 current
-        # fictional alerts have zero transactions in that strict
+        # Broader per-case verification found that many original workbook
+        # alerts have zero transactions in that strict
         # window — most alerts were generated without a real anchoring
         # trigger_transaction_id, so alert_date doesn't reliably line up
         # with actual account activity. Fallback: show the nearest real
@@ -105,14 +125,39 @@ class TransactionInvestigationAgent:
         trigger_txn = next((t for t in window_txns if t["txn_id"] == trigger_txn_id), None)
         deviation_ratio = (
             round(trigger_txn["amount"] / baseline_avg, 1)
-            if trigger_txn and not evidence_window_empty and baseline_avg else None
+            if trigger_txn and not evidence_window_empty and baseline_avg and not account_ownership_ambiguous else None
         )
+        activity_24h = None
+        if trigger_txn and not evidence_window_empty and not account_ownership_ambiguous:
+            anchor = datetime.fromisoformat(trigger_txn["txn_datetime"])
+            end = anchor + timedelta(hours=24)
+            scoped = [t for t in window_txns if anchor <= datetime.fromisoformat(t["txn_datetime"]) <= end]
+            incoming = [t for t in scoped if t["direction"] == "CR"]
+            outgoing = [t for t in scoped if t["direction"] == "DR"]
+            incoming_total = sum(t["amount"] for t in incoming)
+            outgoing_total = sum(t["amount"] for t in outgoing)
+            activity_24h = {
+                "incoming_total": incoming_total,
+                "outgoing_total": outgoing_total,
+                "historical_monthly_credit": monthly_credit_baseline,
+                "incoming_monthly_multiplier": round(incoming_total / monthly_credit_baseline, 2)
+                if monthly_credit_baseline else None,
+                "outgoing_to_incoming_pct": round(outgoing_total / incoming_total * 100, 2)
+                if incoming_total else None,
+                "distinct_beneficiaries": len({t["counterparty_account_id"] for t in outgoing
+                                               if t["counterparty_account_id"]}),
+                "credit_txn_ids": [t["txn_id"] for t in incoming],
+                "debit_txn_ids": [t["txn_id"] for t in outgoing],
+                "caveat": "Aggregate activity is an alert proxy, not proof that the incoming funds financed the outgoing payments.",
+            }
 
         return {
             "baseline_avg_amount": round(baseline_avg, 2),
             "baseline_txn_count": baseline_n,
             "deviation_ratio": deviation_ratio,
-            "trigger_transaction_id": trigger_txn_id if trigger_txn else None,
+            "trigger_transaction_id": trigger_txn_id if trigger_txn and not account_ownership_ambiguous else None,
             "window_transactions": window_txns,
             "evidence_window_empty": evidence_window_empty,
+            "activity_24h": activity_24h,
+            "account_ownership_ambiguous": account_ownership_ambiguous,
         }

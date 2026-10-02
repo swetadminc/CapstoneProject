@@ -25,9 +25,10 @@ from agents.customer_kyc_agent import CustomerKYCAgent
 from agents.transaction_investigation_agent import TransactionInvestigationAgent
 from agents.relationship_agent import RelationshipAgent
 from agents.evidence_agent import EvidenceAgent
-from agents.investigation_summary_agent import InvestigationSummaryAgent, safe_transactions_for_prompt
+from agents.investigation_summary_agent import InvestigationSummaryAgent, safe_transactions_for_prompt, safe_case_passages_for_prompt
 from agents.grounding_validator import GroundingValidator
 from agents.llm_client import GEMINI_MODEL
+from agents.calculated_summary import build_calculated_report
 from data.runtime_db import log_audit_event
 
 
@@ -41,7 +42,9 @@ class InvestigationOrchestrator:
         self.investigation_summary = InvestigationSummaryAgent()
         self.grounding_validator = GroundingValidator()
 
-    def investigate(self, case_id: str) -> dict:
+    def investigate(self, case_id: str, draft_mode: str = "model") -> dict:
+        if draft_mode not in {"model", "calculated"}:
+            raise ValueError("draft_mode must be model or calculated")
         log_audit_event(case_id, actor="system", action="investigation_started", details={"model": GEMINI_MODEL})
 
         triage = self.alert_triage.run(case_id)
@@ -66,13 +69,15 @@ class InvestigationOrchestrator:
                                    "evidence_window_empty": txn["evidence_window_empty"],
                                    "deviation_ratio": txn["deviation_ratio"]})
 
-        rel = self.relationship.run(alert["account_id"], txn["window_transactions"])
+        rel = ({"relationships": []} if txn.get("account_ownership_ambiguous") else
+               self.relationship.run(alert["account_id"], txn["window_transactions"]))
         log_audit_event(case_id, actor="ai", action="relationship_check_complete", actor_name=self.relationship.name,
                          details={"counterparties_checked": len(rel["relationships"])})
 
         evi = self.evidence.run(alert, case_id)
         log_audit_event(case_id, actor="ai", action="evidence_assembled", actor_name=self.evidence.name,
                          details={"knowledge_chunks_retrieved": [g["chunk_id"] for g in evi["guidance"]],
+                                   "case_chunks_retrieved": [g["chunk_id"] for g in evi.get("case_chunks", [])],
                                    "documents_on_file": len(evi["documents"])})
 
         context = {"case_id": case_id, "alert": alert, "customer": kyc["customer"], "account": kyc["account"]}
@@ -81,6 +86,7 @@ class InvestigationOrchestrator:
             "relationships": rel["relationships"],
             "prior_cases": kyc["prior_cases"],
             "documents": evi["documents"],
+            "case_chunks": evi.get("case_chunks", []),
         }
         guidance = evi["guidance"]
 
@@ -89,15 +95,23 @@ class InvestigationOrchestrator:
             log_audit_event(case_id, actor="system", action="untrusted_transaction_reference_withheld",
                             details={"txn_ids": flagged_reference_ids,
                                      "reason": "instruction-like reference text excluded from model prompt"})
+        _, flagged_case_chunks = safe_case_passages_for_prompt(evidence.get("case_chunks", []))
+        if flagged_case_chunks:
+            log_audit_event(case_id, actor="system", action="untrusted_case_passage_withheld",
+                            details={"chunk_ids": flagged_case_chunks,
+                                     "reason": "instruction-like source text excluded from model prompt"})
 
-        raw_report = self.investigation_summary.run(context, evidence, guidance)
+        raw_report = (self.investigation_summary.run(context, evidence, guidance)
+                      if draft_mode == "model" else build_calculated_report(context, evidence, guidance))
         log_audit_event(case_id, actor="ai", action="investigation_summary_complete",
                          actor_name=self.investigation_summary.name,
-                         details={"model": GEMINI_MODEL, "findings_drafted": len(raw_report.get("findings", []))})
+                         details={"model": GEMINI_MODEL if draft_mode == "model" else "none — calculated draft",
+                                  "findings_drafted": len(raw_report.get("findings", []))})
 
         validated_report = self.grounding_validator.validate(raw_report, evidence, guidance)
+        validated_report["_draft_mode"] = draft_mode
         log_audit_event(case_id, actor="ai", action="report_generated", actor_name=self.grounding_validator.name,
-                         details={"model": GEMINI_MODEL,
+                         details={"model": GEMINI_MODEL if draft_mode == "model" else "none — calculated draft",
                                    "validator_result": validated_report["_validator_result"],
                                    "validator_notes": validated_report["_validator_notes"],
                                    "findings_count": len(validated_report.get("findings", []))})

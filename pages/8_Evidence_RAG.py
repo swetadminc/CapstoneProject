@@ -4,37 +4,44 @@ import inspect
 import os
 import sqlite3
 import sys
+from contextlib import closing
 
 import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.build_database import chunk_body
 from data.knowledge_search import DB_PATH, search
+from data.case_evidence import case_evidence_coverage, chunk_source_text, search_case_chunks
+from data.fund_flow import case_transactions, trace_transaction
+from data.incoming_monitor import detect_pass_through
 from agents.evidence_agent import EvidenceAgent
 from agents.grounding_validator import GroundingValidator
 from ui_common import require_login, page_banner, page_flow
 
 st.set_page_config(page_title="InvestigateIQ — Evidence & RAG", page_icon="🧩", layout="wide")
 require_login(allow_guest=True)
-page_banner("🧩", "Evidence & RAG", "Trace a saved recommendation back to its synthetic source document and searchable chunks.")
-page_flow("Show how source guidance becomes retrievable evidence", [
-    ("Open a source", "Choose a synthetic playbook document or follow a citation from an investigation."),
-    ("Inspect chunks", "Compare the original body with the metadata and two-sentence body chunks."),
-    ("Try retrieval", "Search the same SQLite FTS5 index used by the evidence agent."),
-    ("Inspect the code", "Expand the chunking, retrieval and citation-checking implementation below without leaving this page."),
-], "This page shows retrieval provenance, not proof that every AI-generated sentence is correct. No vector embeddings are used.")
+page_banner("🧩", "Evidence & RAG", "Inspect fictional case records, their exact chunks, and separately indexed investigation guidance.")
+page_flow("Follow a record from source to review", [
+    ("Choose a case", "See the customer profile, illustrative identity records, alert and transaction packet."),
+    ("Inspect source and chunks", "Compare complete generated text with each exact indexed paragraph."),
+    ("Check coverage", "See what is missing, including original documents and independent verification."),
+    ("Search guidance", "Separately inspect the playbook chunks used by the evidence agent."),
+], "Current investigations retrieve both case passages and separate playbook guidance through SQLite FTS5; older saved reports may predate the case index. No vector embeddings are used. Retrieval does not establish lawful funds.")
 
 if not os.path.isfile(DB_PATH):
     st.error("The synthetic knowledge-base database is unavailable.")
     st.stop()
 
-with sqlite3.connect(DB_PATH) as conn:
+with closing(sqlite3.connect(DB_PATH)) as conn:
     conn.row_factory = sqlite3.Row
     docs = conn.execute(
         "SELECT doc_id, scenario_id, title, escalation_criteria, body, source_file "
         "FROM knowledge_base ORDER BY doc_id"
     ).fetchall()
     total_chunks = conn.execute("SELECT COUNT(*) FROM knowledge_chunks").fetchone()[0]
+    case_options = conn.execute(
+        "SELECT a.case_id, c.name FROM alerts a JOIN customers c ON c.customer_id=a.customer_id ORDER BY a.case_id"
+    ).fetchall()
 
 if not docs:
     st.warning("No synthetic source documents are indexed yet.")
@@ -64,15 +71,182 @@ def open_chunk(doc_id: str, chunk_id: str) -> None:
     st.session_state["rag_view"] = "Source & chunks"
 
 
+def open_case_chunk(doc_id: str, chunk_id: str) -> None:
+    """Keep a selected ledger row linked to its exact case passage on this page."""
+    st.session_state["rag_case_doc_id"] = doc_id
+    st.session_state["rag_case_chunk_id"] = chunk_id
+    st.session_state["rag_view"] = "Case records"
+
+
 if "rag_view" not in st.session_state:
-    st.session_state["rag_view"] = "Source & chunks"
+    st.session_state["rag_view"] = "Case records"
+requested_case = st.session_state.pop("rag_case_id", None)
+if requested_case:
+    st.session_state["rag_case_choice"] = requested_case
+    st.session_state["rag_view"] = "Case records"
 view = st.segmented_control(
-    "Explore evidence", ["Source & chunks", "Search the index", "Method & code"],
+    "Explore evidence", ["Case records", "Source & chunks", "Search the index", "Method & code"],
     key="rag_view", required=True,
     help="Switch between original sources, live retrieval results, and the actual implementation without leaving InvestigateIQ.",
 )
 
-if view == "Source & chunks":
+if view == "Case records":
+    labels = {row["case_id"]: f"{row['case_id']} — {row['name']}" for row in case_options}
+    if st.session_state.get("rag_case_choice") not in labels:
+        st.session_state["rag_case_choice"] = "CASE-043" if "CASE-043" in labels else next(iter(labels))
+    case_id = st.selectbox("Case", list(labels), format_func=lambda value: labels[value], key="rag_case_choice")
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        conn.row_factory = sqlite3.Row
+        coverage = case_evidence_coverage(conn, case_id)
+        matched = conn.execute("SELECT * FROM matched_case_metadata WHERE case_id=?", (case_id,)).fetchone()
+        sources = conn.execute(
+            "SELECT * FROM case_evidence_sources WHERE customer_id=? AND (case_id IS NULL OR case_id=?) "
+            "ORDER BY CASE category WHEN 'kyc_profile' THEN 0 WHEN 'identity_sample' THEN 1 "
+            "WHEN 'alert_record' THEN 2 WHEN 'transaction_record' THEN 3 ELSE 4 END, doc_id",
+            (coverage["customer_id"], case_id),
+        ).fetchall()
+    st.info("These records were generated from a fictional workbook or matched-case fixture. Illustrative PAN/Aadhaar/passport/licence text is not an original document or an independent KYC check. The case-document rows contain summaries only.")
+    left, right, third = st.columns(3)
+    left.metric("Case source records", len(sources))
+    right.metric("Illustrative identity records", coverage["sample_identity_records"])
+    third.metric("Original files uploaded", coverage["original_uploaded_files"])
+    with st.expander("Evidence gaps and review boundary", expanded=True):
+        for gap in coverage["gaps"]:
+            st.warning(gap)
+        st.write(coverage["conclusion"])
+    if matched:
+        with closing(sqlite3.connect(DB_PATH)) as conn:
+            conn.row_factory = sqlite3.Row
+            test_rows = [dict(row) for row in conn.execute(
+                "SELECT * FROM transactions WHERE account_id=(SELECT account_id FROM alerts WHERE case_id=?) "
+                "AND date(txn_datetime)='2026-10-01' ORDER BY txn_datetime", (case_id,),
+            ).fetchall()]
+            beneficiary_dates = {row["account_id"]: row["added_date"] for row in conn.execute(
+                "SELECT account_id, added_date FROM matched_case_beneficiaries WHERE case_id=?", (case_id,),
+            )}
+        detected = detect_pass_through(test_rows, matched["historical_monthly_credit"])
+        if detected:
+            signal = detected[0]
+            st.subheader("Recomputed ten-transaction alert")
+            a, b, c, d = st.columns(4)
+            a.metric("Incoming", f"₹{signal['incoming']:,.0f}")
+            b.metric("Outgoing", f"₹{signal['outgoing']:,.0f}")
+            c.metric("Versus monthly baseline", f"{signal['incoming_multiplier']}x")
+            d.metric("Beneficiaries", signal["beneficiary_count"])
+            st.caption(f"{signal['outbound_percent']}% outgoing/incoming. Both matched cases trigger the same review rule. These figures do not prove that a receipt funded a debit or determine the lawful purpose of funds.")
+            with st.expander("Open the complete ten-row timeline and balance arithmetic"):
+                running = matched["opening_balance"]
+                timeline = []
+                for row in test_rows:
+                    running += row["amount"] if row["direction"] == "CR" else -row["amount"]
+                    timeline.append({
+                        "Transaction": row["txn_id"], "Time": row["txn_datetime"],
+                        "Direction": row["direction"], "Amount (INR)": row["amount"],
+                        "Counterparty": row["counterparty_account_id"],
+                        "Beneficiary added": beneficiary_dates.get(row["counterparty_account_id"], "Not recorded"),
+                        "Balance after (INR)": running,
+                    })
+                st.caption(f"Opening balance ₹{matched['opening_balance']:,.0f} is an explicitly fictional fixture assumption, not an uploaded bank statement. All external counterparties have unknown KYC in this dataset.")
+                st.dataframe(timeline, hide_index=True)
+                st.caption(f"Calculated closing balance ₹{running:,.0f}; fictional fixture expected ₹{matched['balance_after_batch']:,.0f}.")
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        transactions = case_transactions(conn, case_id)
+    st.subheader(f"Transaction path · {len(transactions)} recorded rows for this account")
+    st.caption("Select any row to inspect its recorded direction, endpoints, KYC fields and possible onward activity. The count covers this account's whole available history, not just the alert window.")
+    if transactions:
+        transaction_map = {row["txn_id"]: row for row in transactions}
+        txn_id = st.selectbox(
+            "Transaction", list(transaction_map),
+            format_func=lambda key: f"{key} · {transaction_map[key]['txn_datetime']} · {transaction_map[key]['direction']} · INR {transaction_map[key]['amount']:,.0f} · {transaction_map[key]['channel']}",
+            help="Choose a transaction ID from the source ledger. Cash deposits have no inferred sender-account link.",
+        )
+        with closing(sqlite3.connect(DB_PATH)) as conn:
+            trace = trace_transaction(conn, txn_id)
+            ledger_doc_id = f"CASE-LEDGER-{case_id}"
+            ledger_chunk = conn.execute(
+                "SELECT chunk_id FROM case_evidence_chunks WHERE doc_id=? AND instr(chunk_text, ?) > 0 "
+                "ORDER BY chunk_index LIMIT 1", (ledger_doc_id, txn_id),
+            ).fetchone()
+        st.caption(f"Record status: {trace['transaction']['status']} · Link quality: {trace['link_status']}")
+        if ledger_chunk:
+            st.button("Open this transaction's source chunk", key=f"case_txn_chunk_{case_id}_{txn_id}",
+                      on_click=open_case_chunk, args=(ledger_doc_id, ledger_chunk[0]),
+                      help="Jump to the exact indexed paragraph containing this transaction ID.")
+        origin, arrow, target = st.columns([5, 1, 5])
+        with origin.container(border=True):
+            st.markdown("**Recorded source**")
+            st.write(f"{trace['source']['account_id'] or 'Unknown'} · {trace['source']['name']}")
+            st.caption(f"Customer: {trace['source']['customer_id'] or 'Unknown'} · Dataset KYC field: {trace['source']['dataset_kyc_status']} · Original identity files: {trace['source']['original_identity_files']}")
+        arrow.markdown("### →")
+        with target.container(border=True):
+            st.markdown("**Recorded destination**")
+            st.write(f"{trace['destination']['account_id'] or 'Unknown'} · {trace['destination']['name']}")
+            st.caption(f"Customer: {trace['destination']['customer_id'] or 'Unknown'} · Dataset KYC field: {trace['destination']['dataset_kyc_status']} · Original identity files: {trace['destination']['original_identity_files']}")
+        st.warning(trace["caveat"])
+        if trace["mirror_transaction_id"]:
+            st.success(f"Matching opposite-side posting: {trace['mirror_transaction_id']}")
+        if trace["onward_candidates"]:
+            with st.expander(f"Possible onward activity · {len(trace['onward_candidates'])} row(s)"):
+                st.caption(trace["onward_caveat"])
+                for onward in trace["onward_candidates"]:
+                    st.write(f"{onward['txn_id']} · {onward['txn_datetime']} · INR {onward['amount']:,.0f} → {onward['counterparty_account_id'] or 'unknown endpoint'}")
+        else:
+            st.caption("No qualifying later outgoing row was found within three days in this dataset.")
+    st.divider()
+    st.subheader("Document lineage and chunks")
+    source_map = {row["doc_id"]: row for row in sources}
+    requested_case_doc = st.session_state.pop("rag_case_doc_id", None)
+    case_doc_ids = list(source_map)
+    selected = st.selectbox(
+        "Case source", case_doc_ids,
+        index=case_doc_ids.index(requested_case_doc) if requested_case_doc in source_map else 0,
+        format_func=lambda key: f"{source_map[key]['document_type']} · {source_map[key]['title']}",
+        help="Customer-wide profile and sample identity records appear for every case; case alert, transaction packet and summary rows appear where available.",
+    )
+    source = source_map[selected]
+    st.caption(f"{source['doc_id']} · origin: {source['origin']} · status: {source['verification_status']} · source: {source['source_table']}")
+    with st.expander("Source record IDs and content fingerprint"):
+        st.code(source["source_record_ids"], language="json")
+        st.caption(f"SHA-256 of displayed source text: {source['content_sha256']}")
+    with st.expander("Read the complete source text"):
+        st.write(source["body"])
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        conn.row_factory = sqlite3.Row
+        passages = conn.execute(
+            "SELECT chunk_id, chunk_index, chunk_text, word_count FROM case_evidence_chunks "
+            "WHERE doc_id=? ORDER BY chunk_index", (selected,),
+        ).fetchall()
+    st.subheader("Exact indexed chunks")
+    st.caption("Each paragraph of the displayed source becomes one ordered chunk. The original text is preserved exactly; this is a lexical FTS5 index, not an embedding store.")
+    requested_case_chunk = st.session_state.pop("rag_case_chunk_id", None)
+    for passage in passages:
+        with st.expander(f"{passage['chunk_id']} · {passage['word_count']} words",
+                         expanded=passage["chunk_id"] == requested_case_chunk):
+            st.write(passage["chunk_text"])
+    st.divider()
+    st.subheader("Search this case's indexed records")
+    case_query = st.text_input("Keywords", key="case_evidence_search", help="Search source-record chunks for this case and its customer; matching text is shown with its exact source ID.")
+    if case_query.strip():
+        from data.knowledge_search import _fts_query
+        with closing(sqlite3.connect(DB_PATH)) as conn:
+            conn.row_factory = sqlite3.Row
+            try:
+                hits = conn.execute(
+                    "SELECT f.chunk_id, f.doc_id, f.chunk_text FROM case_evidence_chunks_fts f "
+                    "WHERE case_evidence_chunks_fts MATCH ? AND f.customer_id=? "
+                    "AND (f.case_id IS NULL OR f.case_id=?) ORDER BY bm25(case_evidence_chunks_fts) LIMIT 10",
+                    (_fts_query(case_query), coverage["customer_id"], case_id),
+                ).fetchall()
+            except sqlite3.OperationalError:
+                hits = []
+        if not hits:
+            st.write("No matching passage in this case's indexed records.")
+        for hit in hits:
+            with st.container(border=True):
+                st.markdown(f"**{hit['chunk_id']}** · {hit['doc_id']}")
+                st.write(hit["chunk_text"])
+
+elif view == "Source & chunks":
     selected_doc = st.selectbox(
         "Source document", doc_ids, key="rag_doc_choice",
         format_func=lambda doc_id: f"{doc_id} — {doc_by_id[doc_id]['title']}",
@@ -81,7 +255,7 @@ if view == "Source & chunks":
     doc = doc_by_id[selected_doc]
     st.caption(f"{doc['doc_id']} · {doc['scenario_id']} · Product Docs/dataset/knowledge_base/{doc['source_file']}")
     st.markdown(f"**Escalation criteria in source:** {doc['escalation_criteria']}")
-    with sqlite3.connect(DB_PATH) as conn:
+    with closing(sqlite3.connect(DB_PATH)) as conn:
         conn.row_factory = sqlite3.Row
         chunks = conn.execute(
             "SELECT chunk_id, chunk_index, chunk_type, word_count, chunk_text "
@@ -127,10 +301,14 @@ else:
     st.subheader("4 · Inspect the implementation")
     st.write("Open a step to see the actual Python used by this product. The code stays on this site.")
     implementation = [
-        ("1 · Split the document", "data/build_database.py", "Groups source sentences into small, ordered chunks that can be inspected individually.", chunk_body),
-        ("2 · Retrieve matching chunks", "data/knowledge_search.py", "Uses a parameterized SQLite FTS5 query and BM25 ranking; no embeddings or vector database are used.", search),
-        ("3 · Gather case guidance", "agents/evidence_agent.py", "Limits the playbook search to the alert scenario and returns the selected guidance with case documents.", EvidenceAgent.guidance_for),
-        ("4 · Check draft citations", "agents/grounding_validator.py", "Checks selected transaction and document IDs, required citations, ratio claims, and unsupported conclusion wording. This is not proof that every sentence is correct.", GroundingValidator.validate),
+        ("1 · Calculate a review signal", "data/incoming_monitor.py", "Tests a supplied transaction batch against the illustrative 24-hour thresholds; this is not a live bank feed.", detect_pass_through),
+        ("2 · Split guidance", "data/build_database.py", "Groups synthetic playbook sentences into ordered two-sentence chunks.", chunk_body),
+        ("3 · Split case records", "data/case_evidence.py", "Preserves each generated record's paragraphs as exact, ordered chunks.", chunk_source_text),
+        ("4 · Search case evidence", "data/case_evidence.py", "Restricts keyword retrieval to this case/customer and exposes source and verification status.", search_case_chunks),
+        ("5 · Search guidance", "data/knowledge_search.py", "Uses SQLite FTS5 and BM25 to rank playbook passages; no embeddings are used.", search),
+        ("6 · Inspect a transaction link", "data/fund_flow.py", "Shows recorded endpoints and KYC gaps without claiming that possible onward activity proves a money trail.", trace_transaction),
+        ("7 · Gather context for the draft", "agents/evidence_agent.py", "Combines case passages, playbook guidance and document-summary rows.", EvidenceAgent.run),
+        ("8 · Check draft citations", "agents/grounding_validator.py", "Checks selected IDs, references, ratios and unsupported conclusion wording; it cannot prove every sentence.", GroundingValidator.validate),
     ]
     for title, path, explanation, function in implementation:
         with st.expander(title):

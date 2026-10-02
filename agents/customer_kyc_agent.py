@@ -27,9 +27,16 @@ class CustomerKYCAgent:
             "SELECT * FROM customers WHERE customer_id = ?", (alert["customer_id"],)
         ).fetchone())
 
-        account = dict(cur.execute(
+        owner_rows = cur.execute(
             "SELECT * FROM accounts WHERE account_id = ?", (alert["account_id"],)
-        ).fetchone())
+        ).fetchall()
+        matching = next((row for row in owner_rows if row["customer_id"] == alert["customer_id"]), None)
+        if matching is None:
+            conn.close()
+            raise ValueError("Alert account has no row owned by its stated customer")
+        account = dict(matching)
+        account["account_id_owner_collision"] = len(owner_rows) > 1
+        account["candidate_customer_ids"] = sorted({row["customer_id"] for row in owner_rows if row["customer_id"]})
 
         prior_cases = cur.execute(
             """SELECT case_id, disposition, rationale FROM past_cases

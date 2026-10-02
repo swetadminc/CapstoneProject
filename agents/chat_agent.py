@@ -21,8 +21,8 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from agents.investigation_agent import call_gemini, GEMINI_MODEL  # noqa: E402
-from agents.grounding_validator import sanitize_forbidden_wording  # noqa: E402
-from agents.investigation_summary_agent import safe_transactions_for_prompt  # noqa: E402
+from agents.grounding_validator import GroundingValidator, sanitize_forbidden_wording  # noqa: E402
+from agents.investigation_summary_agent import safe_transactions_for_prompt, safe_case_passages_for_prompt  # noqa: E402
 from data.knowledge_search import search as search_knowledge  # noqa: E402
 from data.runtime_db import log_audit_event  # noqa: E402
 
@@ -32,6 +32,7 @@ CHAT_SCHEMA = {
         "answer": {"type": "STRING"},
         "cited_txn_ids": {"type": "ARRAY", "items": {"type": "STRING"}},
         "cited_doc_ids": {"type": "ARRAY", "items": {"type": "STRING"}},
+        "cited_case_chunk_ids": {"type": "ARRAY", "items": {"type": "STRING"}},
     },
     "required": ["answer"],
 }
@@ -94,11 +95,13 @@ def answer_from_saved_evidence(question: str, context: dict, evidence: dict,
                   "relationships, or suggested next step. Rephrase within those topics; free-form AI needs a model connection.")
 
     return {"answer": answer, "cited_txn_ids": txns, "cited_doc_ids": docs,
+            "cited_case_chunk_ids": [],
             "validator_notes": [], "source": "saved_evidence"}
 
 
 def _build_chat_prompt(context, evidence, guidance, history, question):
     safe_transactions, _ = safe_transactions_for_prompt(evidence["window_transactions"])
+    safe_case_passages, _ = safe_case_passages_for_prompt(evidence.get("case_chunks", []))
     history_text = "\n".join(
         f"{'Investigator' if h['role'] == 'user' else 'Copilot'}: {h['content']}"
         for h in history[-MAX_HISTORY_TURNS:]
@@ -128,11 +131,20 @@ occupation_or_industry: {context['customer'].get('occupation_or_industry')}
 risk_rating: {context['customer'].get('risk_rating')}
 kyc_status: {context['customer'].get('kyc_status')}
 declared_source_of_funds: {context['customer'].get('declared_source_of_funds')}
+The KYC status and declared source are fictional dataset fields, not
+independently verified documents. Generated identity samples are not
+authentic government records. Do not infer lawful or unlawful funds from them.
 
 TRANSACTION ANALYSIS
 baseline_avg_amount: {evidence['baseline_avg_amount']}
 trigger_transaction_id: {evidence.get('trigger_transaction_id') or 'not identified in the review window'}
 deviation_ratio: {f"{evidence['deviation_ratio']}x baseline" if evidence.get('deviation_ratio') is not None else "unavailable — do not infer a ratio from an arbitrary transaction"}
+24_hour_aggregate_activity: {json.dumps(evidence.get('activity_24h'), default=str) if evidence.get('activity_24h') else 'unavailable'}
+account_ownership_ambiguous: {bool(evidence.get('account_ownership_ambiguous'))}
+{"CRITICAL: account ID collision across customers. Do not attribute rows or ratios to this customer until resolved." if evidence.get('account_ownership_ambiguous') else ""}
+The single-trigger ratio and aggregate-credit/monthly-baseline ratio are different;
+do not conflate them. Outgoing/incoming is an activity proxy, not a proven
+chain of the same funds.
 {"NOTE: the source alert has no identified trigger transaction in this review window. Do NOT invent one or state a deviation ratio." if not evidence.get('trigger_transaction_id') else ""}
 {"NOTE: no transactions fell within this alert's review window. The transactions below are the nearest ones in time, for background context only — they are NOT the transaction that triggered this alert; say so plainly if asked." if evidence.get('evidence_window_empty') else "window_transactions (within the alert's review window):"}
 {json.dumps(safe_transactions, default=str)}
@@ -145,6 +157,11 @@ PRIOR CASES
 
 DOCUMENTS ON FILE
 {json.dumps(evidence['documents'], default=str) if evidence['documents'] else "None found."}
+
+RETRIEVED CASE PASSAGES (cite chunk_id as cited_case_chunk_ids if used;
+these are fictional source/summary text, not authenticated identity files)
+{json.dumps([{"chunk_id": p["chunk_id"], "verification_status": p["verification_status"],
+              "text": p["chunk_text"]} for p in safe_case_passages], default=str)}
 
 KNOWLEDGE BASE GUIDANCE AVAILABLE (cite doc_id if you use one)
 {json.dumps([{"doc_id": g["doc_id"], "text": g["chunk_text"]} for g in guidance], default=str)}
@@ -177,6 +194,7 @@ def ask_question(case_id: str, question: str, history: list, context: dict, evid
 
     known_txn_ids = {t["txn_id"] for t in evidence["window_transactions"]}
     known_doc_ids = {g["doc_id"] for g in combined_guidance}
+    known_case_chunk_ids = {p["chunk_id"] for p in evidence.get("case_chunks", [])}
 
     notes = []
     cited_txns = [t for t in raw.get("cited_txn_ids", []) if t in known_txn_ids]
@@ -189,18 +207,29 @@ def ask_question(case_id: str, question: str, history: list, context: dict, evid
     if dropped_docs:
         notes.append(f"Dropped unverifiable document citation(s): {dropped_docs}")
 
+    cited_case_chunks = [c for c in raw.get("cited_case_chunk_ids", []) if c in known_case_chunk_ids]
+    dropped_case_chunks = set(raw.get("cited_case_chunk_ids", [])) - known_case_chunk_ids
+    if dropped_case_chunks:
+        notes.append(f"Dropped unknown case chunk citation(s): {dropped_case_chunks}")
+
     answer = sanitize_forbidden_wording(raw.get("answer", ""), notes, "chat answer")
+    activity = evidence.get("activity_24h") or {}
+    aggregate_ratio = activity.get("incoming_monthly_multiplier") if activity.get("credit_txn_ids") else None
+    real_ratio = evidence.get("deviation_ratio") if evidence.get("trigger_transaction_id") in known_txn_ids else None
+    answer, _ = GroundingValidator()._check_ratio_claims(answer, real_ratio, notes, "chat answer", aggregate_ratio)
 
     result = {
         "answer": answer,
         "cited_txn_ids": cited_txns,
         "cited_doc_ids": cited_docs,
+        "cited_case_chunk_ids": cited_case_chunks,
         "validator_notes": notes,
     }
 
     log_audit_event(
         case_id, actor="ai", action="chat_answer",
         details={"question": question, "cited_txn_ids": cited_txns, "cited_doc_ids": cited_docs,
+                  "cited_case_chunk_ids": cited_case_chunks,
                   "validator_notes": notes, "withheld_txn_ids": withheld_txn_ids, "model": GEMINI_MODEL},
     )
 

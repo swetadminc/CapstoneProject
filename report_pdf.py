@@ -84,13 +84,16 @@ def build_report_pdf(case_id: str, context: dict, evidence: dict, report: dict,
         f"Severity: {context['alert']['severity']}\n"
         f"Scenario: {context['alert'].get('scenario_id')}\n"
         f"Recorded rule label: {context['alert'].get('trigger_rule') or 'not supplied'} "
-        f"(source dataset; not recalculated in this report)\n"
+        f"({'calculated from fictional matched-case rows' if context['alert']['alert_id'].startswith('ALERT-TEST-') else 'source dataset; not recalculated in this report'})\n"
         f"Trigger transaction ID: {context['alert'].get('trigger_transaction_id') or 'not supplied'}\n"
         f"Customer risk rating: {context['customer'].get('risk_rating')} | "
         f"KYC status: {context['customer'].get('kyc_status')}"
     )
     if not context["alert"].get("trigger_transaction_id"):
         pdf.body("Source alert has no trigger-transaction ID; recorded rule label is not independently verified.")
+    if evidence.get("account_ownership_ambiguous"):
+        pdf.body("SOURCE-DATA COLLISION: account ID maps to multiple customer rows. Ledger activity cannot be attributed to this customer without correction.")
+    pdf.body("KYC status is a fictional source-data field. No original identity or source-of-funds file is independently verified in this case package.")
     pdf.ln(3)
 
     pdf.section_title("Transaction Analysis")
@@ -98,11 +101,25 @@ def build_report_pdf(case_id: str, context: dict, evidence: dict, report: dict,
     window_note = " (no transactions fell within the review window - nearest activity shown for context)" \
         if evidence.get("evidence_window_empty") else ""
     pdf.body(
-        f"Baseline avg. transaction amount: Rs {evidence['baseline_avg_amount']:,.2f}\n"
+        f"{'Mixed-ID baseline (unreliable)' if evidence.get('account_ownership_ambiguous') else 'Baseline avg. transaction amount'}: Rs {evidence['baseline_avg_amount']:,.2f}\n"
         f"Trigger/baseline ratio: {dev}\n"
         f"Transactions considered: {len(evidence['window_transactions'])}{window_note}\n"
         f"Prior cases on file for this customer: {len(evidence.get('prior_cases', []))}"
     )
+    activity = evidence.get("activity_24h")
+    if activity:
+        monthly_ratio = (f"{activity['incoming_monthly_multiplier']}x" if activity['incoming_monthly_multiplier'] is not None
+                         else "not computable")
+        outbound_ratio = (f"{activity['outgoing_to_incoming_pct']}%" if activity['outgoing_to_incoming_pct'] is not None
+                          else "not computable")
+        pdf.body(
+            f"24-hour incoming: Rs {activity['incoming_total']:,.0f} | outgoing: Rs {activity['outgoing_total']:,.0f}\n"
+            f"Previous six-month average monthly credits: Rs {activity['historical_monthly_credit']:,.0f}\n"
+            f"Aggregate incoming/monthly baseline: {monthly_ratio} | "
+            f"outgoing/incoming: {outbound_ratio} | "
+            f"beneficiary IDs: {activity['distinct_beneficiaries']}\n"
+            "These are account-activity ratios, not proof that the incoming funds financed the outgoing payments."
+        )
     pdf.ln(3)
 
     pdf.section_title(f"Findings ({len(report.get('findings', []))})")
@@ -119,6 +136,8 @@ def build_report_pdf(case_id: str, context: dict, evidence: dict, report: dict,
             pdf.set_font("Helvetica", "", 9)
             pdf.multi_cell(0, 5, _safe("Citations: " + ", ".join(f["supporting_txn_ids"])),
                             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        if f.get("supporting_case_chunk_ids"):
+            pdf.body("Case source chunks: " + ", ".join(f["supporting_case_chunk_ids"]), size=9)
         pdf.ln(2)
 
     pdf.section_title("Investigation Questions")
@@ -135,6 +154,7 @@ def build_report_pdf(case_id: str, context: dict, evidence: dict, report: dict,
     pdf.ln(2)
 
     pdf.section_title("Narrative Summary")
+    pdf.body("Draft mode: " + ("non-generative calculation" if report.get("_draft_mode") == "calculated" else "model-assisted or saved replay"), size=9)
     pdf.body(report.get("narrative_summary", ""))
     pdf.ln(3)
 

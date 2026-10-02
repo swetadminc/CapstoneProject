@@ -111,23 +111,27 @@ choice = st.selectbox("Choose a case to investigate", labels, index=default_idx,
                       help="Choose one fictional alert. CASE-001 and CASE-002 are pre-reviewed comparison cases.")
 case_id = CASES[choice]
 
+if st.button("🧩 Inspect this case's KYC, transaction records and chunks",
+             help="Open the fictional source records and see the original-document and verification gaps."):
+    st.session_state["rag_case_id"] = case_id
+    st.switch_page("pages/8_Evidence_RAG.py")
+
 cached = load_cached(case_id)
-mode_options = ["Cached (instant, zero API cost)", "Live (real Gemini call)"]
+mode_options = ["Cached (instant, zero API cost)"] if cached else []
+mode_options.append("Calculated (current database, no AI call)")
+if GEMINI_API_KEY:
+    mode_options.append("AI draft (live Gemini call)")
 if not cached:
-    mode_options = ["Live (real Gemini call)"]
-    st.warning(f"No cached report found for {case_id} — run `scripts/generate_cached_reports.py` to create one.")
+    st.caption(f"No saved report for {case_id}. A current-database calculation is available below.")
 mode = st.radio("Mode", mode_options, horizontal=True,
-                 help="Cached replays a stored report and checks it with the current validator. "
-                      "Live requests a fresh model draft when a model key is configured.")
+                 help="Cached replays a saved report; Calculated recomputes the case from source rows without an AI call; AI draft calls Gemini when configured.")
 use_cache = mode.startswith("Cached")
+use_calculated = mode.startswith("Calculated")
 
 if use_cache:
     st.caption(f"Cached report generated {cached['generated_at']} · model `{cached['model']}`")
 else:
-    if not GEMINI_API_KEY:
-        st.error("Live AI is unavailable because no model connection is configured. Cached reports remain available.")
-        st.stop()
-    st.caption(f"Model: `{GEMINI_MODEL}`")
+    st.caption("Current database · rule-based report · no model call" if use_calculated else f"Model: `{GEMINI_MODEL}`")
 
 run = st.button("▶ Run investigation", type="primary",
                 help="Build the case draft in the selected mode. Live mode calls Gemini; cached mode replays a saved example.")
@@ -150,15 +154,17 @@ if run:
         log_audit_event(case_id, actor="system", action="report_replayed_from_cache",
                          details={"cached_at": cached["generated_at"], "model": cached["model"]})
     else:
-        with st.spinner(f"Running the full pipeline for {case_id}... (live Gemini call, a few seconds)"):
+        with st.spinner(f"Reviewing current records for {case_id}..." if use_calculated else
+                        f"Running the full pipeline for {case_id}... (live Gemini call, a few seconds)"):
             t0 = time.time()
             try:
-                result = investigate(case_id)
+                result = investigate(case_id, draft_mode="calculated" if use_calculated else "model")
             except Exception as e:
                 st.error(f"Investigation failed: {e}")
                 st.stop()
             elapsed = time.time() - t0
-    st.session_state[state_key] = {"result": result, "elapsed": elapsed, "use_cache": use_cache}
+    st.session_state[state_key] = {"result": result, "elapsed": elapsed,
+                                   "use_cache": use_cache, "use_calculated": use_calculated}
 
 if state_key in st.session_state:
     saved = st.session_state[state_key]
@@ -188,16 +194,22 @@ if state_key in st.session_state:
 
     st.divider()
     st.subheader(f"{context['customer']['name']} — {context['alert']['alert_type']}")
-    st.caption(
-        f"Recorded alert rule: {context['alert'].get('trigger_rule') or 'not supplied'} · "
-        "this is source-dataset metadata, not a rule result independently recalculated by this screen."
-    )
+    if context["alert"]["alert_id"].startswith("ALERT-TEST-"):
+        st.caption("Calculated fictional test alert · the ten-transaction pattern was evaluated by code at database build time; no external bank feed was received.")
+    else:
+        st.caption(
+            f"Recorded alert rule: {context['alert'].get('trigger_rule') or 'not supplied'} · "
+            "this is source-dataset metadata, not a rule result independently recalculated by this screen."
+        )
     if not context["alert"].get("trigger_transaction_id"):
         st.warning("This fictional alert has no trigger-transaction ID in the source data. "
                    "Do not treat its recorded rule label as independently verified.")
+    if evidence.get("account_ownership_ambiguous"):
+        st.error("Source-data collision: this account ID belongs to more than one customer row. The displayed transactions cannot be confidently attributed to this customer; review the source data before making a case decision.")
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Baseline avg. amount", f"₹{evidence['baseline_avg_amount']:,.0f}",
-              help="Historical average used as context for the alert; inspect source transactions before drawing conclusions.")
+    c1.metric("Mixed-ID baseline (unreliable)" if evidence.get("account_ownership_ambiguous") else "Baseline avg. amount",
+              f"₹{evidence['baseline_avg_amount']:,.0f}",
+              help="This figure cannot be attributed to one customer when the account ID is duplicated in the source workbook. Otherwise it is historical context, not a verdict.")
     c2.metric("Trigger/baseline ratio", f"{evidence['deviation_ratio']}x"
               if evidence["deviation_ratio"] is not None else "-",
               help="Recomputed only when the source alert identifies a trigger transaction; a dash means it cannot be verified here.")
@@ -208,6 +220,15 @@ if state_key in st.session_state:
     )
     c4.metric("Prior cases found", len(evidence["prior_cases"]),
               help="Earlier cases found in this fictional dataset; this does not imply guilt.")
+    activity = evidence.get("activity_24h")
+    if activity and context["alert"]["alert_id"].startswith("ALERT-TEST-"):
+        st.subheader("24-hour alert calculation")
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Incoming", f"₹{activity['incoming_total']:,.0f}")
+        m2.metric("Outgoing", f"₹{activity['outgoing_total']:,.0f}")
+        m3.metric("Versus monthly credits", f"{activity['incoming_monthly_multiplier']}x")
+        m4.metric("Outgoing / incoming", f"{activity['outgoing_to_incoming_pct']}%")
+        st.caption(f"{activity['distinct_beneficiaries']} recorded outgoing beneficiary IDs. {activity['caveat']} The separate trigger/baseline ratio above compares one transaction with average transaction size, not the 24-hour total with monthly credits.")
     if evidence.get("evidence_window_empty"):
         st.caption("⚠️ No transactions fell inside this alert's review window — the transactions shown below "
                    "are the nearest ones in time, for background context only, not the trigger event.")
@@ -227,6 +248,17 @@ if state_key in st.session_state:
         st.subheader("📋 Evidence & Findings")
         st.page_link("pages/8_Evidence_RAG.py", label="🧩 See how source documents become searchable chunks",
                      help="Open the read-only Evidence & RAG page to inspect document text, chunks, retrieval and code links.")
+        case_passages = evidence.get("case_chunks", [])
+        with st.expander(f"Retrieved case passages · {len(case_passages)} indexed chunks"):
+            st.caption("FTS5/BM25-selected fictional source passages. Their retrieval score is not a verification or a verdict.")
+            for passage in case_passages:
+                st.markdown(f"**{passage['chunk_id']}** · {passage['verification_status']}")
+                st.write(passage["chunk_text"])
+                if st.button("Open source and full chunk list", key=f"open_case_chunk_{case_id}_{passage['chunk_id']}"):
+                    st.session_state["rag_case_id"] = case_id
+                    st.session_state["rag_case_doc_id"] = passage["doc_id"]
+                    st.session_state["rag_case_chunk_id"] = passage["chunk_id"]
+                    st.switch_page("pages/8_Evidence_RAG.py")
         status_class = {
             "Verified": "status-verified", "Inferred": "status-inferred",
             "Missing": "status-missing", "Conflicting": "status-conflicting",
@@ -246,6 +278,8 @@ if state_key in st.session_state:
                     st.markdown(plain_text_html(f["why_it_matters"], muted=True), unsafe_allow_html=True)
                     if f.get("supporting_txn_ids"):
                         st.code(", ".join(f["supporting_txn_ids"]), language=None)
+                    if f.get("supporting_case_chunk_ids"):
+                        st.caption("Case source chunks: " + ", ".join(f["supporting_case_chunk_ids"]))
                 accepted_flags.append(accept)
 
         st.markdown("**Investigation questions**")
@@ -341,7 +375,8 @@ if state_key in st.session_state:
             if answer:
                 chat_history.append({
                     "role": "assistant", "content": answer["answer"],
-                    "citations": answer["cited_txn_ids"] + [f"[{d}]" for d in answer["cited_doc_ids"]],
+                    "citations": answer["cited_txn_ids"] + [f"[{d}]" for d in answer["cited_doc_ids"]]
+                    + [f"[{c}]" for c in answer.get("cited_case_chunk_ids", [])],
                     "validator_notes": answer["validator_notes"], "source": answer.get("source"),
                 })
             st.rerun()

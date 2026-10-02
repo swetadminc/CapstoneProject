@@ -24,6 +24,8 @@ class TransactionInvestigationTests(unittest.TestCase):
                         counterparty_account_id TEXT, reference_text TEXT
                     )
                 """)
+                conn.execute("CREATE TABLE accounts (account_id TEXT, customer_id TEXT)")
+                conn.execute("INSERT INTO accounts VALUES ('ACC-1', 'CUST-1')")
                 conn.executemany("INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?)", [
                     ("TXN-OLD", "ACC-1", "2026-09-17T09:00:00", "CR", 100, "Old", "EXT-1", "Prior"),
                     ("TXN-FIRST", "ACC-1", "2026-09-18T10:00:00", "CR", 200, "First", "EXT-2", "First"),
@@ -50,7 +52,7 @@ class TransactionInvestigationTests(unittest.TestCase):
         stored = {"window_transactions": [{"txn_id": "TXN-FIRST", "amount": 200}],
                   "baseline_avg_amount": 100, "deviation_ratio": 2.0,
                   "evidence_window_empty": False}
-        checked = transaction_module.anchor_cached_evidence(stored, {"trigger_transaction_id": None})
+        checked = transaction_module.anchor_cached_evidence(stored, {"account_id": "ACC-1", "trigger_transaction_id": None})
         self.assertIsNone(checked["deviation_ratio"])
         self.assertIsNone(checked["trigger_transaction_id"])
         self.assertEqual(stored["deviation_ratio"], 2.0)
@@ -60,7 +62,7 @@ class TransactionInvestigationTests(unittest.TestCase):
                   "baseline_avg_amount": 100, "deviation_ratio": 99.0,
                   "evidence_window_empty": False}
         checked = transaction_module.anchor_cached_evidence(
-            stored, {"trigger_transaction_id": "TXN-TRIGGER"}
+            stored, {"account_id": "ACC-1", "trigger_transaction_id": "TXN-TRIGGER"}
         )
         self.assertEqual(checked["deviation_ratio"], 6.0)
 

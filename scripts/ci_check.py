@@ -47,6 +47,7 @@ def main():
     expected_min = {
         "customers": 500, "accounts": 600, "transactions": 9000, "relationships": 100,
         "alerts": 30, "past_cases": 20, "documents": 10, "knowledge_base": 10, "knowledge_chunks": 20,
+        "case_evidence_sources": 1700, "case_evidence_chunks": 4000,
     }
     for table, minimum in expected_min.items():
         n = cur.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
@@ -73,6 +74,22 @@ def main():
     check(len(results) > 0, "keyword search returns at least one result for a known query")
     if results:
         check(results[0]["score"] > 0, "top result has a positive BM25 score")
+
+    print("\nChecking case evidence provenance and honest coverage...")
+    case_count = cur.execute("SELECT COUNT(*) FROM alerts").fetchone()[0]
+    covered = cur.execute(
+        "SELECT COUNT(DISTINCT case_id) FROM case_evidence_sources WHERE category='transaction_record'"
+    ).fetchone()[0]
+    check(covered == case_count, f"all {case_count} cases have a transaction evidence packet")
+    check(cur.execute("SELECT COUNT(*) FROM case_evidence_sources WHERE is_original_upload=1").fetchone()[0] == 0,
+          "generated samples are not represented as original uploaded files")
+    check(cur.execute("SELECT COUNT(*) FROM case_evidence_chunks_fts WHERE case_evidence_chunks_fts MATCH 'fictional'").fetchone()[0] > 0,
+          "case evidence FTS5 index contains searchable fictional-source text")
+    collisions = {row[0] for row in cur.execute(
+        "SELECT account_id FROM accounts GROUP BY account_id HAVING COUNT(DISTINCT customer_id)>1"
+    )}
+    check(collisions == {"ACC-1004"},
+          f"only the documented, guarded workbook account-ID collision is present ({sorted(collisions)})")
 
     conn.close()
 

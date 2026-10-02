@@ -6,6 +6,7 @@ from pathlib import Path
 
 from agents.grounding_validator import GroundingValidator, FORBIDDEN_WORDS
 from agents.transaction_investigation_agent import anchor_cached_evidence
+from agents.transaction_investigation_agent import TransactionInvestigationAgent
 from report_pdf import build_report_pdf
 
 
@@ -62,6 +63,13 @@ class GroundingValidatorTests(unittest.TestCase):
         self.assertEqual(result["recommended_next_steps"], [])
         self.assertEqual(result["_validator_result"], "REVIEW_REQUIRED")
 
+    def test_unknown_case_chunk_citation_is_removed(self):
+        report = self.report()
+        report["findings"][0]["supporting_case_chunk_ids"] = ["MADE-UP-C0"]
+        result = GroundingValidator().validate(report, self.evidence, self.guidance)
+        self.assertEqual(result["findings"][0]["supporting_case_chunk_ids"], [])
+        self.assertEqual(result["_validator_result"], "REVIEW_REQUIRED")
+
     def test_mismatched_ratio_requires_review(self):
         report = self.report()
         report["findings"][0]["description"] = "9x the baseline"
@@ -69,6 +77,20 @@ class GroundingValidatorTests(unittest.TestCase):
         self.assertEqual(result["findings"][0]["evidence_status"], "Inferred")
         self.assertNotIn("9x", result["findings"][0]["description"])
         self.assertEqual(result["_validator_result"], "REVIEW_REQUIRED")
+
+    def test_matched_case_aggregate_ratio_is_distinct_from_single_transaction_ratio(self):
+        evidence = TransactionInvestigationAgent().run(
+            "ACC-TEST-01", "2026-10-01", trigger_txn_id="TXN-TEST-01-01"
+        )
+        self.assertEqual(evidence["activity_24h"]["incoming_monthly_multiplier"], 15)
+        self.assertEqual(evidence["activity_24h"]["outgoing_to_incoming_pct"], 90)
+        self.assertEqual(evidence["activity_24h"]["distinct_beneficiaries"], 6)
+        self.assertEqual(evidence["deviation_ratio"], 3.8)
+        report = self.report()
+        report["findings"][0]["description"] = "Aggregate credits were 15x the monthly baseline."
+        report["findings"][0]["supporting_txn_ids"] = ["TXN-TEST-01-01"]
+        result = GroundingValidator().validate(report, evidence, self.guidance)
+        self.assertEqual(result["_validator_result"], "PASS")
 
     def test_unanchored_ratio_is_withheld(self):
         report = self.report()
@@ -94,6 +116,16 @@ class GroundingValidatorTests(unittest.TestCase):
         result = GroundingValidator().validate(report, evidence, self.guidance)
         self.assertEqual(result["findings"][0]["evidence_status"], "Inferred")
         self.assertEqual(result["_validator_result"], "REVIEW_REQUIRED")
+
+    def test_cached_hero_case_with_duplicate_account_cannot_verify_attribution(self):
+        path = Path(__file__).resolve().parents[1] / "data" / "cached_reports" / "CASE-001.json"
+        cached = json.loads(path.read_text(encoding="utf-8"))
+        evidence = anchor_cached_evidence(cached["evidence"], cached["context"]["alert"])
+        self.assertTrue(evidence["account_ownership_ambiguous"])
+        self.assertIsNone(evidence["deviation_ratio"])
+        report = GroundingValidator().validate(cached["report"], evidence, cached["guidance"])
+        self.assertTrue(any("multiple customers" in note for note in report["_validator_notes"]))
+        self.assertFalse(any(f["evidence_status"] == "Verified" for f in report["findings"]))
 
     def test_every_cached_case_replays_and_exports_offline(self):
         cache_dir = Path(__file__).resolve().parents[1] / "data" / "cached_reports"

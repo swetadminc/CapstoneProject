@@ -44,6 +44,23 @@ def safe_transactions_for_prompt(transactions: list) -> tuple[list, list]:
         safe.append(item)
     return safe, flagged_ids
 
+
+def safe_case_passages_for_prompt(passages: list) -> tuple[list, list]:
+    """Withhold obvious instruction-like source passages from model input.
+
+    This is a narrow defensive filter, not a general injection guarantee;
+    originals remain inspectable on the Evidence & RAG page.
+    """
+    safe = []
+    flagged = []
+    for passage in passages:
+        item = dict(passage)
+        if _INSTRUCTION_LIKE_RE.search(str(item.get("chunk_text") or "")):
+            item["chunk_text"] = "[Instruction-like case source passage withheld from model]"
+            flagged.append(str(item.get("chunk_id", "unknown")))
+        safe.append(item)
+    return safe, flagged
+
 REPORT_SCHEMA = {
     "type": "OBJECT",
     "properties": {
@@ -56,6 +73,7 @@ REPORT_SCHEMA = {
                     "description": {"type": "STRING"},
                     "evidence_status": {"type": "STRING", "enum": ["Verified", "Inferred", "Missing", "Conflicting"]},
                     "supporting_txn_ids": {"type": "ARRAY", "items": {"type": "STRING"}},
+                    "supporting_case_chunk_ids": {"type": "ARRAY", "items": {"type": "STRING"}},
                     "why_it_matters": {"type": "STRING"},
                 },
                 "required": ["type", "description", "evidence_status", "why_it_matters"],
@@ -84,6 +102,7 @@ class InvestigationSummaryAgent:
 
     def build_prompt(self, context: dict, evidence: dict, guidance: list) -> str:
         safe_transactions, _ = safe_transactions_for_prompt(evidence["window_transactions"])
+        safe_case_passages, _ = safe_case_passages_for_prompt(evidence.get("case_chunks", []))
         return f"""You are an AML investigation assistant. You NEVER decide guilt or
 innocence, and you NEVER use the words illegal, criminal, guilty, or state
 that money laundering is confirmed. An identified pattern is a reason to
@@ -109,11 +128,22 @@ type: {context['customer']['type']}
 occupation_or_industry: {context['customer'].get('occupation_or_industry')}
 risk_rating: {context['customer']['risk_rating']}
 kyc_status: {context['customer']['kyc_status']}
+IMPORTANT: kyc_status is a field in a fictional workbook, not proof that an
+identity document or source of funds was independently checked. The database
+contains generated example identity text and document-summary rows, but no
+original uploaded identity files. Do not assert identity or funds are lawful.
 
 TRANSACTION ANALYSIS (computed, not estimated)
 baseline_avg_amount: {evidence['baseline_avg_amount']}
 trigger_transaction_id: {evidence.get('trigger_transaction_id') or 'not identified in the review window'}
 deviation_ratio: {f"{evidence['deviation_ratio']}x baseline" if evidence['deviation_ratio'] is not None else "unavailable — do not infer a ratio from an arbitrary transaction"}
+24_hour_aggregate_activity: {json.dumps(evidence.get('activity_24h'), default=str) if evidence.get('activity_24h') else 'unavailable'}
+account_ownership_ambiguous: {bool(evidence.get('account_ownership_ambiguous'))}
+{"CRITICAL: this account ID is assigned to multiple customers in the source workbook. Do not attribute transaction rows or ratios to this customer until the ID collision is resolved." if evidence.get('account_ownership_ambiguous') else ""}
+The deviation_ratio compares ONE identified transaction with average transaction size. The
+24-hour incoming_monthly_multiplier compares TOTAL 24-hour credits with average MONTHLY
+credits in the previous six calendar months. Do not conflate these ratios. The
+outgoing-to-incoming percentage is an activity proxy, not a proven chain of funds.
 {"NOTE: the source alert has no identified trigger transaction in this review window. Do NOT invent one or state a deviation ratio." if not evidence.get('trigger_transaction_id') else ""}
 {"NOTE: no transactions fell within this alert's review window (the account had no recorded activity in that period). The transactions below are the nearest ones in time, shown ONLY as background context — do NOT treat any of them as the transaction that triggered this alert, and say plainly in your findings that the review window itself was empty." if evidence['evidence_window_empty'] else "window_transactions (within the alert's review window):"}
 {json.dumps(safe_transactions, default=str)}
@@ -126,6 +156,13 @@ PRIOR CASES FOR THIS CUSTOMER
 
 DOCUMENTS ON FILE
 {json.dumps(evidence['documents'], default=str) if evidence['documents'] else "None found."}
+
+RETRIEVED CASE SOURCE PASSAGES (cite chunk_id if you rely on one; these are
+fictional generated records or summary-only entries, not original uploaded
+identity files or independent verification)
+{json.dumps([{"chunk_id": p["chunk_id"], "doc_id": p["doc_id"],
+              "verification_status": p["verification_status"], "text": p["chunk_text"]}
+             for p in safe_case_passages], default=str)}
 
 RELEVANT PLAYBOOK GUIDANCE (cite these doc_ids in recommended_next_steps)
 {json.dumps([{"doc_id": g["doc_id"], "text": g["chunk_text"]} for g in guidance], default=str)}

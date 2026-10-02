@@ -14,6 +14,12 @@ import sqlite3
 import pandas as pd
 import os
 import re
+if __package__:
+    from .case_evidence import build_case_evidence
+    from .matched_case_fixtures import seed_matched_cases
+else:
+    from case_evidence import build_case_evidence
+    from matched_case_fixtures import seed_matched_cases
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(HERE)
@@ -176,9 +182,16 @@ def main():
         df.to_sql(table, conn, if_exists="replace", index=False)
         counts[table] = len(df)
 
+    seed_matched_cases(conn)
+    for table in SHEET_TO_TABLE.values():
+        counts[table] = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+
     n_docs, n_chunks = load_knowledge_base(conn)
     counts["knowledge_base"] = n_docs
     counts["knowledge_chunks"] = n_chunks
+    evidence_docs, evidence_chunks = build_case_evidence(conn)
+    counts["case_evidence_sources"] = evidence_docs
+    counts["case_evidence_chunks"] = evidence_chunks
 
     cur = conn.cursor()
     for stmt in INDEXES:
