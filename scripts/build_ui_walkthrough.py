@@ -34,7 +34,7 @@ WIDTH, HEIGHT, FPS = 1280, 720, 12
 FONT = Path(r"C:\Windows\Fonts\segoeui.ttf")
 FONT_BOLD = Path(r"C:\Windows\Fonts\segoeuib.ttf")
 
-# Screenshot scenes came from the deployed public application. The two
+# Screenshot scenes came from an earlier deployed public application. The
 # diagram scenes are explicitly explanatory graphics. Cursor movement is
 # animation, not footage of an unedited interaction. CASE-041's sample
 # decision form was not submitted in this capture.
@@ -52,7 +52,7 @@ SCENES = [
      "narration": "Home explains what this product does and gives a route into the Case Queue. The left navigation also includes Investigation Workspace, Evidence and R A G, Compliance Queue, Analytics, Global Search, an information page, and two admin screens. We will visit each one. The page guides explain the purpose of a screen; they do not create a separate workflow or send the user to an external website.",
      "caption": "All working screens stay within InvestigateIQ.", "target": (122, 164)},
     {"screen": "04_public_queue.png", "title": "3 · Understand the Case Queue",
-     "narration": "The Case Queue is where an investigator begins. It lists forty two fictional alerts with severity, status, scenario, and recorded trigger-rule metadata. The counts and filters help find work, but an alert is not evidence of a crime. This is not connected to a live bank monitoring system. The example we will use is Case zero four one, Coastal Wholesale Traders, a high-severity structuring-style alert.",
+     "narration": "The Case Queue is where an investigator begins. It lists fictional alerts with severity, status, scenario, and recorded trigger-rule metadata. The counts and filters help find work, but an alert is not evidence of a crime. This is not connected to a live bank monitoring system. The example we will use is Case zero four one, Coastal Wholesale Traders, a high-severity structuring-style alert.",
      "caption": "Queue counts orient the investigator; they do not prove wrongdoing.", "target": (711, 462)},
     {"screen": "05_public_case_filtered.png", "title": "Find and Open CASE-041",
      "narration": "Type Coastal into the customer filter. The list narrows to Case zero four one. Its row shows the customer, the structuring alert label, high severity, open status, and recorded rule R three. The small open button takes us directly to this case's Investigation Workspace. The rule label is source-dataset metadata; this screen does not independently recalculate the alert. We open the case to check what actually happened.",
@@ -76,7 +76,7 @@ SCENES = [
      "narration": "Notice the distinction between a plausible answer and a verified conclusion. A citation tells us which transaction or playbook entry to inspect. It does not prove the prose is correct or that the activity is unlawful. The saved report even proposes escalation, but our second playbook requires a documented request for an explanation and no reasonable answer on file. We will not let the draft skip that condition. The investigator retains ownership of the next step.",
      "caption": "A source ID is a pointer for review, not an automatic verdict.", "target": (950, 349), "caption_top": True},
     {"screen": "10_public_rag_overview.png", "title": "6 · Open Evidence & RAG",
-     "narration": "From the cited playbook, we move to Evidence and R A G without leaving the site. The current page groups the material into Source and chunks, Search the index, and Method and code, so the explanation stays compact. The source collection has twenty four synthetic documents and fifty seven indexed chunks. Case zero four one points to playbook P B A M L S T R zero one. A document citation identifies a source; it does not identify the exact sentence behind every generated claim.",
+     "narration": "From the cited playbook, we move to Evidence and R A G without leaving the site. For this case, we use Source and chunks, Search the index, and Method and code. The page also offers Case records and a Rule Lab; Fictional Intake appears when enabled. The playbook collection has twenty four synthetic documents and fifty seven indexed chunks. Case zero four one points to playbook P B A M L S T R zero one. A document citation identifies a source; it does not prove every generated claim.",
      "caption": "Source & chunks | Search the index | Method & code", "target": (151, 329)},
     {"screen": "10b_public_rag_source.png", "title": "Read the Original Document",
      "narration": "Here is the original text of P B A M L S T R zero one, titled Identify and document a structuring pattern. It instructs the investigator to list exact transactions, amounts, dates, channels, and the combined value. It also asks whether amounts are similar and whether the channel or counterparty changes. We can see the source itself, rather than trusting only an AI summary of it. This is synthetic guidance, not an approved Indian-bank policy or an official regulation.",
@@ -92,8 +92,8 @@ SCENES = [
      "caption": "Playbook → chunks → FTS5 → Evidence Agent → draft → human check", "target": None},
     {"screen": "12_public_rag_retrieval.png", "title": "Explain the Code on the Site",
      "visual": "code",
-     "narration": "The Method and code view keeps the implementation inside Investigate IQ. Its four expandable steps show the actual Python functions that split the document, retrieve chunks, gather case guidance, and check draft citations. Each step links the visible evidence trail to the function responsible for it, without sending the user to another site. The code supports explainability, but the validator is limited: it checks selected citations and wording patterns, not the full factual correctness of a generated report.",
-     "caption": "Four in-app code panels: split, retrieve, gather, validate", "target": (785, 339)},
+     "narration": "The Method and code view keeps the implementation inside Investigate IQ. It has eight expandable steps covering alert calculation, guidance and case chunking, case and guidance search, transaction links, context gathering, and citation checks. This diagram highlights four representative functions. The code supports explainability, but the validator is limited: it checks selected citations and wording patterns, not the full factual correctness of a generated report.",
+     "caption": "Eight code panels; four representative functions illustrated", "target": (785, 339)},
     {"screen": "14_public_human_decision.png", "title": "7 · Reach the Human Decision",
      "narration": "Back in the Investigation Workspace, the Human Decision panel offers close with no concern, request more information, or escalate to Compliance. The AI cannot select or submit any of them. The investigator's name and written reason are required for a recorded decision. This matters because the retrieved playbook is conditional, and the case file has no documented business explanation yet. A machine-generated escalation suggestion cannot replace those checks or the human decision.",
      "caption": "AI drafts; the investigator chooses and writes the reason.", "target": (543, 334), "caption_top": True},
@@ -107,8 +107,8 @@ SCENES = [
      "narration": "Analytics summarizes the fictional alert set by severity, scenario, status, and time. It is a workload and exploration view: users can see how many alerts are open or resolved and which patterns occur in the sample. It does not measure real-world crime detection, false positives, or model accuracy. Those claims would need independent evaluation and real bank data, which Investigate IQ does not have.",
      "caption": "Descriptive workload charts, not model-performance proof.", "target": (142, 262)},
     {"screen": "18_public_global_search.png", "title": "10 · Global Search",
-     "narration": "Global Search is the quickest cross-reference tool. Search Coastal and the site locates the customer, related case, account, and transactions in the fictional dataset. A result can take us back to the Investigation Workspace, so we do not have to remember a case number. This complements the playbook search: Global Search finds case records, while Evidence and R A G searches synthetic guidance chunks. They answer different questions.",
-     "caption": "Find a case record; do not confuse it with playbook retrieval.", "target": (784, 500)},
+     "narration": "Global Search is the quickest cross-reference tool. Search Coastal and the site locates the customer, related case, account, and transactions in the fictional dataset. A result can take us back to the Investigation Workspace, so we do not have to remember a case number. Evidence and R A G is different: it lets us inspect source documents and search guidance or case-evidence chunks within their scope. Search is a pointer to records, not a conclusion.",
+     "caption": "Find linked records, then inspect their source evidence.", "target": (784, 500)},
     {"screen": "19_public_team.png", "title": "11 · About InvestigateIQ",
      "narration": "This information page identifies Investigate IQ and explains its purpose. It is separate from the investigation workflow: opening it does not change a case, its evidence, or a recorded decision. We now return to the operational screens.",
      "caption": "Product information is separate from case decisions.", "target": (142, 127)},
@@ -116,10 +116,22 @@ SCENES = [
      "narration": "The Knowledge Base admin screen is a deeper inspector for the same fictional playbooks, chunk counts, index vocabulary, and retrieval search. It is passcode-gated as a limited access control, but that gate is not production-grade authorization. Ordinary users do not need it to understand R A G, because the Evidence and R A G page already exposes the original source, exact chunks, search, and code without sending them off-site.",
      "caption": "Admin inspection is optional; source transparency remains on-site.", "target": (164, 366)},
     {"screen": "21_public_admin_rules.png", "title": "13 · Admin Rule Configuration",
-     "narration": "Rule Configuration previews changes to two illustrative alert thresholds before an admin saves them. Saving records the configuration action in the audit trail, but it does not regenerate the existing forty two alerts or replace a bank's monitoring engine. We therefore do not present a threshold preview as a live compliance control. It illustrates configurable logic and separates a preview from a recorded change.",
+     "narration": "Rule Configuration previews changes to two illustrative alert thresholds before an admin saves them. Saving records the configuration action in the audit trail, but it does not regenerate existing alerts or replace a bank's monitoring engine. We therefore do not present a threshold preview as a live compliance control. It illustrates configurable logic and separates a preview from a recorded change.",
      "caption": "Preview rule effects; do not claim live bank enforcement.", "target": (155, 399)},
+    {"screen": "01_home_guest.png", "title": "14 · Add a Fictional Transaction Packet",
+     "visual": "intake",
+     "narration": "There is also a separate, feature-gated Fictional Intake path. A user supplies numeric values and an expected activity level; the application generates ten labeled synthetic transfers. It calculates the pass-through signal from those rows. If the configured threshold is met, it saves a case, all ten transaction rows, and five generated text records together in SQLite. Those records are a customer profile, an intentionally invalid P A N sample, an intentionally invalid passport sample, a transfer ledger, and an alert summary. They are generated samples, not uploaded bank documents. The saved case appears in the queue when the feature is enabled; it is not a live third-party alert feed.",
+     "caption": "Numeric input → computed signal → atomic saved packet", "target": None},
+    {"screen": "01_home_guest.png", "title": "15 · Inspect the Evidence Boundary",
+     "visual": "intake_evidence",
+     "narration": "Open the saved fictional packet in Evidence and R A G. Each generated record can be read in full. The system splits the source text into exact passages, stores a S H A two five six digest, and makes those passages searchable within the case using SQLite F T S five. That lets an investigator trace an answer back to the text that was actually saved. But the identity samples are deliberately invalid, no original identity file was uploaded, counterparty K Y C is unknown, and there is no independent source-of-funds proof. The product must show those gaps. A transfer chain and a citation alone cannot establish whether money is legal or illegal.",
+     "caption": "Full source → exact chunks → scoped search → explicit gaps", "target": None},
+    {"screen": "01_home_guest.png", "title": "16 · Review the Calculated Case",
+     "visual": "intake_review",
+     "narration": "This intake case follows a separate calculated review, not the six-agent saved report shown earlier. The workspace reloads the saved transfer rows, checks their links and integrity, and offers fixed questions grounded in those records. A human can request more information or escalate with a name and written reason. A no-concern closure is not offered for this flagged intake packet. Only a submitted escalation enters Compliance. The calculation is real application logic operating on fictional rows; it is not proof of fraud, verified identity, or a regulator filing.",
+     "caption": "Saved rows → calculated review → reasoned human action", "target": None},
     {"screen": "01_home_guest.png", "title": "What the Case Actually Concludes",
-     "visual": "closing", "narration": "We started with Case zero four one, checked the six credits and four cited cash deposits, asked the copilot, followed the playbook citation into original text and indexed chunks, and examined the human-decision choices. The evidence supports further investigation, not a finding of misconduct. Our proposed next step is to request a documented business explanation and partner agreements. No decision was submitted for this example, and no regulator filing occurred. That is the core promise of Investigate IQ: trace the evidence and own the decision.",
+     "visual": "closing", "narration": "We started with Case zero four one, checked its cited cash deposits, asked the copilot, followed the playbook citation into original text and indexed chunks, and examined the human-decision choices. We also saw how a separate fictional transfer packet is generated, saved, chunked, searched, and reviewed through calculated logic. In both paths, evidence supports further questions, not a finding of misconduct. A human must record any next step with a reason. No regulator filing occurred. Investigate IQ helps trace the evidence; it does not replace the investigator's judgment.",
      "caption": "Evidence supports follow-up; a human owns any recorded conclusion.", "target": None},
 ]
 
@@ -277,6 +289,33 @@ def render_diagram(scene: dict, progress: float) -> Image.Image:
             ("02", "search()", "FTS5 MATCH query and BM25 ranking"),
             ("03", "guidance_for()", "Filter retrieval to the alert scenario"),
             ("04", "validate()", "Check selected IDs and draft claims"),
+        ]
+    elif scene["visual"] == "intake":
+        nodes = [
+            ("01", "Numeric input", "Amounts and expected activity"),
+            ("02", "Ten transfers", "Generated fictional transfer chain"),
+            ("03", "Rule signal", "Calculated from the saved rows"),
+            ("04", "SQLite case", "One atomic case packet"),
+            ("05", "Five records", "Labeled generated text, not uploads"),
+            ("06", "Case Queue", "Visible when intake is enabled"),
+        ]
+    elif scene["visual"] == "intake_evidence":
+        nodes = [
+            ("01", "Source record", "Read complete generated text"),
+            ("02", "Exact chunks", "Passages retain source IDs"),
+            ("03", "SHA-256", "Digest checks stored text"),
+            ("04", "Case search", "FTS5 over this case's passages"),
+            ("05", "KYC gap", "Invalid samples; no original files"),
+            ("06", "Review limit", "No lawfulness verdict from citations"),
+        ]
+    elif scene["visual"] == "intake_review":
+        nodes = [
+            ("01", "Reload rows", "Read saved transfer chain"),
+            ("02", "Check links", "Verify packet integrity"),
+            ("03", "Ask questions", "Fixed, source-anchored answers"),
+            ("04", "Human action", "Request information or escalate"),
+            ("05", "Write reason", "Name and rationale required"),
+            ("06", "Compliance", "Only after escalation is submitted"),
         ]
     else:
         nodes = [

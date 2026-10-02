@@ -19,7 +19,7 @@ class WalkthroughTests(unittest.TestCase):
         for unwanted in ("team", "capstone", "course", "professor", "I I T Bombay"):
             self.assertNotIn(unwanted.lower(), narration.lower())
         for required in ("Case zero four one", "Cash", "R A G", "Grounding Validator",
-                         "Request more information", "no cases await Compliance", "No decision was submitted"):
+                         "Request more information", "no cases await Compliance", "no decision is recorded"):
             self.assertIn(required.lower(), narration.lower())
         self.assertGreaterEqual(sum(bool(scene.get("visual")) for scene in SCENES), 3)
         self.assertTrue(POSTER.is_file())
@@ -30,7 +30,7 @@ class WalkthroughTests(unittest.TestCase):
         captions = SUBTITLES.read_text(encoding="utf-8")
         self.assertTrue(captions.startswith("WEBVTT\n"))
         self.assertIn("Case zero four one", captions)
-        self.assertIn("No decision was submitted", captions)
+        self.assertIn("no decision is recorded", captions.lower())
         self.assertGreater(captions.count(" --> "), 100)
 
     def test_on_screen_arrows_have_visible_targets(self):
@@ -56,7 +56,7 @@ class WalkthroughTests(unittest.TestCase):
         self.assertEqual(case["evidence"]["deviation_ratio"], 2.5)
         script = " ".join(scene["narration"] for scene in SCENES).lower()
         self.assertIn("three million eight hundred seventy thousand", script)
-        self.assertIn("no decision was submitted", script)
+        self.assertIn("no decision is recorded", script)
 
     def test_embedded_video_is_an_mp4(self):
         self.assertTrue(OUTPUT.is_file())

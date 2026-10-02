@@ -16,6 +16,7 @@ import sqlite3
 import sys
 import time
 import datetime
+from contextlib import closing
 import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -24,6 +25,10 @@ from agents.chat_agent import ask_question, answer_from_saved_evidence
 from agents.grounding_validator import GroundingValidator
 from agents.transaction_investigation_agent import anchor_cached_evidence
 from data.runtime_db import record_human_decision, get_audit_log, get_human_actions, log_audit_event
+from data.fictional_intake import (
+    assess_fictional_case, fictional_intake_enabled, fictional_intake_path, init_fictional_intake,
+    list_fictional_cases, read_fictional_case,
+)
 from ui_common import require_login, page_banner, page_flow, plain_text_html
 from report_pdf import build_report_pdf
 
@@ -49,7 +54,7 @@ st.set_page_config(page_title="InvestigateIQ — Investigation Workspace", page_
 user_name, user_role = require_login()
 
 page_banner("🕵️", "Investigation Workspace",
-            "Database → six-step workflow → AI draft → selected grounding checks → human decision → audit log")
+            "Recorded activity → evidence checks → draft or calculated review → human decision → audit log")
 page_flow("Review evidence and make a documented human decision", [
     ("Choose a case", "Select an alert and cached replay or live analysis."),
     ("Review the draft", "Inspect evidence, retrieved guidance and selected validation checks."),
@@ -81,17 +86,22 @@ def load_case_options():
         ORDER BY a.alert_date DESC
     """).fetchall()
     conn.close()
-    hero_ids = {"CASE-001": "suspicious", "CASE-002": "legitimate twin"}
+    hero_ids = {"CASE-001", "CASE-002"}
     options = {}
     for cid, name, atype in rows:
-        label = f"{cid} — {name} ({hero_ids[cid]}, cached)" if cid in hero_ids else f"{cid} — {name}"
+        label = f"{cid} — {name} (older cached comparison; owner ambiguous)" if cid in hero_ids else f"{cid} — {name}"
         options[label] = cid
     # pin hero cases first
     ordered = {k: v for k, v in options.items() if v in hero_ids}
     ordered.update({k: v for k, v in options.items() if v not in hero_ids})
     return ordered
 
-CASES = load_case_options()
+CASES = dict(load_case_options())
+if fictional_intake_enabled():
+    with closing(sqlite3.connect(fictional_intake_path())) as intake_conn:
+        init_fictional_intake(intake_conn)
+        for item in list_fictional_cases(intake_conn):
+            CASES[f"{item['case_id']} — generated fictional customer (calculated review)"] = item["case_id"]
 labels = list(CASES.keys())
 
 # If the queue dashboard sent us here with a specific case, default to it.
@@ -108,8 +118,74 @@ if preselect:
 
 choice = st.selectbox("Choose a case to investigate", labels, index=default_idx,
                       key="investigation_case_choice",
-                      help="Choose one fictional alert. CASE-001 and CASE-002 are pre-reviewed comparison cases.")
+                      help="Choose one fictional alert. CASE-001 and CASE-002 have older cached comparisons but unresolved account ownership.")
 case_id = CASES[choice]
+
+if case_id.startswith("FIC-CASE-"):
+    with closing(sqlite3.connect(fictional_intake_path())) as intake_conn:
+        packet = read_fictional_case(intake_conn, case_id)
+        assessment = assess_fictional_case(intake_conn, case_id)
+    st.info("This case came from the feature-gated fictional intake store. The review below recalculates stored rows and checks source integrity; it is not a six-agent or Gemini report, and no original KYC file was uploaded.")
+    if assessment["review_signal_recomputed"] and assessment["source_integrity_confirmed"]:
+        st.success("The stored alert calculation and generated-source fingerprints/chunks are reproducible.")
+    else:
+        st.error("A calculation or source-integrity check failed. Resolve this before relying on the packet.")
+    s1, s2, s3, s4 = st.columns(4)
+    s1.metric("Completed rows", assessment["observed"]["completed_transaction_rows"])
+    s2.metric("Incoming (INR)", f"₹{assessment['observed']['incoming_inr']:,.0f}")
+    s3.metric("Outgoing (INR)", f"₹{assessment['observed']['outgoing_inr']:,.0f}")
+    s4.metric("Original identity files", packet["original_identity_files"])
+    st.caption("Observed amounts come from completed fictional ledger rows. The historical baseline and generated profile are assertions; counterparty KYC, independent source-of-funds records, and settlement proof are absent.")
+    with st.expander(f"Recorded transaction rows · {len(packet['transactions'])}"):
+        st.dataframe(packet["transactions"], hide_index=True, height=350)
+    with st.expander(f"Evidence gaps · {len(assessment['missing_evidence'])}", expanded=True):
+        for gap in assessment["missing_evidence"]:
+            st.warning(gap)
+    st.write(assessment["recommended_action"])
+    if st.button("Inspect source records and exact chunks", key=f"fic_evidence_{case_id}"):
+        st.session_state["fictional_intake_case_id"] = case_id
+        st.session_state["rag_view"] = "Fictional Intake"
+        st.switch_page("pages/8_Evidence_RAG.py")
+    st.subheader("Evidence guide · calculated, no AI call")
+    question = st.selectbox("Ask about this packet", [
+        "Why did this activity trigger review?", "What KYC evidence is available?",
+        "Can we conclude the funds are unlawful?", "What should the investigator request?",
+    ])
+    signal = packet["signal"]
+    if question.startswith("Why"):
+        if assessment["review_signal_recomputed"]:
+            st.info(f"The completed rows show INR {assessment['observed']['incoming_inr']:,.0f} incoming, INR {assessment['observed']['outgoing_inr']:,.0f} outgoing, {signal['incoming_multiplier']}x the asserted monthly baseline, {signal['outbound_percent']}% outgoing/incoming, and {assessment['observed']['distinct_beneficiaries']} distinct beneficiaries. Source: FIC-ALERT-{case_id} and FIC-LEDGER-{case_id}. These aggregates do not trace the same rupees.")
+        else:
+            st.error("The saved signal does not match the current stored rows. Resolve the integrity gap before explaining a trigger result.")
+    elif question.startswith("What KYC"):
+        st.info(f"The packet has generated profile and sample PAN/passport text under FIC-KYC-{case_id}, FIC-PAN-{case_id}, and FIC-OVD-{case_id}; original identity files: 0. No independent verification is recorded.")
+    elif question.startswith("Can"):
+        st.info("No. A review signal and generated sample records cannot establish lawful or unlawful funds. A human investigator must examine independent evidence and decide the next action.")
+    else:
+        st.info(assessment["recommended_action"])
+    decision_panel = st.container(border=True)
+    decision_panel.subheader("Human review action")
+    decision_panel.caption("Only a named human can record a follow-up. Closing as no concern is unavailable for this packet because independent evidence is missing.")
+    investigator = decision_panel.text_input("Your name (investigator)", value=user_name,
+                                            key=f"fic_investigator_{case_id}")
+    action = decision_panel.radio("Decision", ["Request more information", "Escalate for Compliance review"],
+                                  key=f"fic_action_{case_id}")
+    rationale = decision_panel.text_area("Rationale (required)", key=f"fic_rationale_{case_id}")
+    if decision_panel.button("Submit decision", type="primary", key=f"fic_submit_{case_id}"):
+        if not investigator.strip() or not rationale.strip():
+            decision_panel.error("A named investigator and written rationale are required.")
+        else:
+            action_code = "request_info" if action.startswith("Request") else "escalate"
+            record_human_decision(case_id, investigator.strip(), action_code,
+                                  rationale.strip(), findings_accepted=[], findings_rejected=[])
+            decision_panel.success("Human action and audit entry recorded.")
+    history = get_human_actions(case_id)
+    if history:
+        with st.expander(f"Human action history · {len(history)}"):
+            for item in history:
+                st.write(f"{item['timestamp']} · {item['action']} · {item['investigator']}")
+                st.markdown(plain_text_html(item["rationale"]), unsafe_allow_html=True)
+    st.stop()
 
 if st.button("🧩 Inspect this case's KYC, transaction records and chunks",
              help="Open the fictional source records and see the original-document and verification gaps."):

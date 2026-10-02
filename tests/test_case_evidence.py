@@ -5,7 +5,7 @@ import unittest
 from contextlib import closing
 
 from data.case_evidence import case_evidence_coverage, chunk_source_text, search_case_chunks
-from data.fund_flow import case_transactions, trace_transaction
+from data.fund_flow import case_transactions, case_window_links, trace_transaction
 from data.knowledge_search import DB_PATH
 
 
@@ -78,7 +78,21 @@ class CaseEvidenceTests(unittest.TestCase):
             self.assertEqual(sum(r["amount"] for r in rows if r["direction"] == "CR"), 1200000)
             self.assertEqual(sum(r["amount"] for r in rows if r["direction"] == "DR"), 1080000)
             self.assertEqual(len({r["counterparty_account_id"] for r in rows if r["direction"] == "DR"}), 6)
-            self.assertEqual(case_evidence_coverage(self.conn, case_id)["original_uploaded_files"], 0)
+            coverage = case_evidence_coverage(self.conn, case_id)
+            self.assertEqual(coverage["original_uploaded_files"], 0)
+            self.assertEqual(coverage["unknown_counterparty_count"], 10)
+            self.assertTrue(any("no mapped customer profile" in gap for gap in coverage["gaps"]))
+
+    def test_review_window_lists_all_ten_endpoints_without_inventing_external_kyc(self):
+        rows = case_window_links(self.conn, "CASE-043")
+        self.assertEqual(len(rows), 10)
+        self.assertEqual(len({row["transaction_id"] for row in rows}), 10)
+        for row in rows:
+            external_side = "source" if row["direction"] == "CR" else "destination"
+            self.assertIsNone(row[f"{external_side}_customer"])
+            self.assertEqual(row[f"{external_side}_kyc_field"], "Unknown")
+            self.assertEqual(row[f"{external_side}_original_files"], 0)
+            self.assertEqual(row["link_status"], "counterparty_not_in_bank_dataset")
 
     def test_duplicate_source_account_is_explicitly_ambiguous(self):
         owners = [row[0] for row in self.conn.execute(

@@ -266,7 +266,7 @@ if os.path.exists(DB_PATH):
     st.write("")
     k1, k2, k3, k4 = st.columns(4)
     for i, (col, icon, label, value, accent) in enumerate([
-        (k1, "📊", "Total alerts", total_alerts, "iq-kpi-blue"), (k2, "🕒", "Open", open_alerts, "iq-kpi-amber"),
+        (k1, "📊", "Preloaded alerts", total_alerts, "iq-kpi-blue"), (k2, "🕒", "Preloaded open", open_alerts, "iq-kpi-amber"),
         (k3, "🔥", "High severity", high_sev, "iq-kpi-red"), (k4, "🚨", "Escalated", escalated, "iq-kpi-red"),
     ]):
         col.markdown(
@@ -280,7 +280,7 @@ st.subheader("Start here")
 
 NAV_CARDS = [
     ("👥", "Project & Team", "Project purpose, group identity and draft roster", "pages/7_Project_Team.py"),
-    ("🗂️", "Case Queue", "All alerts — the real entry point", "pages/0_Case_Queue.py"),
+    ("🗂️", "Case Queue", "Preloaded alerts and saved fictional cases", "pages/0_Case_Queue.py"),
     ("🕵️", "Investigation Workspace", "Evidence, chat, decision, audit log", "pages/2_Investigation_Demo.py"),
     ("🛡️", "Compliance Queue", "Escalated cases awaiting review", "pages/3_Compliance_Queue.py"),
     ("📊", "Analytics", "Trends across the alert population", "pages/5_Analytics.py"),

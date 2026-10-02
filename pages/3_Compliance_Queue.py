@@ -13,10 +13,12 @@ out-of-scope list), same as everywhere else in this build.
 import os
 import sys
 import sqlite3
+from contextlib import closing
 import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import DB_PATH
+from data.fictional_intake import fictional_intake_enabled, fictional_intake_path, init_fictional_intake, list_fictional_cases
 from data.runtime_db import get_latest_decision_per_case, get_human_actions, record_human_decision
 from ui_common import require_login, role_warning, page_banner, page_flow, plain_text_html
 
@@ -52,7 +54,18 @@ def load_case_context(case_ids):
         WHERE a.case_id IN ({placeholders})
     """, case_ids).fetchall()
     conn.close()
-    return {r[0]: {"alert_type": r[1], "severity": r[2], "scenario_id": r[3], "customer_name": r[4], "risk_rating": r[5]} for r in rows}
+    context = {r[0]: {"alert_type": r[1], "severity": r[2], "scenario_id": r[3], "customer_name": r[4], "risk_rating": r[5]} for r in rows}
+    if fictional_intake_enabled():
+        with closing(sqlite3.connect(fictional_intake_path())) as intake_conn:
+            init_fictional_intake(intake_conn)
+            for item in list_fictional_cases(intake_conn):
+                if item["case_id"] in case_ids:
+                    context[item["case_id"]] = {
+                        "alert_type": "Calculated fictional review signal", "severity": "Review",
+                        "scenario_id": "rapid-movement-of-funds",
+                        "customer_name": "Generated fictional customer", "risk_rating": "Not assessed",
+                    }
+    return context
 
 
 decisions = get_latest_decision_per_case()

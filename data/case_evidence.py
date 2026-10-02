@@ -340,6 +340,23 @@ def case_evidence_coverage(conn: sqlite3.Connection, case_id: str) -> dict:
     ).fetchone()[0]
     if owner_count > 1:
         gaps.append("Source-data collision: the account ID is assigned to multiple customers; transaction attribution is unresolved.")
+    counterparties = [row[0] for row in conn.execute(
+        "SELECT DISTINCT counterparty_account_id FROM transactions WHERE account_id=? "
+        "AND julianday(txn_datetime)>=julianday((SELECT alert_date FROM alerts WHERE case_id=?)) "
+        "AND julianday(txn_datetime)<julianday((SELECT alert_date FROM alerts WHERE case_id=?), '+10 days') "
+        "AND counterparty_account_id IS NOT NULL AND channel<>'Cash Deposit' AND status='Completed'",
+        (alert["account_id"], case_id, case_id),
+    ).fetchall()]
+    unknown_counterparties = [account_id for account_id in counterparties if not conn.execute(
+        "SELECT 1 FROM accounts a JOIN customers c ON c.customer_id=a.customer_id "
+        "WHERE a.account_id=? LIMIT 1",
+        (account_id,),
+    ).fetchone()]
+    if unknown_counterparties:
+        gaps.append(
+            f"{len(unknown_counterparties)} distinct counterparty account(s) in the review window "
+            "have no mapped customer profile in this bank dataset. Their KYC status and onward activity are unknown."
+        )
     if summary_only:
         gaps.append("Document entries on file are summaries; underlying files are unavailable for cross-checking.")
     if ledger is None or ledger["verification_status"] == "background_context_only":
@@ -350,6 +367,7 @@ def case_evidence_coverage(conn: sqlite3.Connection, case_id: str) -> dict:
     return {
         "case_id": case_id, "customer_id": cid, "sample_identity_records": sample_ids,
         "summary_only_records": summary_only, "original_uploaded_files": originals,
+        "unknown_counterparty_count": len(unknown_counterparties),
         "transaction_window_status": ledger["verification_status"] if ledger else "missing",
         "gaps": gaps, "conclusion": "Evidence review required; lawfulness cannot be determined from these records.",
     }

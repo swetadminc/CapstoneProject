@@ -1,17 +1,59 @@
 """Smoke checks for the public landing and draft roster screens."""
 
 import unittest
+import os
+import tempfile
 from pathlib import Path
+from unittest.mock import patch
 from xml.etree import ElementTree
 
 from streamlit.testing.v1 import AppTest
 
 from project_identity import PROJECT_SLOGAN, ROSTER_NOTE, TEAM_MEMBERS, TEAM_RESPONSIBILITIES
+from scripts.build_ui_walkthrough import SCENES
+from ui_common import severity_badge, status_badge
 
 APP_PATH = Path(__file__).resolve().parents[1] / "app.py"
 
 
 class LandingAndTeamTests(unittest.TestCase):
+    def test_every_screen_loads_with_public_fictional_intake_enabled(self):
+        pages = (
+            "pages/home.py", "pages/7_Project_Team.py", "pages/0_Case_Queue.py",
+            "pages/2_Investigation_Demo.py", "pages/3_Compliance_Queue.py",
+            "pages/5_Analytics.py", "pages/6_Global_Search.py",
+            "pages/8_Evidence_RAG.py", "pages/1_Admin_Knowledge_Base.py",
+            "pages/4_Admin_Rule_Config.py",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.dict(os.environ, {
+                "RAILWAY_PUBLIC_DOMAIN": "investigateiq.example",
+                "FICTIONAL_INTAKE_DB_PATH": str(Path(directory) / "public-smoke.db"),
+            }):
+                os.environ.pop("ENABLE_FICTIONAL_INTAKE", None)
+                for page in pages:
+                    with self.subTest(page=page):
+                        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+                        app.session_state["user_name"] = "Case Reviewer"
+                        app.session_state["user_role"] = "Investigator"
+                        app.switch_page(page).run(timeout=30)
+                        self.assertFalse(app.exception)
+
+    def test_walkthrough_distinguishes_saved_case_from_gated_fictional_intake(self):
+        narration = " ".join(scene["narration"].lower() for scene in SCENES)
+        visuals = {scene.get("visual") for scene in SCENES}
+        self.assertTrue({"intake", "intake_evidence", "intake_review"} <= visuals)
+        self.assertIn("feature-gated fictional intake", narration)
+        self.assertIn("generated samples, not uploaded bank documents", narration)
+        self.assertIn("a no-concern closure is not offered", narration)
+        self.assertNotIn("forty two alerts", narration)
+        self.assertNotIn("four expandable steps", narration)
+        self.assertNotIn("capstone", narration)
+
+    def test_unknown_badge_text_is_html_escaped(self):
+        self.assertEqual(severity_badge('<script>alert(1)</script>'), '&lt;script&gt;alert(1)&lt;/script&gt;')
+        self.assertEqual(status_badge('<img src=x>'), '&lt;img src=x&gt;')
+
     def test_brand_assets_are_valid_svg_with_readable_slogan(self):
         assets = APP_PATH.parent / "assets"
         for name in ("logo_icon.svg", "logo_full.svg", "logo_full_dark.svg"):
@@ -94,6 +136,15 @@ class LandingAndTeamTests(unittest.TestCase):
         page = "\n".join(element.value for element in app.get("markdown"))
         self.assertIn("background: #0F1826 !important", page)
 
+    def test_queue_search_treats_brackets_as_plain_text(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        app.text_input(key="home_demo_name").input("Case Reviewer")
+        app.button(key="home_demo_continue").click().run(timeout=30)
+        app.switch_page("pages/0_Case_Queue.py").run(timeout=30)
+        search = next(item for item in app.text_input if item.label == "Search customer name")
+        search.set_value("[").run(timeout=30)
+        self.assertFalse(app.exception)
+
     def test_selected_case_survives_investigation_rerun(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
         app.text_input(key="home_demo_name").input("Case Reviewer")
@@ -101,6 +152,9 @@ class LandingAndTeamTests(unittest.TestCase):
         app.session_state["selected_case_id"] = "CASE-041"
         app.switch_page("pages/2_Investigation_Demo.py").run(timeout=30)
         self.assertIn("CASE-041", app.selectbox(key="investigation_case_choice").value)
+        labels = app.selectbox(key="investigation_case_choice").options
+        self.assertFalse(any("legitimate twin" in label or "suspicious, cached" in label for label in labels))
+        self.assertTrue(any("CASE-001" in label and "owner ambiguous" in label for label in labels))
         app.run(timeout=30)
         self.assertIn("CASE-041", app.selectbox(key="investigation_case_choice").value)
 

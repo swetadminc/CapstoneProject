@@ -12,8 +12,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.build_database import chunk_body
 from data.knowledge_search import DB_PATH, search
 from data.case_evidence import case_evidence_coverage, chunk_source_text, search_case_chunks
-from data.fund_flow import case_transactions, trace_transaction
-from data.incoming_monitor import detect_pass_through
+from data.fund_flow import case_transactions, case_window_links, trace_transaction
+from data.incoming_monitor import detect_pass_through, make_fictional_lab_batch
+from data.fictional_intake import (
+    assess_fictional_case, fictional_intake_enabled, init_fictional_intake, intake_fictional_batch, make_generated_fictional_batch,
+    fictional_intake_path, read_fictional_case, search_fictional_chunks,
+)
 from agents.evidence_agent import EvidenceAgent
 from agents.grounding_validator import GroundingValidator
 from ui_common import require_login, page_banner, page_flow
@@ -25,8 +29,8 @@ page_flow("Follow a record from source to review", [
     ("Choose a case", "See the customer profile, illustrative identity records, alert and transaction packet."),
     ("Inspect source and chunks", "Compare complete generated text with each exact indexed paragraph."),
     ("Check coverage", "See what is missing, including original documents and independent verification."),
-    ("Search guidance", "Separately inspect the playbook chunks used by the evidence agent."),
-], "Current investigations retrieve both case passages and separate playbook guidance through SQLite FTS5; older saved reports may predate the case index. No vector embeddings are used. Retrieval does not establish lawful funds.")
+    ("Test and search", "Recalculate a fictional alert, then inspect the separate playbook chunks."),
+], "Source-database investigations retrieve case passages and separate playbook guidance through SQLite FTS5; older saved reports may predate the case index. Fictional Intake has its own case-scoped chunk search and calculated review. No vector embeddings are used, and retrieval does not establish lawful funds.")
 
 if not os.path.isfile(DB_PATH):
     st.error("The synthetic knowledge-base database is unavailable.")
@@ -84,8 +88,11 @@ requested_case = st.session_state.pop("rag_case_id", None)
 if requested_case:
     st.session_state["rag_case_choice"] = requested_case
     st.session_state["rag_view"] = "Case records"
+views = ["Case records", "Rule Lab", "Source & chunks", "Search the index", "Method & code"]
+if fictional_intake_enabled():
+    views.insert(2, "Fictional Intake")
 view = st.segmented_control(
-    "Explore evidence", ["Case records", "Source & chunks", "Search the index", "Method & code"],
+    "Explore evidence", views,
     key="rag_view", required=True,
     help="Switch between original sources, live retrieval results, and the actual implementation without leaving InvestigateIQ.",
 )
@@ -106,10 +113,15 @@ if view == "Case records":
             (coverage["customer_id"], case_id),
         ).fetchall()
     st.info("These records were generated from a fictional workbook or matched-case fixture. Illustrative PAN/Aadhaar/passport/licence text is not an original document or an independent KYC check. The case-document rows contain summaries only.")
-    left, right, third = st.columns(3)
+    left, right, third, fourth = st.columns(4)
     left.metric("Case source records", len(sources))
     right.metric("Illustrative identity records", coverage["sample_identity_records"])
     third.metric("Original files uploaded", coverage["original_uploaded_files"])
+    fourth.metric(
+        "Counterparties without customer profile",
+        coverage["unknown_counterparty_count"],
+        help="Distinct counterparties on completed transaction rows in the ten-day review window with no mapped customer profile here. A profile is not verified KYC; another bank may hold records unavailable to this dataset.",
+    )
     with st.expander("Evidence gaps and review boundary", expanded=True):
         for gap in coverage["gaps"]:
             st.warning(gap)
@@ -151,8 +163,27 @@ if view == "Case records":
                 st.caption(f"Calculated closing balance ₹{running:,.0f}; fictional fixture expected ₹{matched['balance_after_batch']:,.0f}.")
     with closing(sqlite3.connect(DB_PATH)) as conn:
         transactions = case_transactions(conn, case_id)
+        review_links = case_window_links(conn, case_id)
     st.subheader(f"Transaction path · {len(transactions)} recorded rows for this account")
     st.caption("Select any row to inspect its recorded direction, endpoints, KYC fields and possible onward activity. The count covers this account's whole available history, not just the alert window.")
+    with st.expander(f"Review-window link register · {len(review_links)} row(s)"):
+        st.caption("Every ledger row in the alert's ten-day review window is listed below. A customer ID or dataset KYC field is not proof of verified identity; original files are counted separately. A recorded endpoint does not prove opposite-side posting or onward movement.")
+        if review_links:
+            st.dataframe([{
+                "Transaction": row["transaction_id"], "Time": row["time"],
+                "Direction": row["direction"], "Amount (INR)": row["amount_inr"],
+                "Source account": row["source_account"] or "Unknown",
+                "Source customer": row["source_customer"] or "Not mapped",
+                "Source KYC field": row["source_kyc_field"],
+                "Source original files": row["source_original_files"],
+                "Destination account": row["destination_account"] or "Unknown",
+                "Destination customer": row["destination_customer"] or "Not mapped",
+                "Destination KYC field": row["destination_kyc_field"],
+                "Destination original files": row["destination_original_files"],
+                "Link quality": row["link_status"].replace("_", " "),
+            } for row in review_links], hide_index=True, height=min(420, 38 * len(review_links) + 45))
+        else:
+            st.info("No transaction rows fall inside this alert's review window. Nearby rows, if any, are background context only.")
     if transactions:
         transaction_map = {row["txn_id"]: row for row in transactions}
         txn_id = st.selectbox(
@@ -245,6 +276,136 @@ if view == "Case records":
             with st.container(border=True):
                 st.markdown(f"**{hit['chunk_id']}** · {hit['doc_id']}")
                 st.write(hit["chunk_text"])
+
+elif view == "Rule Lab":
+    st.subheader("Recalculate a fictional alert")
+    st.info("Change the three numbers below. The page generates ten fictional transaction rows in memory and runs the actual 24-hour alert calculation. Nothing is uploaded, saved, added to Case Queue, or sent to a bank.")
+    a, b, c = st.columns(3)
+    monthly_baseline = a.number_input("Historical monthly credit (INR)", min_value=1, max_value=100_000_000,
+                                      value=80_000, step=10_000,
+                                      help="Synthetic six-month monthly-credit baseline supplied to the calculation.")
+    credit_amount = b.number_input("Each of four incoming transfers (INR)", min_value=1,
+                                   max_value=100_000_000, value=300_000, step=10_000,
+                                   help="Each generated credit uses this value; no real account is involved.")
+    debit_amount = c.number_input("Each of six outgoing transfers (INR)", min_value=1,
+                                  max_value=100_000_000, value=180_000, step=10_000,
+                                  help="Each generated debit uses this value; beneficiaries are fictional and have unknown KYC.")
+    lab_rows = make_fictional_lab_batch(int(credit_amount), int(debit_amount))
+    lab_alerts = detect_pass_through(lab_rows, int(monthly_baseline))
+    incoming_total = sum(row["amount"] for row in lab_rows if row["direction"] == "CR")
+    outgoing_total = sum(row["amount"] for row in lab_rows if row["direction"] == "DR")
+    incoming_ratio = incoming_total / monthly_baseline
+    outgoing_percent = outgoing_total / incoming_total * 100
+    beneficiary_count = len({row["counterparty_account_id"] for row in lab_rows if row["direction"] == "DR"})
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Four credits total", f"₹{incoming_total:,.0f}")
+    m2.metric("Six debits total", f"₹{outgoing_total:,.0f}")
+    m3.metric("Incoming / monthly baseline", f"{incoming_ratio:.2f}x")
+    m4.metric("Outgoing / incoming", f"{outgoing_percent:.1f}%")
+    st.dataframe([
+        {"Rule check": "Incoming versus monthly baseline", "Observed": f"{incoming_ratio:.2f}x", "Required": "At least 5x", "Result": "Pass" if incoming_ratio >= 5 else "Below threshold"},
+        {"Rule check": "Outgoing versus incoming", "Observed": f"{outgoing_percent:.1f}%", "Required": "At least 80%", "Result": "Pass" if outgoing_percent >= 80 else "Below threshold"},
+        {"Rule check": "Distinct outgoing beneficiaries", "Observed": str(beneficiary_count), "Required": "At least 3", "Result": "Pass" if beneficiary_count >= 3 else "Below threshold"},
+    ], hide_index=True)
+    if lab_alerts:
+        st.warning("Review signal: the generated rows meet all three illustrative conditions—at least 5x the monthly baseline, at least 80% outgoing/incoming, and at least three distinct beneficiaries inside 24 hours. This is not a fraud or legal finding.")
+    else:
+        st.success("No review signal under these fixed lab thresholds. This does not establish that the activity is safe or lawful.")
+    with st.expander("Inspect all ten generated rows"):
+        st.dataframe(lab_rows, hide_index=True)
+    st.caption("The six fictional beneficiaries are distinct, have no KYC in this lab, and are not evidence of onward settlement. These fixed test thresholds are separate from the Admin Rule Config preview; neither creates a stored case or connects to a bank feed.")
+
+elif view == "Fictional Intake":
+    st.subheader("Create a fictional evidence packet")
+    st.info("This course-only intake accepts numeric controls and generates synthetic IDs. It cannot accept names, bank account numbers or uploaded files. A qualifying batch is saved with labeled sample KYC text and exact searchable chunks. It appears in the Case Queue for a separate calculated review, not the six-agent or Gemini path.")
+    with st.form("fictional_intake_form"):
+        a, b, c = st.columns(3)
+        baseline = a.number_input("Intake monthly baseline (INR)", min_value=1, max_value=100_000_000,
+                                  value=80_000, step=10_000)
+        credit = b.number_input("Intake incoming transfer (INR)", min_value=1, max_value=100_000_000,
+                                value=300_000, step=10_000)
+        debit = c.number_input("Intake outgoing transfer (INR)", min_value=1, max_value=100_000_000,
+                               value=180_000, step=10_000)
+        submitted = st.form_submit_button("Calculate and save fictional case")
+    intake_path = fictional_intake_path()
+    if submitted:
+        rows = make_generated_fictional_batch(int(credit), int(debit), int(baseline))
+        try:
+            with closing(sqlite3.connect(intake_path)) as conn:
+                result = intake_fictional_batch(conn, rows, int(baseline))
+        except (ValueError, sqlite3.Error) as exc:
+            st.error(f"Fictional intake was not saved: {exc}")
+        else:
+            if result["case_id"]:
+                st.session_state["fictional_intake_case_id"] = result["case_id"]
+                st.success(f"{'Saved' if result['created'] else 'Already saved'}: {result['case_id']}. This is a review signal, not a fraud finding.")
+            else:
+                st.info("These rows did not meet the fixed review thresholds, so no case was saved. This does not establish that the activity is lawful.")
+    with closing(sqlite3.connect(intake_path)) as conn:
+        init_fictional_intake(conn)
+        saved_ids = [row[0] for row in conn.execute(
+            "SELECT case_id FROM fictional_intake_cases ORDER BY rowid DESC LIMIT 50"
+        )]
+        if saved_ids:
+            chosen = st.selectbox("Saved fictional case", saved_ids,
+                                  index=saved_ids.index(st.session_state["fictional_intake_case_id"])
+                                  if st.session_state.get("fictional_intake_case_id") in saved_ids else 0)
+            packet = read_fictional_case(conn, chosen)
+            assessment = assess_fictional_case(conn, chosen)
+        else:
+            packet = None
+    if packet:
+        if assessment["review_signal_recomputed"] and assessment["source_integrity_confirmed"]:
+            st.info("The saved review signal is reproducible from its stored rows, and the generated source text matches its stored fingerprints and exact chunks. This does not verify identity or lawful funds.")
+        else:
+            st.error("The saved case failed a calculation or source-integrity check. Do not rely on its draft until the mismatch is reviewed.")
+        s1, s2, s3, s4 = st.columns(4)
+        s1.metric("Stored transactions", len(packet["transactions"]))
+        s2.metric("Generated records", len(packet["documents"]))
+        s3.metric("Indexed chunks", len(packet["chunks"]))
+        s4.metric("Original identity files", packet["original_identity_files"])
+        st.caption(assessment["recommended_action"])
+        with st.expander(f"Evidence gaps requiring human review · {len(assessment['missing_evidence'])}"):
+            for gap in assessment["missing_evidence"]:
+                st.warning(gap)
+        st.caption("All counterparty profiles and independent source-of-funds documents are missing. The generated PAN/passport references are deliberately invalid and never count as original KYC.")
+        with st.expander("Inspect stored transaction rows"):
+            st.dataframe(packet["transactions"], hide_index=True, height=350)
+        document_by_id = {doc["doc_id"]: doc for doc in packet["documents"]}
+        doc_id = st.selectbox("Generated source record", list(document_by_id))
+        doc = document_by_id[doc_id]
+        st.caption(f"{doc['category']} · {doc['verification_status']} · SHA-256 {doc['content_sha256']}")
+        with st.expander("Read full generated source text"):
+            st.text(doc["body"])
+        chunk_by_id = {chunk["chunk_id"]: chunk for chunk in packet["chunks"]}
+        source_chunks = [chunk for chunk in packet["chunks"] if chunk["doc_id"] == doc_id]
+        st.caption(f"{len(source_chunks)} exact indexed passage(s) in this source record")
+        for chunk in source_chunks:
+            with st.expander(f"Passage {chunk['chunk_index'] + 1} · {doc['title']}",
+                             expanded=chunk["chunk_index"] == 0):
+                st.caption(f"Chunk ID: {chunk['chunk_id']}")
+                st.write(chunk["chunk_text"])
+        phrase = st.text_input("Search this case's indexed chunks", key=f"fic_chunk_search_{chosen}",
+                               help="FTS5 searches only this saved fictional case; a match is not verification.")
+        if phrase.strip():
+            if not assessment["source_integrity_confirmed"]:
+                st.warning("Chunk search is unavailable while this packet fails its source-integrity check.")
+            else:
+                with closing(sqlite3.connect(intake_path)) as conn:
+                    matches = search_fictional_chunks(conn, chosen, phrase)
+                if matches:
+                    st.caption(f"{len(matches)} matching passage(s) in this fictional case")
+                    for index, match in enumerate(matches):
+                        source = chunk_by_id[match["chunk_id"]]
+                        title = document_by_id[match["doc_id"]]["title"]
+                        with st.expander(f"{title} · passage {source['chunk_index'] + 1}",
+                                         expanded=index == 0):
+                            st.caption(f"Chunk ID: {match['chunk_id']}")
+                            st.write(match["chunk_text"])
+                else:
+                    st.caption("No indexed passage matched this phrase in this case.")
+    else:
+        st.caption("No fictional intake case has been saved in this isolated store yet.")
 
 elif view == "Source & chunks":
     selected_doc = st.selectbox(

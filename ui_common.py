@@ -486,6 +486,11 @@ _DARK_OVERRIDE_CSS = """
 [data-testid="stJson"] .react-json-view {
     background-color: #1B2536 !important;
 }
+/* Streamlit expander summaries keep their light tint unless the interactive
+   summary itself is themed; light text then disappears in dark mode. */
+[data-testid="stExpander"] summary {
+    background-color: #1D2D47 !important; border-color: #648AC4 !important;
+}
 [data-testid="stDataFrame"], [data-testid="stTable"] { filter: invert(0.92) hue-rotate(180deg); }
 hr, [data-testid="stDivider"] { border-color: #2E3B52 !important; }
 button[kind="secondary"] { background-color: #1B2536 !important; border-color: #2E3B52 !important; }
@@ -574,12 +579,14 @@ def severity_badge(severity: str) -> str:
     with unsafe_allow_html=True. Falls back to plain text for an unknown
     value rather than an empty/broken badge."""
     cls = _SEVERITY_CLASS.get(severity)
-    return f'<span class="iq-badge {cls}">{severity}</span>' if cls else str(severity)
+    safe = escape(str(severity))
+    return f'<span class="iq-badge {cls}">{safe}</span>' if cls else safe
 
 
 def status_badge(status: str) -> str:
     cls = _STATUS_CLASS.get(status)
-    return f'<span class="iq-badge {cls}">{status}</span>' if cls else str(status)
+    safe = escape(str(status))
+    return f'<span class="iq-badge {cls}">{safe}</span>' if cls else safe
 
 
 def require_login(allow_guest: bool = False):

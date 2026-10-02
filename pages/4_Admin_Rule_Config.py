@@ -147,9 +147,10 @@ with st.expander("Change history for these thresholds"):
 
 st.divider()
 st.caption(
-    "Scope note: this changes the CONFIGURED thresholds only. The 42 alerts already in the dataset were "
-    "generated once, deterministically, and are not live-recomputed against these settings — that keeps the "
-    "fixed C1/C2 comparison cases stable regardless of what an admin adjusts here. Playbook content (the RAG "
+    "Scope note: this changes the CONFIGURED preview thresholds only. The queue has 42 imported workbook alerts "
+    "and two test alerts calculated when the database was built; none is live-recomputed from these saved settings. "
+    "The read-only Rule Lab on Evidence & RAG separately recalculates a fictional ten-row batch using fixed "
+    "5x/80%/three-beneficiary conditions. Playbook content (the RAG "
     "knowledge base) is viewable/searchable on the Admin Knowledge Base page; editing it there is a documented "
     "next step, not yet built. All data is fictional."
 )

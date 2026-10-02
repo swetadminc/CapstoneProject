@@ -64,7 +64,7 @@ def validate_batch(rows: list[dict]) -> list[dict]:
 def detect_pass_through(rows: list[dict], monthly_baseline: object,
                         multiplier: object = 5, outbound_percent: object = 80,
                         minimum_beneficiaries: int = 3) -> list[dict]:
-    """Evaluate every completed credit's following 24h window from input rows.
+    """Evaluate non-overlapping 24h windows anchored at the first credit.
 
     R1 uses aggregate incoming value versus a supplied historical monthly
     average. R2 compares aggregate outgoing value and distinct beneficiaries.
@@ -87,10 +87,12 @@ def detect_pass_through(rows: list[dict], monthly_baseline: object,
 
     completed = [row for row in entries if row["status"] == "Completed"]
     candidates = []
+    covered_until = None
     for anchor in completed:
-        if anchor["direction"] != "CR":
+        if anchor["direction"] != "CR" or (covered_until is not None and anchor["txn_datetime"] <= covered_until):
             continue
         end = anchor["txn_datetime"] + timedelta(hours=24)
+        covered_until = end
         window = [row for row in completed if anchor["txn_datetime"] <= row["txn_datetime"] <= end]
         incoming = [row for row in window if row["direction"] == "CR"]
         outgoing = [row for row in window if row["direction"] == "DR"]
@@ -110,6 +112,31 @@ def detect_pass_through(rows: list[dict], monthly_baseline: object,
                 "debit_txn_ids": [row["txn_id"] for row in outgoing],
                 "assessment": "Activity meets illustrative review thresholds; no finding of unlawful funds.",
             })
-    # Earliest qualifying window gives a stable, single alert for overlapping
-    # credits in the same batch. A production monitor would dedupe by rule key.
+    # Earliest qualifying non-overlapping window gives one stable signal for
+    # this small batch. A production monitor would need durable deduplication.
     return candidates[:1]
+
+
+def make_fictional_lab_batch(incoming_amount: int, outgoing_amount: int) -> list[dict]:
+    """Create ten clearly fictional rows for the read-only on-site rule lab.
+
+    No identity, bank account number, user-uploaded file, or saved case is
+    involved. Altering either amount changes the monitor's actual input.
+    """
+    for label, value in (("Incoming", incoming_amount), ("Outgoing", outgoing_amount)):
+        if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 100_000_000:
+            raise ValueError(f"{label} amount must be an integer between 1 and 100,000,000")
+    rows = []
+    for index in range(1, 11):
+        credit = index <= 4
+        rows.append({
+            "txn_id": f"TXN-LAB-{index:02d}",
+            "account_id": "ACC-LAB-001",
+            "txn_datetime": f"2026-10-01T09:{(index-1)*10:02d}:00" if index <= 6 else
+                            f"2026-10-01T10:{(index-7)*10:02d}:00",
+            "direction": "CR" if credit else "DR",
+            "amount": incoming_amount if credit else outgoing_amount,
+            "status": "Completed",
+            "counterparty_account_id": f"EXT-LAB-{'S' if credit else 'B'}{index if credit else index-4:02d}",
+        })
+    return rows

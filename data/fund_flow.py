@@ -115,3 +115,42 @@ def case_transactions(conn: sqlite3.Connection, case_id: str) -> list[dict]:
         "FROM transactions WHERE account_id=? ORDER BY txn_datetime DESC",
         (alert["account_id"],),
     ).fetchall()]
+
+
+def case_window_links(conn: sqlite3.Connection, case_id: str) -> list[dict]:
+    """Summarize every recorded row in the alert's ten-day review window.
+
+    A ledger counterparty is only a reported endpoint. The two KYC fields are
+    dataset labels, not evidence that original identity files were verified.
+    """
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(
+        "SELECT t.txn_id FROM alerts a JOIN transactions t ON t.account_id=a.account_id "
+        "WHERE a.case_id=? AND julianday(t.txn_datetime)>=julianday(a.alert_date) "
+        "AND julianday(t.txn_datetime)<julianday(a.alert_date, '+10 days') "
+        "ORDER BY t.txn_datetime, t.txn_id",
+        (case_id,),
+    ).fetchall()
+    if not rows and conn.execute("SELECT 1 FROM alerts WHERE case_id=?", (case_id,)).fetchone() is None:
+        raise ValueError(f"Unknown case: {case_id}")
+    result = []
+    for row in rows:
+        link = trace_transaction(conn, row["txn_id"])
+        txn, source, destination = link["transaction"], link["source"], link["destination"]
+        result.append({
+            "transaction_id": txn["txn_id"],
+            "time": txn["txn_datetime"],
+            "direction": txn["direction"],
+            "amount_inr": txn["amount"],
+            "status": txn["status"],
+            "source_account": source["account_id"],
+            "source_customer": source["customer_id"],
+            "source_kyc_field": source["dataset_kyc_status"],
+            "source_original_files": source["original_identity_files"],
+            "destination_account": destination["account_id"],
+            "destination_customer": destination["customer_id"],
+            "destination_kyc_field": destination["dataset_kyc_status"],
+            "destination_original_files": destination["original_identity_files"],
+            "link_status": link["link_status"],
+        })
+    return result
