@@ -337,9 +337,16 @@ _GLOBAL_CSS = """
     background: linear-gradient(120deg, #087E74, #0A9A89) !important;
     border: 1.5px solid #51C8B8 !important;
     color: #FFFFFF !important;
+    min-height: 38px; padding: 0 8px !important;
+    font-size: 13px; font-weight: 750; white-space: nowrap;
     box-shadow: 0 2px 7px rgba(8, 126, 116, .18);
 }
 [class*="st-key-inv_"] button * { color: #FFFFFF !important; }
+.iq-queue-header { white-space: nowrap; }
+.iq-queue-rule {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    overflow: hidden; overflow-wrap: anywhere; line-height: 1.4;
+}
 [class*="st-key-inv_"] button:hover {
     background: linear-gradient(120deg, #05695F, #087E74) !important;
 }
@@ -545,6 +552,7 @@ _GLOBAL_CSS = """
 .iq-mobile-label { display: none; font-weight: 600; color: var(--iq-text-secondary); }
 @media (max-width: 640px) {
     .iq-mobile-label { display: inline; }
+    .iq-queue-rule { display: inline; overflow: visible; }
     [data-testid="stHorizontalBlock"]:has(.iq-queue-header) { display: none; }
     [data-testid="stHorizontalBlock"]:has(.iq-queue-row) {
         border-bottom: 1px solid var(--iq-card-border); padding-bottom: 8px; margin-bottom: 8px;

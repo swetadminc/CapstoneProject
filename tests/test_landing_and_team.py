@@ -160,6 +160,8 @@ class LandingAndTeamTests(unittest.TestCase):
         self.assertIn('class="iq-flashlight-svg"', page)
         self.assertEqual(page.count('class="iq-kpi-info-icon"'), 6)
         self.assertIn("Action", page)
+        self.assertTrue(any(str(item.key).startswith("inv_") and item.label == "Open"
+                            for item in app.button))
         self.assertIn("Info requested", page)
         self.assertTrue(any("High severity is a separate source label" in item.value
                             for item in app.get("caption")))

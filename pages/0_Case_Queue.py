@@ -160,7 +160,8 @@ st.caption(f"Showing {len(filtered)} of {len(df)} alerts")
 # ------------------------------------------------------------------
 # Queue table
 # ------------------------------------------------------------------
-header = st.columns([1.6, 2.2, 2.6, 1.3, 1.3, 1.5, 1.2])
+queue_column_widths = [1.6, 2.2, 2.6, 1.3, 1.3, 1.7, 1.6]
+header = st.columns(queue_column_widths)
 for col, label in zip(header, ["Case", "Customer", "Alert Type", "Severity", "Status", "Rule(s)", "Action"]):
     col.markdown(f'<span class="iq-queue-header"><strong>{label}</strong></span>', unsafe_allow_html=True)
 st.markdown('<hr style="margin: 4px 0 8px 0; border-color: var(--iq-card-border);">', unsafe_allow_html=True)
@@ -173,7 +174,7 @@ st.markdown('<hr style="margin: 4px 0 8px 0; border-color: var(--iq-card-border)
 # desktop (redundant next to the real header) and only appear once
 # stacked.
 for _, row in filtered.iterrows():
-    cols = st.columns([1.6, 2.2, 2.6, 1.3, 1.3, 1.5, 1.2])
+    cols = st.columns(queue_column_widths)
     hero_tag = ' <span class="iq-hero-badge">CACHED</span>' if row["has_cache"] else ""
     cols[0].markdown(f'<span class="iq-queue-row"></span><span class="iq-mobile-label">Case: </span>'
                       f'`{row["case_id"]}`{hero_tag}', unsafe_allow_html=True)
@@ -185,14 +186,13 @@ for _, row in filtered.iterrows():
                       unsafe_allow_html=True)
     cols[4].markdown(f'<span class="iq-mobile-label">Status: </span>{status_badge(row["queue_status"])}',
                       unsafe_allow_html=True)
-    cols[5].markdown(f'<span class="iq-mobile-label">Rule(s): </span>{escape(str(row["trigger_rule"] or "—"))}',
+    rule_text = escape(str(row["trigger_rule"] or "—"))
+    cols[5].markdown(f'<span class="iq-mobile-label">Rule(s): </span>'
+                     f'<span class="iq-queue-rule" title="{rule_text}" aria-label="{rule_text}">{rule_text}</span>',
                       unsafe_allow_html=True)
-    # A full "Investigate →" label doesn't fit this column at most viewport
-    # widths and silently truncates to "I.." — an icon-only button with a
-    # real Streamlit tooltip (the `help` kwarg) says the same thing without
-    # needing the space, and names the actual case rather than a generic
-    # label.
-    if cols[6].button("🔍", key=f"inv_{row['case_id']}",
+    # A short visible label and vector icon make the action recognizable even
+    # when the table is narrower; the tooltip names the exact case.
+    if cols[6].button("Open", icon=":material/open_in_new:", key=f"inv_{row['case_id']}",
                        help=f"Open {row['case_id']} in the Investigation Workspace to inspect recorded activity, source passages and the human decision form.",
                        use_container_width=True):
         st.session_state["selected_case_id"] = row["case_id"]
