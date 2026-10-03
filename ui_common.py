@@ -430,31 +430,39 @@ _GLOBAL_CSS = """
 }
 .iq-kpi-label { color: var(--iq-text-secondary); font-size: 12px; margin-bottom: 1px; }
 .iq-kpi-value { font-size: 23px; font-weight: 700; line-height: 1.15; color: var(--iq-heading); }
-.iq-kpi-region { container-type: inline-size; }
-.iq-kpi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 4px 0 7px; }
-.iq-kpi-card { min-height: 108px; box-sizing: border-box; padding: 10px 12px; }
-.iq-kpi-top { display: flex; align-items: flex-start; justify-content: space-between; }
+.iq-kpi-region { container-type: inline-size; width: 100%; }
+.iq-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 9px; margin: 4px 0 7px; }
+.iq-card.iq-kpi-card {
+    --iq-kpi-accent: #2E63BF;
+    position: relative; min-height: 82px; box-sizing: border-box;
+    padding: 9px 32px 9px 46px; border: 2px solid transparent !important;
+    background:
+        linear-gradient(125deg, color-mix(in srgb, var(--iq-kpi-accent) 11%, var(--iq-card-bg)), var(--iq-card-bg) 76%) padding-box,
+        linear-gradient(135deg, var(--iq-kpi-accent), #B9D0EC 55%, var(--iq-kpi-accent)) border-box !important;
+    box-shadow: 0 3px 10px rgba(30, 66, 118, .10);
+}
+.iq-kpi-top { position: absolute; inset: 9px 9px auto 9px; display: flex; align-items: flex-start; justify-content: space-between; }
 .iq-kpi-detail { color: var(--iq-text-secondary); font-size: 11px; line-height: 1.25; margin-top: 2px; }
 .iq-kpi-help { color: var(--iq-primary); display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; }
 .iq-kpi-info-icon { display: block; width: 18px; height: 18px; }
-@container (min-width: 1150px) { .iq-kpi-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-@media (max-width: 700px) { .iq-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } }
-/* KPI tiles (Total/Open/High severity/Escalated/Closed) used to render
-   identically regardless of what they meant — a colored left accent
-   ties each one to the same red/amber/green vocabulary already used for
-   severity and status badges elsewhere, instead of inventing a new
-   palette, so "High severity" reads as urgent at a glance the same way
-   its badge does. A left border, not a full tinted background, so it
-   stays legible against both the light radiance and dark navy page
-   backgrounds without needing separate light/dark variants. */
-.iq-kpi-blue { border-left: 4px solid var(--iq-primary); }
-.iq-kpi-amber { border-left: 4px solid var(--iq-sev-medium); }
-.iq-kpi-red { border-left: 4px solid var(--iq-sev-high); }
-.iq-kpi-green { border-left: 4px solid var(--iq-sev-low); }
+@container (min-width: 800px) and (max-width: 1199px) {
+    .iq-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container (min-width: 1200px) {
+    .iq-kpi-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+@media (max-width: 799px) { .iq-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } }
+@media (max-width: 350px) { .iq-kpi-grid { grid-template-columns: 1fr; } }
+/* A compact tinted surface plus a full gradient edge keeps each status
+   distinct without six oversized white blocks. */
+.iq-kpi-blue { --iq-kpi-accent: #2E63BF !important; }
+.iq-kpi-amber { --iq-kpi-accent: #B47A08 !important; }
+.iq-kpi-red { --iq-kpi-accent: #BD3535 !important; }
+.iq-kpi-green { --iq-kpi-accent: #27844E !important; }
 .iq-kpi-icon {
     display: inline-flex; align-items: center; justify-content: center;
     width: 26px; height: 26px; border-radius: 8px; font-size: 14px;
-    margin-bottom: 3px;
+    margin: 0;
 }
 .iq-kpi-blue .iq-kpi-icon { background: var(--iq-status-info-bg); }
 .iq-flashlight-svg { color: #2459AB; display: block; }

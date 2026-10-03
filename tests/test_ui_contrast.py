@@ -36,6 +36,14 @@ class SidebarContrastTests(unittest.TestCase):
         self.assertIn('.iq-team-card', _DARK_OVERRIDE_CSS)
         self.assertIn('.iq-flow-steps li', _DARK_OVERRIDE_CSS)
 
+    def test_queue_kpis_are_compact_with_a_gradient_edge(self):
+        self.assertRegex(_GLOBAL_CSS, r'\.iq-card\.iq-kpi-card\s*\{[^}]*min-height:\s*82px')
+        self.assertRegex(_GLOBAL_CSS, r'\.iq-card\.iq-kpi-card\s*\{[^}]*linear-gradient\([^;]+border-box')
+        self.assertIn('repeat(auto-fit, minmax(200px, 1fr))', _GLOBAL_CSS)
+        self.assertIn('@container (min-width: 800px) and (max-width: 1199px)', _GLOBAL_CSS)
+        self.assertIn('@container (min-width: 1200px)', _GLOBAL_CSS)
+        self.assertIn('--iq-kpi-accent: #27844E', _GLOBAL_CSS)
+
 
 if __name__ == "__main__":
     unittest.main()
