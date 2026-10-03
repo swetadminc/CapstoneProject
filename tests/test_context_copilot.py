@@ -60,14 +60,16 @@ class ContextCopilotTests(unittest.TestCase):
             self.assertEqual(valid["chunk_ids"], [chunk_a])
             self.assertEqual(wrong_case["chunk_ids"], [])
 
-    def test_sidebar_question_panel_is_available_on_queue_and_evidence(self):
+    def test_floating_question_panel_is_available_on_queue_and_evidence(self):
         app_path = Path(__file__).resolve().parents[1] / "app.py"
         app = AppTest.from_file(str(app_path)).run(timeout=30)
         app.session_state["user_name"] = "Case Reviewer"
         app.session_state["user_role"] = "Investigator"
         app.switch_page("pages/0_Case_Queue.py").run(timeout=30)
         self.assertFalse(app.exception)
-        self.assertTrue(any(item.label == "✦ Ask InvestigateIQ" for item in app.get("expander")))
+        self.assertEqual(app.button(key="floating_copilot_open").label, "✦ Ask InvestigateIQ")
+        app.button(key="floating_copilot_open").click().run(timeout=30)
+        self.assertTrue(app.session_state["iq_floating_copilot_open"])
         app.text_input(key="context_copilot_question").set_value("What am I looking at?")
         ask_buttons = [item for item in app.button if item.label == "Ask"]
         self.assertTrue(ask_buttons, [item.label for item in app.button])
@@ -99,6 +101,7 @@ class ContextCopilotTests(unittest.TestCase):
         app.session_state["selected_case_id"] = "CASE-010"
         app.switch_page("pages/2_Investigation_Demo.py").run(timeout=30)
         self.assertFalse(app.exception)
+        app.button(key="floating_copilot_open").click().run(timeout=30)
         app.text_input(key="context_copilot_question").set_value("Summarize this case")
         next(item for item in app.button if item.label == "Ask").click().run(timeout=30)
         self.assertFalse(app.exception)
@@ -113,7 +116,7 @@ class ContextCopilotTests(unittest.TestCase):
         self.assertNotIn("chat_CASE-011", app.session_state)
         self.assertFalse(any("Selected case CASE-010" in item.value for item in app.get("markdown")))
 
-    def test_shared_panel_renders_on_every_named_screen(self):
+    def test_floating_panel_renders_on_every_named_screen(self):
         app_path = Path(__file__).resolve().parents[1] / "app.py"
         app = AppTest.from_file(str(app_path)).run(timeout=30)
         app.session_state["user_name"] = "Case Reviewer"
@@ -128,7 +131,8 @@ class ContextCopilotTests(unittest.TestCase):
             with self.subTest(page=page):
                 app.switch_page(page).run(timeout=30)
                 self.assertFalse(app.exception)
-                self.assertTrue(any(item.label == "✦ Ask InvestigateIQ" for item in app.get("expander")))
+                self.assertEqual(app.button(key="floating_copilot_open").label, "✦ Ask InvestigateIQ")
+                self.assertFalse(any(item.label == "✦ Ask InvestigateIQ" for item in app.get("expander")))
 
     def test_evidence_page_keeps_an_explicitly_selected_case(self):
         app_path = Path(__file__).resolve().parents[1] / "app.py"

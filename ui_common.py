@@ -241,6 +241,55 @@ _GLOBAL_CSS = """
     background: #EAF2FF; border: 1px solid #B9D0F5; border-radius: 8px;
     font-size: 17px;
 }
+/* Keep the shared Copilot on the page, independent of the collapsible
+   Streamlit sidebar. The closed launcher is deliberately small; the open
+   panel stays inside the viewport and scrolls its own conversation. */
+[class*="st-key-iq_floating_copilot_"] {
+    position: fixed !important; right: 22px; bottom: 20px; z-index: 100002;
+    box-sizing: border-box; margin: 0 !important;
+}
+.st-key-iq_floating_copilot_closed {
+    width: auto; max-width: calc(100vw - 32px);
+    border-radius: 999px; box-shadow: 0 9px 28px rgba(13, 34, 73, .28);
+}
+.st-key-iq_floating_copilot_closed button {
+    background: #2E63BF !important; border: 1px solid #8CB5F4 !important;
+    border-radius: 999px !important; min-height: 48px;
+    padding: 9px 19px !important; color: #FFFFFF !important;
+    font-weight: 750 !important; box-shadow: none !important;
+}
+.st-key-iq_floating_copilot_closed button * { color: #FFFFFF !important; }
+.st-key-iq_floating_copilot_closed button:hover { background: #1E4FA7 !important; }
+.st-key-iq_floating_copilot_open {
+    top: 68px; bottom: auto;
+    width: min(390px, calc(100vw - 32px));
+    max-height: min(680px, calc(100vh - 82px)); overflow-y: auto;
+    overscroll-behavior: contain; padding: 14px 15px;
+    border: 1.5px solid #91B8F0; border-radius: 18px;
+    background: var(--iq-card-bg); color: var(--iq-heading);
+    box-shadow: 0 16px 45px rgba(13, 34, 73, .30);
+}
+.st-key-iq_floating_copilot_open [data-testid="stFormSubmitButton"] button {
+    background: #2E63BF !important; border: 1px solid #8CB5F4 !important;
+    color: #FFFFFF !important;
+}
+.st-key-iq_floating_copilot_open [data-testid="stFormSubmitButton"] button * {
+    color: #FFFFFF !important;
+}
+.st-key-iq_floating_copilot_open [data-testid="stFormSubmitButton"] button:disabled {
+    background: #354661 !important; border-color: #647895 !important;
+    opacity: 1 !important;
+}
+.iq-floating-title { color: var(--iq-heading); font-size: 16px; font-weight: 800; }
+.iq-floating-turn { margin: 8px 0 3px; font-size: 12px; font-weight: 750;
+    color: var(--iq-text-secondary); }
+@media (max-width: 600px) {
+    [class*="st-key-iq_floating_copilot_"] { right: 12px; bottom: 12px; }
+    .st-key-iq_floating_copilot_open {
+        top: 68px; bottom: auto;
+        width: calc(100vw - 24px); max-height: min(70vh, calc(100vh - 80px));
+    }
+}
 .iq-kpi-label { color: var(--iq-text-secondary); font-size: 13px; margin-bottom: 2px; }
 .iq-kpi-value { font-size: 26px; font-weight: 700; color: var(--iq-heading); }
 /* KPI tiles (Total/Open/High severity/Escalated/Closed) used to render
@@ -651,22 +700,13 @@ def require_login(allow_guest: bool = False):
         st.toggle("🌙 Dark mode", key="dark_mode_toggle",
                   on_change=_remember_theme_choice,
                   help="Switch the display theme for this browser session; it does not change case data.")
-        active_case = st.session_state.get("active_case_id")
-        copilot_label = f"✦ Open Copilot · {active_case}" if active_case else "✦ Choose case for Copilot"
-        if st.button(copilot_label, key="open_case_copilot_global",
-                     help="Open the case-scoped Copilot for your last selected case, "
-                          "or choose a case first if none is selected in this browser session."):
-            if active_case:
-                st.session_state["selected_case_id"] = active_case
-                st.switch_page("pages/2_Investigation_Demo.py")
-            else:
-                st.switch_page("pages/0_Case_Queue.py")
         if st.button("Switch user", key="switch_user_btn",
                      help="Clear this display identity and choose another; saved decisions remain in the audit log."):
             del st.session_state["user_name"]
             del st.session_state["user_role"]
             st.session_state.pop("active_case_id", None)
             st.session_state.pop("selected_case_id", None)
+            st.session_state.pop("iq_floating_copilot_open", None)
             st.rerun()
 
     return st.session_state["user_name"], st.session_state["user_role"]
@@ -674,16 +714,41 @@ def require_login(allow_guest: bool = False):
 
 def render_context_copilot(page: str, case_id: str | None = None,
                            chunk_id: str | None = None) -> None:
-    """Sidebar Q&A shared across pages; history follows the selected case."""
-    if "user_name" not in st.session_state:
-        return
+    """Floating Q&A shared across pages; history follows the selected case."""
     from agents.context_copilot import answer_context_question
+
+    if not st.session_state.get("iq_floating_copilot_open", False):
+        with st.container(key="iq_floating_copilot_closed"):
+            if st.button("✦ Ask InvestigateIQ", key="floating_copilot_open",
+                         help="Open the floating Copilot chat without leaving this page."):
+                st.session_state["iq_floating_copilot_open"] = True
+                st.rerun()
+        return
 
     scope = case_id or f"page_{page.replace(' ', '_')}"
     history_key = (f"fictional_chat_{case_id}" if case_id and case_id.startswith("FIC-CASE-")
                    else f"chat_{case_id}" if case_id else f"context_chat_{scope}")
-    with st.sidebar.expander("✦ Ask InvestigateIQ", expanded=False):
-        st.caption(f"Page: {page} · " + (f"Selected case: {case_id}" if case_id else "No case selected"))
+    with st.container(key="iq_floating_copilot_open"):
+        title_col, close_col = st.columns([4, 1])
+        with title_col:
+            st.markdown('<div class="iq-floating-title">✦ InvestigateIQ Copilot</div>',
+                        unsafe_allow_html=True)
+        with close_col:
+            if st.button("×", key="floating_copilot_close", help="Close the floating Copilot chat."):
+                st.session_state["iq_floating_copilot_open"] = False
+                st.rerun()
+        st.caption(f"{page} · " + (f"Case {case_id}" if case_id else "No case selected"))
+        if "user_name" not in st.session_state:
+            st.info("Enter your workspace with a display name to ask the Copilot.")
+            return
+        if case_id:
+            if st.button("Open case workspace", key="open_case_copilot_global",
+                         help="Open this selected case in the Investigation Workspace."):
+                st.session_state["selected_case_id"] = case_id
+                st.switch_page("pages/2_Investigation_Demo.py")
+        elif st.button("Choose a case", key="open_case_copilot_global",
+                       help="Choose a case from the Case Queue for case-specific questions."):
+            st.switch_page("pages/0_Case_Queue.py")
         if chunk_id:
             st.caption(f"Selected passage: {chunk_id}")
         with st.form("context_copilot_form", clear_on_submit=True):
@@ -703,8 +768,11 @@ def render_context_copilot(page: str, case_id: str | None = None,
                             {"role": "assistant", "content": answer["answer"],
                              "chunk_ids": answer.get("chunk_ids", []),
                              "sources": answer.get("sources", []), "source": answer.get("source")}))
-        recent = st.session_state.get(history_key, [])[-2:]
-        for turn_index, turn in enumerate(recent):
+        history = st.session_state.get(history_key, [])
+        for turn_index in range(max(0, len(history) - 8), len(history)):
+            turn = history[turn_index]
+            st.markdown(f'<div class="iq-floating-turn">{"You" if turn["role"] == "user" else "Copilot"}</div>',
+                        unsafe_allow_html=True)
             st.markdown(plain_text_html(turn["content"], muted=turn["role"] == "user"),
                         unsafe_allow_html=True)
             if turn["role"] == "assistant" and turn.get("chunk_ids"):

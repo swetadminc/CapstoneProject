@@ -26,7 +26,7 @@ QUESTION = "How many transactions were stored in one month, which need review, a
 
 
 class CaseCopilotTests(unittest.TestCase):
-    def test_sidebar_copilot_launcher_requires_case_choice_if_none_active(self):
+    def test_floating_copilot_requires_case_choice_if_none_active(self):
         app_path = Path(__file__).resolve().parents[1] / "app.py"
         app = AppTest.from_file(str(app_path)).run(timeout=30)
         app.session_state["user_name"] = "Case Reviewer"
@@ -34,11 +34,13 @@ class CaseCopilotTests(unittest.TestCase):
         app.switch_page("pages/5_Analytics.py").run(timeout=30)
         self.assertFalse(app.exception)
         self.assertNotIn("active_case_id", app.session_state)
+        app.button(key="floating_copilot_open").click().run(timeout=30)
+        self.assertTrue(app.session_state["iq_floating_copilot_open"])
         app.button(key="open_case_copilot_global").click().run(timeout=30)
         self.assertFalse(app.exception)
         self.assertTrue(any("Case Queue" in item.value for item in app.get("markdown")))
 
-    def test_sidebar_copilot_launcher_preserves_selected_case(self):
+    def test_floating_copilot_launcher_preserves_selected_case(self):
         app_path = Path(__file__).resolve().parents[1] / "app.py"
         app = AppTest.from_file(str(app_path)).run(timeout=30)
         app.session_state["user_name"] = "Case Reviewer"
@@ -49,6 +51,7 @@ class CaseCopilotTests(unittest.TestCase):
         self.assertEqual(app.session_state["active_case_id"], "CASE-041")
         app.switch_page("pages/5_Analytics.py").run(timeout=30)
         self.assertFalse(app.exception)
+        app.button(key="floating_copilot_open").click().run(timeout=30)
         app.button(key="open_case_copilot_global").click().run(timeout=30)
         self.assertFalse(app.exception)
         self.assertEqual(app.session_state["active_case_id"], "CASE-041")
