@@ -158,6 +158,8 @@ class LandingAndTeamTests(unittest.TestCase):
         page = "\n".join(item.value for item in app.get("markdown"))
         self.assertEqual(page.count('class="iq-card iq-kpi-card'), 6)
         self.assertIn('class="iq-flashlight-svg"', page)
+        self.assertEqual(page.count('class="iq-kpi-info-icon"'), 6)
+        self.assertIn("Action", page)
         self.assertIn("Info requested", page)
         self.assertTrue(any("High severity is a separate source label" in item.value
                             for item in app.get("caption")))

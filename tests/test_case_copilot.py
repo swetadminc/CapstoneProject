@@ -111,19 +111,30 @@ class CaseCopilotTests(unittest.TestCase):
                 self.assertTrue(any("historical draft" in item.value and
                                     "do not independently verify" in item.value
                                     for item in app.get("warning")))
-                self.assertEqual(app.button(key="sugg_CASE-041_8").label, "Old vs current evidence")
-                self.assertTrue(any("Case questions use current stored rows and chunks" in item.value
-                                    for item in app.get("caption")))
-                app.button(key="sugg_CASE-041_1").click().run(timeout=30)
+                self.assertFalse(any("Ask the Copilot" in item.value for item in app.get("markdown")))
+                self.assertTrue(any("iq-workspace-case-badge" in item.value and "CASE-041" in item.value
+                                    for item in app.get("markdown")))
+                app.button(key="floating_copilot_open").click().run(timeout=30)
+                self.assertTrue(app.session_state["iq_floating_copilot_open"])
+                question = "How many transactions were stored in one month, which need review, and is KYC verified?"
+                app.selectbox(key="context_copilot_suggestion_CASE-041_0").set_value(question).run(timeout=30)
+                self.assertTrue(any("Selected question:" in item.value and question in item.value
+                                    for item in app.get("markdown")))
+                next(item for item in app.button if item.label == "Send").click().run(timeout=30)
                 self.assertFalse(app.exception)
                 self.assertTrue(any("Transaction count in" in item.value for item in app.get("markdown")))
                 self.assertTrue(any("CASE-LEDGER-ALL-CASE-041-C" in item.value
                                     for item in app.get("caption")))
-                app.button(key="sugg_CASE-041_5").click().run(timeout=30)
+                app.selectbox(key="context_copilot_suggestion_CASE-041_2").set_value(
+                    "What evidence might contradict this alert?").run(timeout=30)
+                next(item for item in app.button if item.label == "Send").click().run(timeout=30)
                 self.assertFalse(app.exception)
                 self.assertTrue(any("not proof that the alert is correct" in item.value
                                     for item in app.get("markdown")))
-                app.button(key="sugg_CASE-041_8").click().run(timeout=30)
+                app.selectbox(key="context_copilot_suggestion_CASE-041_4").set_value(
+                    "Why does the saved report have zero case passages while current evidence has chunks?"
+                ).run(timeout=30)
+                next(item for item in app.button if item.label == "Send").click().run(timeout=30)
                 self.assertFalse(app.exception)
                 self.assertTrue(any("do not retroactively change" in item.value
                                     for item in app.get("markdown")))
@@ -143,12 +154,15 @@ class CaseCopilotTests(unittest.TestCase):
                 app.switch_page("pages/2_Investigation_Demo.py").run(timeout=30)
                 next(item for item in app.button if item.label.startswith("▶ Run investigation")).click().run(timeout=30)
                 self.assertFalse(app.exception)
-                app.button(key="sugg_CASE-041_7").click().run(timeout=30)
+                app.button(key="floating_copilot_open").click().run(timeout=30)
+                app.text_input(key="context_copilot_question").set_value("Who is the customer's secret associate?")
+                next(item for item in app.button if item.label == "Send").click().run(timeout=30)
                 self.assertFalse(app.exception)
-                self.assertTrue(any("The live model did not return an answer" in str(item.value)
-                                    for item in app.get("markdown")))
+                self.assertIn("The live model did not return an answer",
+                              app.session_state["chat_CASE-041"][-1]["content"])
                 self.assertTrue(app.button(key="submit_CASE-041"))
-                app.button(key="sugg_CASE-041_1").click().run(timeout=30)
+                app.text_input(key="context_copilot_question").set_value(QUESTION)
+                next(item for item in app.button if item.label == "Send").click().run(timeout=30)
                 self.assertFalse(app.exception)
                 self.assertTrue(any("Transaction count in" in item.value for item in app.get("markdown")))
 
@@ -167,9 +181,11 @@ class CaseCopilotTests(unittest.TestCase):
                 app.session_state["selected_case_id"] = case_id
                 app.switch_page("pages/2_Investigation_Demo.py").run(timeout=30)
                 self.assertFalse(app.exception)
-                app.selectbox(key=f"fic_suggestion_{case_id}_0").set_value(
+                app.button(key="floating_copilot_open").click().run(timeout=30)
+                app.selectbox(key=f"context_copilot_suggestion_{case_id}_0").set_value(
                     "How many transactions are stored in one month, and which need review?"
                 ).run(timeout=30)
+                next(item for item in app.button if item.label == "Send").click().run(timeout=30)
                 self.assertFalse(app.exception)
                 self.assertTrue(any("Transaction count in October 2026: 10" in item.value
                                     for item in app.get("markdown")))

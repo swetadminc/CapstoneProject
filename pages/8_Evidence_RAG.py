@@ -295,7 +295,10 @@ if view == "Case records":
                 st.session_state["context_evidence_chunk_id"] = passage["chunk_id"]
     st.divider()
     st.subheader("Search this case's indexed records")
-    case_query = st.text_input("Keywords", key="case_evidence_search", help="Search source-record chunks for this case and its customer; matching text is shown with its exact source ID.")
+    case_query = st.text_input(
+        "Keywords", key="case_evidence_search", placeholder="e.g., counterparty",
+        help="Try a word actually present in this case's records, such as counterparty. Search stays within this case and its customer; matches show exact source IDs.",
+    )
     if case_query.strip():
         from data.knowledge_search import _fts_query
         with closing(sqlite3.connect(DB_PATH)) as conn:

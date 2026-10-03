@@ -76,8 +76,8 @@ class ContextCopilotTests(unittest.TestCase):
         self.assertTrue(app.session_state["iq_floating_copilot_open"])
         suggestion = next(item for item in app.selectbox if item.label == "Suggested questions")
         suggestion.set_value("What am I looking at?").run(timeout=30)
-        self.assertEqual(app.text_input(key="context_copilot_question").value, "What am I looking at?")
-        app.text_input(key="context_copilot_question").set_value("What am I looking at?")
+        self.assertTrue(any("Selected question: What am I looking at?" in item.value
+                            for item in app.get("markdown")))
         ask_buttons = [item for item in app.button if item.label == "Send"]
         self.assertTrue(ask_buttons, [item.label for item in app.button])
         ask_buttons[0].click().run(timeout=30)
@@ -122,6 +122,31 @@ class ContextCopilotTests(unittest.TestCase):
                 self.assertEqual(len(history), number * 2)
                 self.assertEqual(history[-2]["content"], question)
                 self.assertTrue(history[-1]["content"].strip())
+
+    def test_admin_page_suggestions_send_repeatedly_without_message_field(self):
+        app_path = Path(__file__).resolve().parents[1] / "app.py"
+        app = AppTest.from_file(str(app_path)).run(timeout=30)
+        app.session_state["user_name"] = "Case Reviewer"
+        app.session_state["user_role"] = "Investigator"
+        app.session_state["active_case_id"] = "CASE-043"
+        app.switch_page("pages/4_Admin_Rule_Config.py").run(timeout=30)
+        self.assertFalse(app.exception)
+        app.button(key="floating_copilot_open").click().run(timeout=30)
+        questions = (
+            "Why was this alert triggered?",
+            "Show the transaction sequence and recorded counterparties.",
+            "Can we conclude that these funds are lawful or unlawful?",
+        )
+        for index, question in enumerate(questions):
+            app.selectbox(key=f"context_copilot_suggestion_CASE-043_{2 * index}").set_value(
+                question).run(timeout=30)
+            self.assertEqual(app.text_input(key="context_copilot_question").value, "")
+            next(item for item in app.button if item.label == "Send").click().run(timeout=30)
+            self.assertFalse(app.exception)
+            history = app.session_state["chat_CASE-043"]
+            self.assertEqual(len(history), 2 * (index + 1))
+            self.assertEqual(history[-2]["content"], question)
+            self.assertTrue(history[-1]["content"].strip())
 
     def test_case_conversation_follows_navigation_but_not_a_new_case(self):
         app_path = Path(__file__).resolve().parents[1] / "app.py"

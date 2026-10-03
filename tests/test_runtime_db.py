@@ -58,6 +58,36 @@ class RuntimeDBTransactionTests(unittest.TestCase):
             )
         self.assertEqual(runtime_db.get_human_actions("CASE-TEST"), [])
 
+    def test_decision_is_immutable_until_compliance_returns_case(self):
+        runtime_db.record_human_decision("CASE-TEST", "Investigator", "escalate",
+                                         "Needs a second review", [], [])
+        with self.assertRaisesRegex(ValueError, "already recorded"):
+            runtime_db.record_human_decision("CASE-TEST", "Other investigator", "close",
+                                             "Stale browser tab", [], [])
+        runtime_db.record_human_decision("CASE-TEST", "Compliance", "compliance_return",
+                                         "Request original identity evidence", [], [])
+        runtime_db.record_human_decision("CASE-TEST", "Investigator", "request_info",
+                                         "Follow-up action after return", [], [])
+        self.assertEqual([row["action"] for row in runtime_db.get_human_actions("CASE-TEST")],
+                         ["escalate", "compliance_return", "request_info"])
+        self.assertEqual(len(runtime_db.get_audit_log("CASE-TEST")), 3)
+        with self.assertRaisesRegex(ValueError, "already recorded"):
+            runtime_db.record_human_decision("CASE-TEST", "Investigator", "escalate",
+                                             "Duplicate follow-up", [], [])
+        self.assertEqual(len(runtime_db.get_audit_log("CASE-TEST")), 3)
+
+    def test_compliance_cannot_act_without_current_escalation(self):
+        with self.assertRaisesRegex(ValueError, "requires a current"):
+            runtime_db.record_human_decision("CASE-TEST", "Compliance", "compliance_ack",
+                                             "No escalation exists", [], [])
+        runtime_db.record_human_decision("CASE-TEST", "Investigator", "escalate",
+                                         "Requires review", [], [])
+        runtime_db.record_human_decision("CASE-TEST", "Compliance", "compliance_ack",
+                                         "Reviewed", [], [])
+        with self.assertRaisesRegex(ValueError, "requires a current"):
+            runtime_db.record_human_decision("CASE-TEST", "Compliance", "compliance_ack",
+                                             "Duplicate action", [], [])
+
     def test_rule_change_and_audit_are_saved_together(self):
         runtime_db.set_rule_param("R1", "deviation_multiplier", 6.0, "Tester")
         self.assertEqual(runtime_db.get_rule_config()[("R1", "deviation_multiplier")], 6.0)

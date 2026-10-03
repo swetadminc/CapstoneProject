@@ -90,6 +90,14 @@ FLASHLIGHT_SVG = (
     '<path d="M7 15.5v7" opacity=".55"/>'
     '</svg>'
 )
+INFO_SVG = (
+    '<svg class="iq-kpi-info-icon" viewBox="0 0 20 20" fill="none" '
+    'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" '
+    'focusable="false" aria-hidden="true">'
+    '<circle cx="10" cy="10" r="8"/><path d="M10 9v5"/>'
+    '<circle cx="10" cy="6.2" r="1" fill="currentColor" stroke="none"/>'
+    '</svg>'
+)
 kpis = [
     (FLASHLIGHT_SVG, "Total alerts", len(df), "iq-kpi-blue", "All stored fictional alerts", "Count of all alert rows in this queue, including any saved fictional-intake cases. This is not a live bank feed."),
     ("🕒", "Open", int((df["queue_status"] == "Open").sum()), "iq-kpi-amber", "Awaiting review", "Cases whose current status is Open. An alert is a signal for review, not a fraud finding."),
@@ -109,12 +117,13 @@ for icon, label, value, accent, detail, definition in kpis:
         f'<div class="iq-card iq-kpi-card {accent}" role="group" '
         f'aria-label="{escape(label)}: {value:,}. {escape(definition)}" title="{escape(definition)}">'
         f'<div class="iq-kpi-top"><span class="iq-kpi-icon" aria-hidden="true">{icon}</span>'
-        f'<span class="iq-kpi-help" aria-hidden="true">ⓘ</span></div>'
+        f'<span class="iq-kpi-help" aria-hidden="true">{INFO_SVG}</span></div>'
         f'<div class="iq-kpi-label">{escape(label)}</div>'
         f'<div class="iq-kpi-value">{value:,}</div>'
         f'<div class="iq-kpi-detail">{escape(detail)}</div></div>'
     )
-st.markdown('<div class="iq-kpi-grid">' + ''.join(cards) + '</div>', unsafe_allow_html=True)
+st.markdown('<div class="iq-kpi-region"><div class="iq-kpi-grid">' + ''.join(cards) + '</div></div>',
+            unsafe_allow_html=True)
 st.caption("Status cards use the latest human action when one exists; otherwise they use the original source status. High severity is a separate source label "
            "and can overlap any status. Hover over a card or open the definitions below.")
 with st.expander("What these queue numbers mean"):
@@ -152,7 +161,7 @@ st.caption(f"Showing {len(filtered)} of {len(df)} alerts")
 # Queue table
 # ------------------------------------------------------------------
 header = st.columns([1.6, 2.2, 2.6, 1.3, 1.3, 1.5, 1.2])
-for col, label in zip(header, ["Case", "Customer", "Alert Type", "Severity", "Status", "Rule(s)", ""]):
+for col, label in zip(header, ["Case", "Customer", "Alert Type", "Severity", "Status", "Rule(s)", "Action"]):
     col.markdown(f'<span class="iq-queue-header"><strong>{label}</strong></span>', unsafe_allow_html=True)
 st.markdown('<hr style="margin: 4px 0 8px 0; border-color: var(--iq-card-border);">', unsafe_allow_html=True)
 

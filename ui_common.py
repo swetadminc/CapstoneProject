@@ -135,21 +135,24 @@ _GLOBAL_CSS = """
 }
 .iq-flow {
     --iq-flow-connector: #477ABD;
-    margin: 14px 0 22px; padding: 17px 18px 14px;
-    border: 2px solid #A9C6EC; border-radius: 18px;
-    background: linear-gradient(135deg, #F8FBFF, #EDF5FF);
-    box-shadow: 0 5px 20px rgba(31, 75, 136, 0.08);
+    margin: 8px 0 14px; padding: 10px 14px;
+    border: 2.5px solid transparent; border-radius: 16px;
+    background: linear-gradient(120deg, #F8FBFF, #EDF5FF 60%, #F5F0FF) padding-box,
+                linear-gradient(120deg, #659CF0, #8DCFC7, #B79AEF) border-box;
+    box-shadow: 0 4px 16px rgba(31, 75, 136, 0.11);
 }
-.iq-flow-heading { color: var(--iq-heading); font-weight: 800; font-size: 16px; margin-bottom: 3px; }
+.iq-flow-heading { color: var(--iq-heading); font-weight: 800; font-size: 14px; margin-bottom: 1px; }
 .iq-flow-heading::before { content: '🧭'; margin-right: 8px; }
-.iq-flow-purpose, .iq-flow-note { color: var(--iq-text-secondary); font-size: 13px; line-height: 1.45; }
-.iq-flow-steps { display: flex; gap: 30px; list-style: none; padding: 0; margin: 14px 0 10px; }
+.iq-flow-purpose, .iq-flow-note { color: var(--iq-text-secondary); font-size: 12px; line-height: 1.35; }
+.iq-flow-steps { display: flex; gap: 20px; list-style: none; padding: 0; margin: 8px 0 5px; }
 .iq-flow-steps li {
     --iq-step-border: #8FB9EE; --iq-step-bg: #F0F6FF; --iq-step-icon-bg: #DDEBFF;
     position: relative; box-sizing: border-box; flex: 1; min-width: 0;
-    border: 2px solid var(--iq-step-border); border-radius: 14px;
-    background: var(--iq-step-bg); padding: 13px 14px;
-    box-shadow: 0 3px 10px rgba(28, 61, 106, 0.06);
+    display: grid; grid-template-columns: 27px minmax(0, 1fr);
+    column-gap: 8px; row-gap: 2px; align-content: start;
+    border: 1.5px solid var(--iq-step-border); border-radius: 11px;
+    background: var(--iq-step-bg); padding: 8px 9px;
+    box-shadow: 0 2px 7px rgba(28, 61, 106, 0.06);
 }
 .iq-flow-steps li:nth-child(4n+2) {
     --iq-step-border: #C6A2F0; --iq-step-bg: #F9F3FF; --iq-step-icon-bg: #EEDDFF;
@@ -161,27 +164,27 @@ _GLOBAL_CSS = """
     --iq-step-border: #E9BB72; --iq-step-bg: #FFF9EC; --iq-step-icon-bg: #FFF0D2;
 }
 .iq-flow-steps li:not(:last-child)::after {
-    content: ''; position: absolute; right: -29px; top: 50%;
-    width: 26px; height: 5px; transform: translateY(-50%);
+    content: ''; position: absolute; right: -19px; top: 50%;
+    width: 17px; height: 5px; transform: translateY(-50%);
     background: radial-gradient(circle, var(--iq-flow-connector) 2px, transparent 2.5px) 0 0 / 9px 5px repeat-x;
     animation: iq-flow-dots 1.5s linear infinite;
 }
 .iq-flow-steps li:not(:last-child)::before {
-    content: ''; position: absolute; right: -31px; top: calc(50% - 4px);
+    content: ''; position: absolute; right: -21px; top: calc(50% - 4px);
     width: 7px; height: 7px; border-top: 2px solid var(--iq-flow-connector);
     border-right: 2px solid var(--iq-flow-connector); transform: rotate(45deg);
 }
 @keyframes iq-flow-dots { to { background-position: 9px 0; } }
-.iq-flow-step-head { display: flex; align-items: center; gap: 8px; }
+.iq-flow-step-head { grid-row: 1 / span 2; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .iq-flow-icon {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 30px; height: 30px; flex: 0 0 30px;
-    border-radius: 9px; background: var(--iq-step-icon-bg);
-    font-size: 17px; line-height: 1;
+    width: 25px; height: 25px; flex: 0 0 25px;
+    border-radius: 7px; background: var(--iq-step-icon-bg);
+    font-size: 14px; line-height: 1;
 }
-.iq-flow-number { color: var(--iq-heading); font-size: 11px; font-weight: 800; letter-spacing: .05em; }
-.iq-flow-title { display: block; color: var(--iq-heading); font-size: 13px; font-weight: 700; margin: 8px 0 4px; }
-.iq-flow-detail { color: var(--iq-text-secondary); font-size: 12px; line-height: 1.4; }
+.iq-flow-number { color: var(--iq-heading); font-size: 8px; font-weight: 800; letter-spacing: .01em; white-space: nowrap; }
+.iq-flow-title { display: block; grid-column: 2; color: var(--iq-heading); font-size: 12px; font-weight: 700; margin: 0; }
+.iq-flow-detail { grid-column: 2; color: var(--iq-text-secondary); font-size: 11px; line-height: 1.3; }
 .iq-team-grid {
     display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;
     margin: 12px 0 22px;
@@ -202,15 +205,15 @@ _GLOBAL_CSS = """
 @media (max-width: 900px) { .iq-team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .iq-team-grid { grid-template-columns: 1fr; } }
 @media (max-width: 800px) {
-    .iq-flow-steps { flex-direction: column; gap: 28px; }
+    .iq-flow-steps { flex-direction: column; gap: 16px; }
     .iq-flow-steps li:not(:last-child)::after {
-        right: auto; left: 50%; top: auto; bottom: -25px;
-        width: 5px; height: 22px; transform: translateX(-50%);
+        right: auto; left: 50%; top: auto; bottom: -14px;
+        width: 5px; height: 11px; transform: translateX(-50%);
         background: radial-gradient(circle, var(--iq-flow-connector) 2px, transparent 2.5px) 0 0 / 5px 9px repeat-y;
         animation-name: iq-flow-dots-vertical;
     }
     .iq-flow-steps li:not(:last-child)::before {
-        right: auto; left: calc(50% - 4px); top: auto; bottom: -27px;
+        right: auto; left: calc(50% - 4px); top: auto; bottom: -16px;
         transform: rotate(135deg);
     }
 }
@@ -253,13 +256,22 @@ _GLOBAL_CSS = """
     border-radius: 999px; box-shadow: 0 9px 28px rgba(13, 34, 73, .28);
 }
 .st-key-iq_floating_copilot_closed button {
-    background: #2E63BF !important; border: 1px solid #8CB5F4 !important;
+    background: linear-gradient(120deg, #2E63BF, #087E74) !important;
+    border: 1.5px solid #7BE0D3 !important;
     border-radius: 999px !important; min-height: 48px;
     padding: 9px 19px !important; color: #FFFFFF !important;
-    font-weight: 750 !important; box-shadow: none !important;
+    font-weight: 750 !important;
+    animation: iq-launcher-attention 4s ease-in-out infinite;
 }
 .st-key-iq_floating_copilot_closed button * { color: #FFFFFF !important; }
-.st-key-iq_floating_copilot_closed button:hover { background: #1E4FA7 !important; }
+.st-key-iq_floating_copilot_closed button:hover {
+    background: linear-gradient(120deg, #2456AA, #056D65) !important;
+    animation-play-state: paused; transform: translateY(-1px);
+}
+@keyframes iq-launcher-attention {
+    0%, 70%, 100% { box-shadow: 0 5px 15px rgba(13, 84, 113, .23); }
+    82% { box-shadow: 0 0 0 7px rgba(40, 179, 165, .17), 0 9px 25px rgba(13, 84, 113, .30); }
+}
 .st-key-iq_floating_copilot_open {
     top: 68px; bottom: auto;
     width: min(390px, calc(100vw - 32px));
@@ -274,8 +286,8 @@ _GLOBAL_CSS = """
     max-height: calc(100vh - 82px);
 }
 .st-key-iq_floating_chat_history {
-    height: clamp(180px, calc(100vh - 450px), 340px) !important;
-    min-height: 180px; max-height: clamp(180px, calc(100vh - 450px), 340px) !important;
+    height: auto !important;
+    min-height: 105px; max-height: clamp(180px, calc(100vh - 450px), 340px) !important;
     flex: 0 0 auto !important;
     overflow-y: auto;
     margin: 3px 0 !important; padding: 8px !important;
@@ -283,7 +295,7 @@ _GLOBAL_CSS = """
     background: #F3F7FF;
 }
 .st-key-iq_floating_copilot_open:has(.iq-chat-expanded) .st-key-iq_floating_chat_history {
-    height: clamp(210px, calc(100vh - 420px), 460px) !important;
+    height: auto !important;
     max-height: clamp(210px, calc(100vh - 420px), 460px) !important;
 }
 .st-key-iq_floating_chat_history > * { flex: 0 0 auto !important; }
@@ -297,12 +309,16 @@ _GLOBAL_CSS = """
     margin-left: auto; background: #E5EFFD; border-color: #A7C5EF;
 }
 .iq-chat-message.iq-chat-assistant { margin-right: auto; }
+.iq-chat-message.iq-chat-assistant[data-iq-latest-answer="true"] {
+    border-color: #3AAFA2; box-shadow: 0 0 0 2px rgba(58, 175, 162, .16);
+}
 .iq-chat-speaker {
     display: block; margin-bottom: 4px; font-size: 11px;
     font-weight: 800; color: var(--iq-text-secondary);
 }
 .st-key-iq_floating_copilot_open [data-testid="stFormSubmitButton"] button {
-    background: #087E74 !important; border: 1.5px solid #51C8B8 !important;
+    background: linear-gradient(120deg, #087E74, #0A9A89) !important;
+    border: 1.5px solid #51C8B8 !important;
     color: #FFFFFF !important; min-width: 0 !important;
     padding: 0 6px !important;
 }
@@ -316,6 +332,20 @@ _GLOBAL_CSS = """
 .st-key-iq_floating_copilot_open [data-testid="stForm"] {
     position: sticky; bottom: 0; z-index: 2;
     background: var(--iq-card-bg);
+}
+[class*="st-key-inv_"] button {
+    background: linear-gradient(120deg, #087E74, #0A9A89) !important;
+    border: 1.5px solid #51C8B8 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 2px 7px rgba(8, 126, 116, .18);
+}
+[class*="st-key-inv_"] button * { color: #FFFFFF !important; }
+[class*="st-key-inv_"] button:hover {
+    background: linear-gradient(120deg, #05695F, #087E74) !important;
+}
+[data-testid="stButton"] button[kind="primary"] {
+    background: linear-gradient(120deg, #087E74, #0A9A89) !important;
+    border-color: #51C8B8 !important; color: #FFFFFF !important;
 }
 .st-key-iq_floating_header [data-testid="stHorizontalBlock"] {
     align-items: center !important; gap: 6px !important;
@@ -346,6 +376,18 @@ _GLOBAL_CSS = """
     color: var(--iq-heading); font-size: 16px; font-weight: 800; line-height: 1.2;
 }
 .iq-floating-context { color: var(--iq-text-secondary); font-size: 12px; line-height: 1.25; }
+.iq-selected-case, .iq-workspace-case-badge strong {
+    display: inline-block; padding: 2px 8px; border-radius: 8px;
+    background: #2058B2; border: 1px solid #7FB5FF;
+    color: #FFFFFF; font-weight: 800; letter-spacing: .03em;
+}
+.iq-workspace-case-badge { margin: 4px 0 10px; color: var(--iq-text-secondary); font-size: 14px; }
+.iq-suggestion-preview {
+    margin: 2px 0 6px; padding: 6px 9px; border-radius: 8px;
+    border: 1px solid var(--iq-card-border); color: var(--iq-heading);
+    background: var(--iq-card-bg); font-size: 12px; line-height: 1.4;
+    overflow-wrap: anywhere;
+}
 .st-key-iq_floating_copilot_open [data-testid="stSelectbox"] { margin-bottom: 0 !important; }
 .st-key-iq_floating_copilot_open [data-testid="stButton"] button {
     border: 1.5px solid #91B8F0 !important;
@@ -359,9 +401,9 @@ _GLOBAL_CSS = """
         width: calc(100vw - 24px); max-height: calc(100vh - 80px);
     }
     .st-key-iq_floating_chat_history {
-        height: clamp(140px, calc(100vh - 430px), 280px) !important;
+        height: auto !important;
         max-height: clamp(140px, calc(100vh - 430px), 280px) !important;
-        min-height: 140px;
+        min-height: 100px;
     }
     .st-key-iq_floating_copilot_open [data-testid="stHorizontalBlock"] {
         flex-direction: row !important; flex-wrap: nowrap !important;
@@ -383,15 +425,20 @@ _GLOBAL_CSS = """
         min-width: 0 !important; padding: 0 6px !important;
     }
 }
-.iq-kpi-label { color: var(--iq-text-secondary); font-size: 13px; margin-bottom: 2px; }
-.iq-kpi-value { font-size: 26px; font-weight: 700; color: var(--iq-heading); }
-.iq-kpi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 5px 0 8px; }
-.iq-kpi-card { min-height: 132px; box-sizing: border-box; padding: 14px 16px; }
+@media (prefers-reduced-motion: reduce) {
+    .st-key-iq_floating_copilot_closed button { animation: none !important; }
+}
+.iq-kpi-label { color: var(--iq-text-secondary); font-size: 12px; margin-bottom: 1px; }
+.iq-kpi-value { font-size: 23px; font-weight: 700; line-height: 1.15; color: var(--iq-heading); }
+.iq-kpi-region { container-type: inline-size; }
+.iq-kpi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 4px 0 7px; }
+.iq-kpi-card { min-height: 108px; box-sizing: border-box; padding: 10px 12px; }
 .iq-kpi-top { display: flex; align-items: flex-start; justify-content: space-between; }
-.iq-kpi-detail { color: var(--iq-text-secondary); font-size: 12px; line-height: 1.35; margin-top: 3px; }
-.iq-kpi-help { color: var(--iq-primary); font-size: 17px; line-height: 1; }
-@media (min-width: 1550px) { .iq-kpi-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-@media (max-width: 700px) { .iq-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; } }
+.iq-kpi-detail { color: var(--iq-text-secondary); font-size: 11px; line-height: 1.25; margin-top: 2px; }
+.iq-kpi-help { color: var(--iq-primary); display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; }
+.iq-kpi-info-icon { display: block; width: 18px; height: 18px; }
+@container (min-width: 1150px) { .iq-kpi-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .iq-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } }
 /* KPI tiles (Total/Open/High severity/Escalated/Closed) used to render
    identically regardless of what they meant — a colored left accent
    ties each one to the same red/amber/green vocabulary already used for
@@ -406,8 +453,8 @@ _GLOBAL_CSS = """
 .iq-kpi-green { border-left: 4px solid var(--iq-sev-low); }
 .iq-kpi-icon {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 30px; height: 30px; border-radius: 9px; font-size: 15px;
-    margin-bottom: 6px;
+    width: 26px; height: 26px; border-radius: 8px; font-size: 14px;
+    margin-bottom: 3px;
 }
 .iq-kpi-blue .iq-kpi-icon { background: var(--iq-status-info-bg); }
 .iq-flashlight-svg { color: #2459AB; display: block; }
@@ -524,7 +571,12 @@ _DARK_OVERRIDE_CSS = """
     border-color: #79A9EA !important;
 }
 .st-key-iq_floating_copilot_open [data-testid="stFormSubmitButton"] button {
-    background: #087E74 !important; border-color: #66DDCD !important;
+    background: linear-gradient(120deg, #087E74, #0A9A89) !important;
+    border-color: #66DDCD !important;
+}
+[class*="st-key-inv_"] button {
+    background: linear-gradient(120deg, #087E74, #0A9A89) !important;
+    border-color: #66DDCD !important; color: #FFFFFF !important;
 }
 .iq-team-card {
     background: #1D2D47 !important; border-color: #729BDD !important;
@@ -622,7 +674,7 @@ _DARK_OVERRIDE_CSS = """
     color: #6E85A8 !important; opacity: 1 !important;
 }
 /* Every bordered st.container(border=True) — findings cards and the
-   "Ask the Copilot" chat history on Investigation Demo, the nav cards on
+   floating Copilot history, the nav cards on
    Home, any other bordered container — kept its own light background in
    dark mode, because nothing here ever gave it one. Meanwhile the
    blanket "* { color: ... !important }" above forces the text INSIDE it
@@ -882,7 +934,8 @@ def render_context_copilot(page: str, case_id: str | None = None,
         if st.session_state.get("iq_floating_copilot_expanded", False):
             st.markdown('<span class="iq-chat-expanded" hidden></span>', unsafe_allow_html=True)
         st.markdown('<div class="iq-floating-context">' + escape(page) + ' · ' +
-                    (f'Case {escape(case_id)}' if case_id else 'No case selected') + '</div>',
+                    (f'<span class="iq-selected-case">Case {escape(case_id)}</span>'
+                     if case_id else 'No case selected') + '</div>',
                     unsafe_allow_html=True)
         if "user_name" not in st.session_state:
             st.info("Enter your workspace with a display name to ask the Copilot.")
@@ -917,9 +970,26 @@ def render_context_copilot(page: str, case_id: str | None = None,
         )
         if chunk_id:
             suggestions.insert(0, "Explain this evidence passage in plain English.")
+        if case_id and case_id.startswith("FIC-CASE-"):
+            suggestions.extend([
+                "Show me the transaction sequence: when, from whom, and to whom.",
+                "How many transactions are stored in one month, and which need review?",
+                "Why did this case trigger review?",
+                "Can we say the funds are illegal?",
+            ])
+        elif case_id:
+            suggestions.extend([
+                "How many transactions were stored in one month, which need review, and is KYC verified?",
+                "Show me the transaction sequence.",
+                "What evidence supports the concern?",
+                "What evidence might contradict this alert?",
+                "What is missing?",
+                "What should I do next?",
+            ])
         if case_id and os.path.isfile(os.path.join(os.path.dirname(__file__), "data", "cached_reports",
                                                f"{case_id}.json")):
             suggestions.append("Why does the saved report have zero case passages while current evidence has chunks?")
+        suggestions = list(dict.fromkeys(suggestions))
         history = st.session_state.get(history_key, [])
         def render_chat_turn(turn_index: int) -> None:
             turn = history[turn_index]
@@ -927,11 +997,18 @@ def render_context_copilot(page: str, case_id: str | None = None,
             speaker = "You" if turn["role"] == "user" else "Copilot"
             st.markdown(
                 f'<div class="iq-chat-message {role_class}" '
+                f'{"data-iq-latest-answer=\"true\" " if turn["role"] == "assistant" and turn_index == len(history) - 1 else ""}'
                 f'title="{escape(turn["content"], quote=True) if turn["role"] == "user" else ""}">'
                 f'<span class="iq-chat-speaker">'
                 f'{speaker}</span>{plain_text_html(turn["content"])}</div>',
                 unsafe_allow_html=True,
             )
+            if turn["role"] == "assistant" and turn.get("source") == "live_model":
+                st.caption("Live model draft — review every cited source before relying on it.")
+                if turn.get("sources"):
+                    st.caption("Citations: " + ", ".join(turn["sources"]))
+                if turn.get("validator_notes"):
+                    st.caption(f"{len(turn['validator_notes'])} citation or claim check(s) adjusted by the Grounding Validator.")
             if turn["role"] == "assistant" and turn.get("chunk_ids"):
                 ids = turn["chunk_ids"]
                 st.caption("Evidence used: " + ", ".join(ids[:3]) +
@@ -962,39 +1039,90 @@ def render_context_copilot(page: str, case_id: str | None = None,
                 st.caption("Latest exchange · hover over your question to read it in full")
             for turn_index in range(max(0, len(history) - 2), len(history)):
                 render_chat_turn(turn_index)
+        if st.session_state.pop(f"iq_copilot_focus_{scope}", False):
+            # Static script only: no case text or user input enters JavaScript.
+            # Focus the newly rendered reply in both the inner transcript and
+            # the floating panel, without moving the underlying page.
+            st.html("""<script>
+                window.setTimeout(() => {
+                    const panel = document.querySelector('.st-key-iq_floating_copilot_open');
+                    const transcript = panel?.querySelector('.st-key-iq_floating_chat_history');
+                    const reply = transcript?.querySelector('[data-iq-latest-answer="true"]');
+                    if (!panel || !transcript || !reply) return;
+                    transcript.scrollTop += reply.getBoundingClientRect().top
+                        - transcript.getBoundingClientRect().top - 8;
+                    panel.scrollTop = 0;
+                }, 100);
+            </script>""", unsafe_allow_javascript=True)
 
         # A new picker key after each exchange returns it to the neutral
         # suggestion prompt without clearing the investigator's chat history.
         suggestion_key = f"context_copilot_suggestion_{scope}_{len(history)}"
-        st.selectbox("Suggested questions", [""] + suggestions, key=suggestion_key,
+        selected_suggestion = st.selectbox("Suggested questions", [""] + suggestions, key=suggestion_key,
                      format_func=lambda value: value or "Suggested questions (optional)",
                      label_visibility="collapsed",
-                     help="Pick a suggestion to fill the message field, or type your own question.",
-                     on_change=lambda: st.session_state.update(
-                         context_copilot_question=st.session_state[suggestion_key]
-                     ) if st.session_state[suggestion_key] else None)
+                     help="Pick a question and press Send, or type a different question in the message field.")
+        if selected_suggestion:
+            st.markdown('<div class="iq-suggestion-preview" title="' +
+                        escape(selected_suggestion, quote=True) +
+                        '">Selected question: ' + escape(selected_suggestion) + '</div>',
+                        unsafe_allow_html=True)
         with st.form("context_copilot_form", clear_on_submit=True):
             message_col, send_col = st.columns([4, 1], vertical_alignment="bottom")
             with message_col:
                 question = st.text_input("Message", key="context_copilot_question",
-                                         placeholder="Ask about this case..." if case_id else "Ask about this page...",
+                                         placeholder="Or type your own question..." if selected_suggestion else
+                                                     ("Ask about this case..." if case_id else "Ask about this page..."),
                                          label_visibility="collapsed",
-                                         help="Answers use this page and the selected case or passage; unsupported facts are not guessed.")
+                                         help="Typed text takes priority over a selected suggestion. Answers use the selected case or passage; unsupported facts are not guessed.")
             with send_col:
                 submitted = st.form_submit_button("Send", use_container_width=True,
                                                    help="Send your question about the selected case to the Copilot. Answers should be checked against cited records before making a decision.")
-        if submitted and question.strip():
+        question_to_send = question.strip() or selected_suggestion
+        if submitted and question_to_send:
             try:
-                answer = answer_context_question(question.strip(), page, case_id, chunk_id)
+                answer = answer_context_question(question_to_send, page, case_id, chunk_id)
+                # Preserve the former workspace's optional open-ended model
+                # path, but only after a real case result has been prepared.
+                # Bounded database answers stay deterministic and cited.
+                if (case_id and not case_id.startswith("FIC-CASE-")
+                        and answer.get("source") == "imported_case_database"
+                        and answer["answer"].startswith("Ask about this selected case's stored")
+                        and st.session_state.get(f"result_{case_id}")):
+                    from agents import investigation_agent
+                    if investigation_agent.GEMINI_API_KEY:
+                        from agents.chat_agent import ask_question
+                        result = st.session_state[f"result_{case_id}"]["result"]
+                        try:
+                            live = ask_question(case_id, question_to_send, history,
+                                                result["context"], result["evidence"],
+                                                result["guidance"])
+                            cited_chunks = live.get("cited_case_chunk_ids", [])
+                            answer = {
+                                "answer": live["answer"],
+                                "chunk_ids": cited_chunks,
+                                "sources": live.get("cited_txn_ids", [])
+                                           + live.get("cited_doc_ids", []) + cited_chunks,
+                                "source": "live_model",
+                                "validator_notes": live.get("validator_notes", []),
+                            }
+                        except Exception:
+                            answer = {
+                                "answer": "The live model did not return an answer. No AI conclusion was generated. "
+                                          "You can still review stored evidence or ask a bounded case question.",
+                                "chunk_ids": [], "sources": [], "source": "model_unavailable",
+                            }
             except (OSError, ValueError, sqlite3.Error) as exc:
                 answer = {"answer": f"I could not read the selected case safely: {type(exc).__name__}. "
                                     "Try again after checking the stored case data.",
                           "chunk_ids": [], "sources": [], "source": "read_error"}
             history = st.session_state.setdefault(history_key, [])
-            history.extend(({"role": "user", "content": question.strip()},
+            history.extend(({"role": "user", "content": question_to_send},
                             {"role": "assistant", "content": answer["answer"],
                              "chunk_ids": answer.get("chunk_ids", []),
-                             "sources": answer.get("sources", []), "source": answer.get("source")}))
+                             "sources": answer.get("sources", []), "source": answer.get("source"),
+                             "validator_notes": answer.get("validator_notes", [])}))
+            st.session_state[f"iq_copilot_focus_{scope}"] = True
             st.rerun()
 
 

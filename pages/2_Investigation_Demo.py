@@ -2,11 +2,11 @@
 """
 Investigation Agent demo — runs the real pipeline (DB -> deterministic
 analysis -> RAG retrieval -> Gemini -> Grounding Validator) against a chosen
-case, then the Ask-the-Copilot chat panel, a real Human Decision panel, and
+case, then the shared floating Copilot, a real Human Decision panel, and
 a real, persistent Audit Log.
 
 Implements the full Investigation Workspace wireframe (CEO Playbook,
-Section 7): the two-panel Evidence/Copilot layout, the Human Decision
+Section 7): full-width evidence with a floating Copilot, the Human Decision
 panel, and the persistent Audit Log below.
 """
 import json
@@ -21,8 +21,6 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agents.investigation_agent import investigate, GEMINI_API_KEY, GEMINI_MODEL
-from agents.chat_agent import ask_question, answer_from_saved_evidence, answer_fictional_case_question
-from agents.imported_copilot import answer_imported_case_question
 from data.case_evidence import case_evidence_index_status
 from data.knowledge_search import DB_PATH
 from agents.grounding_validator import GroundingValidator
@@ -53,6 +51,27 @@ def fmt_ts(iso_ts):
         return iso_ts
 
 
+ACTION_LABELS = {
+    "close": "Close — no concern",
+    "request_info": "Request more information",
+    "escalate": "Escalate to Compliance",
+    "compliance_ack": "Compliance acknowledged — no further action",
+    "compliance_return": "Returned to investigator by Compliance",
+    "compliance_refer": "Referred onward by Compliance (recorded only)",
+}
+
+
+def show_recorded_action(panel, action_row):
+    """Show the stored action, never a draft widget's potentially stale value."""
+    label = ACTION_LABELS.get(action_row["action"], action_row["action"])
+    panel.success(f"Recorded human action: **{label}**")
+    panel.write(f"By: {action_row['investigator']} · {fmt_ts(action_row['timestamp'])}")
+    panel.markdown("**Saved rationale**")
+    panel.markdown(plain_text_html(action_row["rationale"]), unsafe_allow_html=True)
+    panel.caption("This record and its audit entry are read-only. A later workflow step, if allowed, "
+                  "creates a separate action; it does not edit this one.")
+
+
 st.set_page_config(page_title="InvestigateIQ — Investigation Workspace", page_icon="🕵️", layout="wide")
 user_name, user_role = require_login()
 
@@ -63,7 +82,7 @@ page_flow("Review evidence and make a documented human decision", [
     ("Review the draft", "Inspect evidence, retrieved guidance and selected validation checks."),
     ("Ask or export", "Question the copilot and download the draft report if useful."),
     ("Decide and audit", "Record a reasoned human decision; inspect the audit history."),
-], "Case-scoped database questions, exact source-chunk citations and limited saved-evidence Q&A work without a model connection. Free-form AI chat needs a model key; the copilot never makes the final decision.")
+], "The floating Copilot answers bounded case questions from stored rows and exact source chunks. It does not verify outside-bank facts or make the final decision.")
 st.markdown(
     """
     <style>
@@ -125,6 +144,10 @@ case_id = CASES[choice]
 st.session_state["investigation_selected_case_id"] = case_id
 st.session_state["active_case_id"] = case_id
 render_context_copilot("Investigation Workspace", case_id)
+st.markdown(
+    f'<div class="iq-workspace-case-badge">Selected case <strong>{escape(case_id)}</strong></div>',
+    unsafe_allow_html=True,
+)
 
 if case_id.startswith("FIC-CASE-"):
     with closing(sqlite3.connect(fictional_intake_path())) as intake_conn:
@@ -156,72 +179,40 @@ if case_id.startswith("FIC-CASE-"):
         st.session_state["fictional_intake_case_id"] = case_id
         st.session_state["rag_view"] = "Fictional Intake"
         st.switch_page("pages/8_Evidence_RAG.py")
-    st.subheader("💬 Ask the Copilot")
-    st.caption("Ask about this case in your own words. Answers are calculated from its stored fictional rows; "
-               "this is evidence-backed Q&A, not a live AI model or a verdict.")
-    chat_key = f"fictional_chat_{case_id}"
-    if chat_key not in st.session_state:
-        st.session_state[chat_key] = []
-    with st.container(height=600, border=True, key=f"fictional_chat_box_{case_id}"):
-        for turn_index, turn in enumerate(st.session_state[chat_key]):
-            with st.chat_message(turn["role"]):
-                st.markdown(plain_text_html(turn["content"]), unsafe_allow_html=True)
-                if turn.get("sources"):
-                    st.caption("Stored sources: " + ", ".join(turn["sources"]))
-                    if st.button("Inspect cited records and chunks", key=f"fic_chat_sources_{case_id}_{turn_index}",
-                                 help="Open the first cited source passage and its full fictional record."):
-                        st.session_state["fictional_intake_case_id"] = case_id
-                        st.session_state["rag_view"] = "Fictional Intake"
-                        if turn.get("chunk_ids"):
-                            st.session_state["fictional_intake_chunk_id"] = turn["chunk_ids"][0]
-                        st.switch_page("pages/8_Evidence_RAG.py")
-    suggestions = [
-        "Show me the transaction sequence: when, from whom, and to whom.",
-        "How many transactions are stored in one month, and which need review?",
-        "Why did this case trigger review?",
-        "What KYC and counterparty evidence is missing?",
-        "Can you establish the source of funds?",
-        "Request more information.",
-        "Explain for compliance review.",
-        "Can we say the funds are illegal?",
-    ]
-    suggestion_key = f"fic_suggestion_{case_id}_{len(st.session_state[chat_key])}"
-    suggested_question = st.selectbox(
-        "Suggested questions", [""] + suggestions, key=suggestion_key,
-        format_func=lambda value: value or "Choose a question (optional)",
-        help="Choose a question for the Copilot, or type your own message below.",
-    )
-    typed_question = st.chat_input("Ask the copilot about this case...", key=f"fic_chat_input_{case_id}")
-    question = suggested_question or typed_question
-    if question:
-        response = answer_fictional_case_question(question, packet, assessment)
-        st.session_state[chat_key].append({"role": "user", "content": question})
-        st.session_state[chat_key].append({"role": "assistant", "content": response["answer"],
-                                           "sources": response["sources"], "chunk_ids": response["chunk_ids"]})
-        st.rerun()
     decision_panel = st.container(border=True)
     decision_panel.subheader("Human review action")
-    decision_panel.caption("After reviewing the Copilot's cited answer, choose the next human action. "
-                           "The Copilot cannot submit a decision. Closing as no concern is unavailable "
-                           "for this packet because independent evidence is missing.")
-    investigator = decision_panel.text_input("Your name (investigator)", value=user_name,
-                                            key=f"fic_investigator_{case_id}",
-                                            help="Required display name attached to this human action and its audit entry; this is not identity authentication.")
-    action = decision_panel.radio("Decision", ["Request more information", "Escalate for Compliance review"],
-                                  key=f"fic_action_{case_id}",
-                                  help="Request evidence that is missing, or send the case to a separate human Compliance review. Neither option declares funds illegal or files a report.")
-    rationale = decision_panel.text_area("Rationale (required)", key=f"fic_rationale_{case_id}",
-                                         help="Write the evidence and gaps behind your choice. This text is saved with the human action for audit review.")
-    if decision_panel.button("Submit decision", type="primary", key=f"fic_submit_{case_id}",
-                             help="Save the named investigator's action and rationale to the persistent audit trail; the Copilot cannot do this for you."):
-        if not investigator.strip() or not rationale.strip():
-            decision_panel.error("A named investigator and written rationale are required.")
-        else:
-            action_code = "request_info" if action.startswith("Request") else "escalate"
-            record_human_decision(case_id, investigator.strip(), action_code,
-                                  rationale.strip(), findings_accepted=[], findings_rejected=[])
-            decision_panel.success("Human action and audit entry recorded.")
     history = get_human_actions(case_id)
+    latest = history[-1] if history else None
+    if latest:
+        show_recorded_action(decision_panel, latest)
+    if latest is None or latest["action"] == "compliance_return":
+        if latest:
+            decision_panel.info("Compliance returned this case. A new investigator action can be "
+                                "recorded below; the earlier action remains in the audit history.")
+        else:
+            decision_panel.caption("After reviewing the Copilot's cited answer, choose the next human action. "
+                                   "The Copilot cannot submit a decision. Closing as no concern is unavailable "
+                                   "because independent evidence is missing.")
+        investigator = decision_panel.text_input("Your name (investigator)", value=user_name,
+                                                key=f"fic_investigator_{case_id}",
+                                                help="Required display name attached to this new human action; this is not identity authentication.")
+        action = decision_panel.radio("Decision", ["Request more information", "Escalate for Compliance review"],
+                                      key=f"fic_action_{case_id}",
+                                      help="Request missing evidence or send a separate action to Compliance. Neither declares funds illegal or files a report.")
+        rationale = decision_panel.text_area("Rationale (required)", key=f"fic_rationale_{case_id}",
+                                             help="Write the evidence and gaps behind this action for the audit record.")
+        if decision_panel.button("Submit decision", type="primary", key=f"fic_submit_{case_id}",
+                                 help="Save a new human action and audit entry; a submitted action cannot be edited here."):
+            if not investigator.strip() or not rationale.strip():
+                decision_panel.error("A named investigator and written rationale are required.")
+            else:
+                action_code = "request_info" if action.startswith("Request") else "escalate"
+                try:
+                    record_human_decision(case_id, investigator.strip(), action_code,
+                                          rationale.strip(), findings_accepted=[], findings_rejected=[])
+                    st.rerun()
+                except ValueError as exc:
+                    decision_panel.error(str(exc))
     if history:
         latest_action = history[-1]["action"]
         if latest_action == "request_info":
@@ -366,13 +357,9 @@ if state_key in st.session_state:
     st.divider()
 
     # -------------------------------------------------------------
-    # Two-panel layout, matching the original wireframe (CEO Playbook,
-    # Section 7): Evidence & Findings on the left, Ask the Copilot on the
-    # right. Both are genuinely independent Streamlit columns — verified
-    # st.chat_input works correctly inside a column in this Streamlit
-    # version before relying on it here.
+    # Full-width evidence; case questions use the single floating Copilot.
     # -------------------------------------------------------------
-    col_evidence, col_chat = st.columns([1.15, 1])
+    col_evidence = st.container()
 
     with col_evidence:
         st.subheader("📋 Evidence & Findings")
@@ -475,126 +462,8 @@ if state_key in st.session_state:
             })
 
     # ---------------------------------------------------------
-    # With a model connection, chat uses a live Gemini call and validates
-    # citations. Without one, a limited Q&A reads only the saved report
-    # and case evidence; it is explicitly labelled as non-generative.
+    # The shared floating Copilot is the only case chat.
     # ---------------------------------------------------------
-    with col_chat:
-        st.subheader("💬 Ask the Copilot")
-        case_context_label = (f"Selected case: {case_id} · {context['customer']['name']} · "
-                              f"alert {context['alert']['alert_id']}.")
-        source_context_label = (
-            "Case questions use current stored rows and chunks; saved-report findings remain a historical snapshot."
-            if use_cache else "Answers are scoped to this case."
-        )
-        st.caption(f"{case_context_label} {source_context_label}")
-
-        chat_key = f"chat_{case_id}"
-        if chat_key not in st.session_state:
-            st.session_state[chat_key] = []
-        chat_history = st.session_state[chat_key]
-
-        offline_qa = not bool(GEMINI_API_KEY)
-        if offline_qa:
-            st.info("Ask about the selected case's stored transactions, month count, alert and KYC. "
-                    "These database answers cite exact source chunks; broader free-form AI needs a model connection.")
-        SUGGESTED = [
-            ("Why this alert?", "Why was this alert triggered?"),
-            ("Count + KYC", "How many transactions were stored in one month, which need review, and is KYC verified?"),
-            ("Transaction trail", "Show me the transaction sequence."),
-            ("Source of funds", "Can you establish the source of funds?"),
-            ("Supporting evidence", "What evidence supports the concern?"),
-            ("Counter-evidence", "What evidence might contradict this alert?"),
-            ("Evidence gaps", "What is missing?"),
-            ("Next step", "What should I do next?"),
-            ("Old vs current evidence", "Why does the saved report have zero case passages while current evidence has chunks?"),
-        ]
-        st.caption("Suggested questions:")
-        suggestion_columns = st.columns(2)
-        for i, (label, question_text) in enumerate(SUGGESTED):
-            if suggestion_columns[i % 2].button(
-                label, key=f"sugg_{case_id}_{i}", use_container_width=True,
-                help=question_text,
-            ):
-                st.session_state[f"clicked_q_{case_id}"] = question_text
-
-        chat_box = st.container(height=600, border=True, key=f"iq_bordered_chat_{case_id}")
-        with chat_box:
-            for turn_index, turn in enumerate(chat_history):
-                with st.chat_message(turn["role"]):
-                    st.markdown(plain_text_html(turn["content"]), unsafe_allow_html=True)
-                    if turn.get("source") == "saved_evidence":
-                        st.caption("From saved case evidence · no live model call")
-                    if turn.get("source") == "imported_case_database":
-                        st.caption("From the selected case's stored account rows and exact source chunks · no model call")
-                    if turn.get("source") == "evidence_provenance":
-                        st.caption("Saved-report snapshot compared with the current case index · no model call")
-                    if turn.get("citations"):
-                        st.caption("Sources: " + ", ".join(turn["citations"]))
-                    if turn.get("chunk_ids") and st.button(
-                        "Inspect cited source chunk", key=f"copilot_chunk_{case_id}_{turn_index}",
-                        help="Open the first case passage cited in this Copilot answer and check its source and verification status."
-                    ):
-                        first_chunk = turn["chunk_ids"][0]
-                        st.session_state["rag_case_id"] = case_id
-                        st.session_state["rag_case_doc_id"] = first_chunk.rsplit("-C", 1)[0]
-                        st.session_state["rag_case_chunk_id"] = first_chunk
-                        st.switch_page("pages/8_Evidence_RAG.py")
-                    if turn.get("validator_notes"):
-                        st.caption(f"⚠️ {len(turn['validator_notes'])} citation(s) adjusted by the Grounding Validator")
-
-        if offline_qa:
-            st.caption("Review the cited source records before relying on an answer. Saved-evidence Q&A is limited to common case questions.")
-        else:
-            st.caption("Live model answer: review every cited source record before relying on it. Citation checks do not replace human judgement.")
-        typed_question = st.chat_input("Ask a question about this case...")
-        question = st.session_state.pop(f"clicked_q_{case_id}", None) or typed_question
-
-        if question:
-            chat_history.append({"role": "user", "content": question})
-            structured = any(term in question.lower() for term in
-                             ("month", "transaction", "trail", "sequence", "kyc", "identity",
-                              "suspicious", "flagged", "source of funds", "origin of funds",
-                              "counterparty", "counterparties", "how much", "amount",
-                              "credit", "debit", "when", "where", "need review",
-                              "saved report", "snapshot", "current evidence", "current index",
-                              "zero chunks", "0 chunks", "case passages", "contradict",
-                              "exculpatory", "alternative explanation", "against this alert",
-                              "against the alert"))
-            if structured:
-                snapshot_info = ({"generated_at": cached.get("generated_at"),
-                                  "case_chunk_count": len(evidence.get("case_chunks", [])),
-                                  "transaction_count": len(evidence.get("window_transactions", [])),
-                                  "document_count": len(evidence.get("documents", [])),
-                                  "guidance_count": len(guidance)}
-                                 if use_cache and cached else None)
-                answer = answer_imported_case_question(
-                    question, case_id, evidence, report, saved_report_info=snapshot_info)
-            elif offline_qa:
-                answer = answer_from_saved_evidence(question, context, evidence, guidance, report)
-            else:
-                with st.spinner("Thinking... (live Gemini call)"):
-                    try:
-                        answer = ask_question(case_id, question, chat_history[:-1], context, evidence, guidance)
-                    except Exception as e:
-                        chat_history.append({
-                            "role": "assistant",
-                            "content": "The live model did not return an answer. No AI conclusion was generated. "
-                                       "You can still review stored evidence or ask a bounded case question.",
-                            "citations": [], "chunk_ids": [], "source": "model_unavailable",
-                        })
-                        answer = None
-            if answer:
-                chat_history.append({
-                    "role": "assistant", "content": answer["answer"],
-                    "citations": answer["sources"] if "sources" in answer else (
-                        answer["cited_txn_ids"] + [f"[{d}]" for d in answer["cited_doc_ids"]]
-                        + [f"[{c}]" for c in answer.get("cited_case_chunk_ids", [])]
-                    ),
-                    "validator_notes": answer.get("validator_notes", []), "source": answer.get("source"),
-                    "chunk_ids": answer.get("chunk_ids", answer.get("cited_case_chunk_ids", [])),
-                })
-            st.rerun()
 
     # -------------------------------------------------------------
     # Human Decision panel — the accountable action. Separate visual
@@ -606,52 +475,59 @@ if state_key in st.session_state:
     decision_panel.subheader("✅ Human Decision")
     decision_panel.caption("This is the accountable action. The AI cannot close, escalate, or file anything on its own (BR1, BR4).")
 
-    investigator = decision_panel.text_input(
-        "Your name (investigator)", value=user_name, key=f"investigator_{case_id}",
-        help="Attributed on this decision in the audit log below — required.",
-    )
-    action = decision_panel.radio(
-        "Decision",
-        ["Close — no concern", "Request more information", "Escalate to Compliance"],
-        captions=[
-            "No further action — findings reviewed and don't warrant escalation.",
-            "Not enough evidence either way — flags for follow-up, stays open.",
-            "Sends this case to the Compliance Queue for a second review (see BR1: AI never escalates on its own).",
-        ],
-        key=f"action_{case_id}",
-        help="What happens to this case next. This, not the AI's report above, is the decision of record.",
-    )
-    rationale = decision_panel.text_area(
-        "Rationale (required)", key=f"rationale_{case_id}",
-        placeholder="Explain the decision — this is required, and it's what gets audited.",
-        help="Mandatory (BR4) — a decision can't be recorded without a written reason, regardless of which "
-             "option above is chosen.",
-    )
-    submit = decision_panel.button("Submit decision", type="primary", key=f"submit_{case_id}",
-                        help="Writes this decision to the persistent audit log — cannot be undone from this screen.")
+    history = get_human_actions(case_id)
+    latest_action = history[-1] if history else None
+    if latest_action:
+        show_recorded_action(decision_panel, latest_action)
+    if latest_action is None or latest_action["action"] == "compliance_return":
+        if latest_action:
+            decision_panel.info("Compliance returned this case. Record a new, separate investigator action below; the earlier decision remains unchanged.")
+        investigator = decision_panel.text_input(
+            "Your name (investigator)", value=user_name, key=f"investigator_{case_id}",
+            help="Attributed on this decision in the audit log below — required.",
+        )
+        action = decision_panel.radio(
+            "Decision",
+            ["Close — no concern", "Request more information", "Escalate to Compliance"],
+            captions=[
+                "No further action — findings reviewed and don't warrant escalation.",
+                "Not enough evidence either way — flags for follow-up, stays open.",
+                "Sends this case to the Compliance Queue for a second review (see BR1: AI never escalates on its own).",
+            ],
+            key=f"action_{case_id}",
+            help="What happens to this case next. This, not the AI's report above, is the decision of record.",
+        )
+        rationale = decision_panel.text_area(
+            "Rationale (required)", key=f"rationale_{case_id}",
+            placeholder="Explain the decision — this is required, and it's what gets audited.",
+            help="Mandatory (BR4) — a decision can't be recorded without a written reason, regardless of which "
+                 "option above is chosen.",
+        )
+        submit = decision_panel.button("Submit decision", type="primary", key=f"submit_{case_id}",
+                            help="Writes this decision to the persistent audit log — cannot be undone from this screen.")
 
-    if submit:
-        n_findings = len(report["findings"])
-        accepted_idx = [i for i, a in enumerate(accepted_flags) if a]
-        rejected_idx = [i for i in range(n_findings) if i not in accepted_idx]
-        action_code = {"Close — no concern": "close", "Request more information": "request_info",
-                       "Escalate to Compliance": "escalate"}[action]
+        if submit:
+            n_findings = len(report["findings"])
+            accepted_idx = [i for i, a in enumerate(accepted_flags) if a]
+            rejected_idx = [i for i in range(n_findings) if i not in accepted_idx]
+            action_code = {"Close — no concern": "close", "Request more information": "request_info",
+                           "Escalate to Compliance": "escalate"}[action]
 
-        if not investigator.strip():
-            decision_panel.error("Investigator name is required.")
-        elif not rationale.strip():
-            decision_panel.error("Rationale is required — a decision cannot be recorded without one (BR4).")
-        else:
-            try:
-                record_human_decision(
-                    case_id=case_id, investigator=investigator.strip(), action=action_code,
-                    rationale=rationale.strip(),
-                    findings_accepted=[report["findings"][i]["description"] for i in accepted_idx],
-                    findings_rejected=[report["findings"][i]["description"] for i in rejected_idx],
-                )
-                decision_panel.success(f"Decision recorded: **{action}** by {investigator}. Written to the audit log below.")
-            except Exception as e:
-                decision_panel.error(f"Could not record decision: {e}")
+            if not investigator.strip():
+                decision_panel.error("Investigator name is required.")
+            elif not rationale.strip():
+                decision_panel.error("Rationale is required — a decision cannot be recorded without one (BR4).")
+            else:
+                try:
+                    record_human_decision(
+                        case_id=case_id, investigator=investigator.strip(), action=action_code,
+                        rationale=rationale.strip(),
+                        findings_accepted=[report["findings"][i]["description"] for i in accepted_idx],
+                        findings_rejected=[report["findings"][i]["description"] for i in rejected_idx],
+                    )
+                    st.rerun()
+                except Exception as e:
+                    decision_panel.error(f"Could not record decision: {e}")
 
     # -------------------------------------------------------------
     # Audit Log — every AI action and every human decision, in order.

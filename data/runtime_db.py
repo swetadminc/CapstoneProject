@@ -137,6 +137,26 @@ def record_human_decision(case_id: str, investigator: str, action: str, rational
     action_id = f"HACT-{uuid.uuid4().hex[:10]}"
     ts = _now()
     try:
+        # Serialize the state check and write so a stale second browser tab
+        # cannot silently append another decision to the same workflow step.
+        conn.execute("BEGIN IMMEDIATE")
+        latest = conn.execute(
+            "SELECT action FROM human_actions WHERE case_id=? "
+            "ORDER BY timestamp DESC, rowid DESC LIMIT 1", (case_id,)
+        ).fetchone()
+        previous = latest["action"] if latest else None
+        investigator_actions = {"close", "request_info", "escalate"}
+        compliance_actions = {"compliance_ack", "compliance_return", "compliance_refer"}
+        if action in investigator_actions:
+            if previous not in (None, "compliance_return"):
+                raise ValueError("A human action is already recorded for this case. "
+                                 "The existing decision is read-only; a new investigator action "
+                                 "requires a recorded Compliance return.")
+        elif action in compliance_actions:
+            if previous != "escalate":
+                raise ValueError("A Compliance action requires a current investigator escalation.")
+        else:
+            raise ValueError("Unknown human action.")
         with conn:
             conn.execute(
                 """INSERT INTO human_actions
@@ -169,7 +189,7 @@ def get_human_actions(case_id: str) -> list:
     init_runtime_db()
     conn = _connect()
     rows = conn.execute(
-        "SELECT * FROM human_actions WHERE case_id = ? ORDER BY timestamp", (case_id,)
+        "SELECT * FROM human_actions WHERE case_id = ? ORDER BY timestamp, rowid", (case_id,)
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]

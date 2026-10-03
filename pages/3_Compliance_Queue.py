@@ -148,8 +148,8 @@ else:
                                 action=COMPLIANCE_ACTIONS[action_label], rationale=rationale.strip(),
                                 findings_accepted=[], findings_rejected=[],
                             )
-                            st.success("Recorded. Refresh to see it reflected above.")
                             st.cache_data.clear()
+                            st.rerun()
                         except Exception as e:
                             st.error(f"Could not record: {e}")
 

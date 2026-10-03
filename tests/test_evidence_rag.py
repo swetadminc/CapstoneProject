@@ -119,13 +119,16 @@ class EvidenceRagTests(unittest.TestCase):
                 app.switch_page("pages/2_Investigation_Demo.py").run(timeout=30)
                 self.assertTrue(any("feature-gated fictional intake store" in item.value
                                     for item in app.get("info")))
-                app.selectbox(key=f"fic_suggestion_{case_id}_0").set_value(
+                app.button(key="floating_copilot_open").click().run(timeout=30)
+                app.selectbox(key=f"context_copilot_suggestion_{case_id}_0").set_value(
                     "Request more information.").run(timeout=30)
+                next(item for item in app.button if item.label == "Send").click().run(timeout=30)
                 self.assertFalse(app.exception)
                 self.assertIn("request the original identity/KYC",
                               app.session_state[f"fictional_chat_{case_id}"][-1]["content"])
-                app.selectbox(key=f"fic_suggestion_{case_id}_2").set_value(
+                app.selectbox(key=f"context_copilot_suggestion_{case_id}_2").set_value(
                     "Explain for compliance review.").run(timeout=30)
+                next(item for item in app.button if item.label == "Send").click().run(timeout=30)
                 self.assertFalse(app.exception)
                 self.assertIn("Compliance review brief",
                               app.session_state[f"fictional_chat_{case_id}"][-1]["content"])
@@ -137,6 +140,8 @@ class EvidenceRagTests(unittest.TestCase):
                 app.button(key=f"fic_submit_{case_id}").click().run(timeout=30)
                 self.assertFalse(app.exception)
                 self.assertEqual(runtime_db.get_latest_decision_per_case()[case_id]["action"], "escalate")
+                self.assertFalse(any(button.key == f"fic_submit_{case_id}" for button in app.button))
+                self.assertFalse(any(item.key == f"fic_rationale_{case_id}" for item in app.text_area))
                 self.assertEqual(len(runtime_db.get_audit_log(case_id)), 1)
                 app.switch_page("pages/3_Compliance_Queue.py").run(timeout=30)
                 self.assertFalse(app.exception)

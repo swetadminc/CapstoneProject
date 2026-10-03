@@ -36,6 +36,13 @@ class WorkflowAcceptanceTests(unittest.TestCase):
                 self.assertEqual(len(actions), 1)
                 self.assertEqual(actions[0]["action"], "escalate")
                 self.assertEqual(actions[0]["investigator"], "Flow Investigator")
+                self.assertFalse(any(button.key == "submit_CASE-041" for button in app.button))
+                self.assertFalse(any(item.key == "rationale_CASE-041" for item in app.text_area))
+                self.assertTrue(any("Recorded human action:" in item.value and
+                                    "Escalate to Compliance" in item.value
+                                    for item in app.get("success")))
+                self.assertTrue(any("Review the saved draft against current source records" in item.value
+                                    for item in app.get("markdown")))
                 self.assertEqual(runtime_db.resolve_status("Open", runtime_db.get_latest_decision_per_case()["CASE-041"]),
                                  "Escalated")
 
