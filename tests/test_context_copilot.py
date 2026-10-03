@@ -70,8 +70,11 @@ class ContextCopilotTests(unittest.TestCase):
         self.assertEqual(app.button(key="floating_copilot_open").label, "✦ Ask InvestigateIQ")
         app.button(key="floating_copilot_open").click().run(timeout=30)
         self.assertTrue(app.session_state["iq_floating_copilot_open"])
+        suggestion = next(item for item in app.selectbox if item.label == "Suggested questions")
+        suggestion.set_value("What am I looking at?").run(timeout=30)
+        self.assertEqual(app.text_input(key="context_copilot_question").value, "What am I looking at?")
         app.text_input(key="context_copilot_question").set_value("What am I looking at?")
-        ask_buttons = [item for item in app.button if item.label == "Ask"]
+        ask_buttons = [item for item in app.button if item.label == "Send"]
         self.assertTrue(ask_buttons, [item.label for item in app.button])
         ask_buttons[0].click().run(timeout=30)
         self.assertFalse(app.exception)
@@ -85,7 +88,7 @@ class ContextCopilotTests(unittest.TestCase):
         self.assertEqual(app.session_state["active_case_id"], "CASE-041")
         self.assertEqual(app.session_state["context_evidence_chunk_id"], "CASE-ALERT-CASE-041-C1")
         app.text_input(key="context_copilot_question").set_value("Explain this evidence")
-        next(item for item in app.button if item.label == "Ask").click().run(timeout=30)
+        next(item for item in app.button if item.label == "Send").click().run(timeout=30)
         self.assertFalse(app.exception)
         self.assertTrue(any("Selected passage CASE-ALERT-CASE-041-C1" in item.value
                             for item in app.get("markdown")))
@@ -103,7 +106,7 @@ class ContextCopilotTests(unittest.TestCase):
         self.assertFalse(app.exception)
         app.button(key="floating_copilot_open").click().run(timeout=30)
         app.text_input(key="context_copilot_question").set_value("Summarize this case")
-        next(item for item in app.button if item.label == "Ask").click().run(timeout=30)
+        next(item for item in app.button if item.label == "Send").click().run(timeout=30)
         self.assertFalse(app.exception)
         self.assertTrue(app.session_state["chat_CASE-010"])
         app.switch_page("pages/5_Analytics.py").run(timeout=30)

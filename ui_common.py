@@ -269,6 +269,27 @@ _GLOBAL_CSS = """
     background: var(--iq-card-bg); color: var(--iq-heading);
     box-shadow: 0 16px 45px rgba(13, 34, 73, .30);
 }
+.st-key-iq_floating_chat_history {
+    height: clamp(120px, calc(100vh - 420px), 320px) !important;
+    min-height: 120px; overflow-y: auto;
+    margin: 8px 0 !important; padding: 8px !important;
+    border: 1px solid var(--iq-card-border); border-radius: 12px;
+    background: #F3F7FF;
+}
+.iq-chat-message {
+    width: fit-content; max-width: 93%; margin: 8px 0 12px;
+    padding: 9px 11px; border: 1px solid var(--iq-card-border);
+    border-radius: 13px; background: var(--iq-card-bg);
+    overflow-wrap: anywhere;
+}
+.iq-chat-message.iq-chat-user {
+    margin-left: auto; background: #E5EFFD; border-color: #A7C5EF;
+}
+.iq-chat-message.iq-chat-assistant { margin-right: auto; }
+.iq-chat-speaker {
+    display: block; margin-bottom: 4px; font-size: 11px;
+    font-weight: 800; color: var(--iq-text-secondary);
+}
 .st-key-iq_floating_copilot_open [data-testid="stFormSubmitButton"] button {
     background: #2E63BF !important; border: 1px solid #8CB5F4 !important;
     color: #FFFFFF !important;
@@ -280,14 +301,36 @@ _GLOBAL_CSS = """
     background: #354661 !important; border-color: #647895 !important;
     opacity: 1 !important;
 }
+.st-key-iq_floating_copilot_open [data-testid="stForm"] {
+    position: sticky; bottom: 0; z-index: 2;
+    background: var(--iq-card-bg);
+}
 .iq-floating-title { color: var(--iq-heading); font-size: 16px; font-weight: 800; }
-.iq-floating-turn { margin: 8px 0 3px; font-size: 12px; font-weight: 750;
-    color: var(--iq-text-secondary); }
 @media (max-width: 600px) {
     [class*="st-key-iq_floating_copilot_"] { right: 12px; bottom: 12px; }
     .st-key-iq_floating_copilot_open {
         top: 68px; bottom: auto;
-        width: calc(100vw - 24px); max-height: min(70vh, calc(100vh - 80px));
+        width: calc(100vw - 24px); max-height: calc(100vh - 80px);
+    }
+    .st-key-iq_floating_chat_history {
+        height: clamp(90px, calc(100vh - 540px), 180px) !important;
+        max-height: clamp(90px, calc(100vh - 540px), 180px) !important;
+        min-height: 90px;
+    }
+    .st-key-iq_floating_copilot_open [data-testid="stHorizontalBlock"] {
+        flex-direction: row !important; flex-wrap: nowrap !important;
+    }
+    .st-key-iq_floating_copilot_open [data-testid="stHorizontalBlock"] [data-testid="stColumn"] {
+        min-width: 0 !important;
+    }
+    .st-key-iq_floating_copilot_open [data-testid="stHorizontalBlock"] [data-testid="stColumn"]:first-child {
+        flex: 1 1 auto !important;
+    }
+    .st-key-iq_floating_copilot_open [data-testid="stHorizontalBlock"] [data-testid="stColumn"]:last-child {
+        flex: 0 0 70px !important;
+    }
+    .st-key-iq_floating_copilot_open [data-testid="stFormSubmitButton"] button {
+        min-width: 0 !important; padding: 0 6px !important;
     }
 }
 .iq-kpi-label { color: var(--iq-text-secondary); font-size: 13px; margin-bottom: 2px; }
@@ -415,6 +458,8 @@ _DARK_OVERRIDE_CSS = """
     --iq-text-secondary: #9FB0C9;
     --iq-heading: #E8EDF7;
 }
+.st-key-iq_floating_chat_history { background: #142033 !important; border-color: #648AC4 !important; }
+.iq-chat-message.iq-chat-user { background: #254267 !important; border-color: #648AC4 !important; }
 .iq-team-card {
     background: #1D2D47 !important; border-color: #729BDD !important;
     box-shadow: 0 0 0 1px rgba(130, 170, 230, 0.22), 0 9px 24px rgba(0, 0, 0, 0.18);
@@ -741,21 +786,73 @@ def render_context_copilot(page: str, case_id: str | None = None,
         if "user_name" not in st.session_state:
             st.info("Enter your workspace with a display name to ask the Copilot.")
             return
-        if case_id:
+        if case_id and page != "Investigation Workspace":
             if st.button("Open case workspace", key="open_case_copilot_global",
                          help="Open this selected case in the Investigation Workspace."):
                 st.session_state["selected_case_id"] = case_id
                 st.switch_page("pages/2_Investigation_Demo.py")
-        elif st.button("Choose a case", key="open_case_copilot_global",
-                       help="Choose a case from the Case Queue for case-specific questions."):
+        elif not case_id and st.button("Choose a case", key="open_case_copilot_global",
+                                       help="Choose a case from the Case Queue for case-specific questions."):
             st.switch_page("pages/0_Case_Queue.py")
         if chunk_id:
             st.caption(f"Selected passage: {chunk_id}")
+        suggestions = (
+            ["Why was this alert triggered?",
+             "How many transactions were stored in one month, and which need review?",
+             "Show me the transaction sequence: when, from whom, and to whom.",
+             "What KYC and counterparty evidence is missing?",
+             "Can you establish the source of funds?",
+             "Why does the saved report have zero case passages while current evidence has chunks?"]
+            if case_id else
+            ["What am I looking at?", "What can I do on this page?", "How do I choose a case?"]
+        )
+        history = st.session_state.get(history_key, [])
+        with st.container(border=False, key="iq_floating_chat_history"):
+            if not history:
+                st.caption("Ask a question about this page or the selected case. Answers appear here.")
+            for turn_index in range(max(0, len(history) - 8), len(history)):
+                turn = history[turn_index]
+                role_class = "iq-chat-user" if turn["role"] == "user" else "iq-chat-assistant"
+                speaker = "You" if turn["role"] == "user" else "Copilot"
+                st.markdown(
+                    f'<div class="iq-chat-message {role_class}"><span class="iq-chat-speaker">'
+                    f'{speaker}</span>{plain_text_html(turn["content"])}</div>',
+                    unsafe_allow_html=True,
+                )
+                if turn["role"] == "assistant" and turn.get("chunk_ids"):
+                    st.caption("Source passage: " + ", ".join(turn["chunk_ids"][:2]))
+                    if st.button("Open cited passage", key=f"context_source_{scope}_{turn_index}"):
+                        first_chunk = turn["chunk_ids"][0]
+                        if case_id and case_id.startswith("FIC-CASE-"):
+                            st.session_state["fictional_intake_case_id"] = case_id
+                            st.session_state["fictional_intake_chunk_id"] = first_chunk
+                            st.session_state["context_pending_rag_view"] = "Fictional Intake"
+                        elif case_id:
+                            st.session_state["rag_case_id"] = case_id
+                            st.session_state["rag_case_doc_id"] = first_chunk.rsplit("-C", 1)[0]
+                            st.session_state["rag_case_chunk_id"] = first_chunk
+                            st.session_state["context_pending_rag_view"] = "Case records"
+                        st.switch_page("pages/8_Evidence_RAG.py")
+
+        # A new picker key after each exchange returns it to the neutral
+        # suggestion prompt without clearing the investigator's chat history.
+        suggestion_key = f"context_copilot_suggestion_{scope}_{len(history)}"
+        st.selectbox("Suggested questions", [""] + suggestions, key=suggestion_key,
+                     format_func=lambda value: value or "Suggested questions (optional)",
+                     label_visibility="collapsed",
+                     help="Pick a suggestion to fill the message field, or type your own question.",
+                     on_change=lambda: st.session_state.update(
+                         context_copilot_question=st.session_state[suggestion_key]
+                     ) if st.session_state[suggestion_key] else None)
         with st.form("context_copilot_form", clear_on_submit=True):
-            question = st.text_input("Your question", key="context_copilot_question",
-                                     placeholder="What am I looking at?",
-                                     help="Answers use this page and the explicitly selected case or passage; unsupported facts are not guessed.")
-            submitted = st.form_submit_button("Ask", use_container_width=True)
+            message_col, send_col = st.columns([4, 1], vertical_alignment="bottom")
+            with message_col:
+                question = st.text_input("Message", key="context_copilot_question",
+                                         placeholder="Ask about this case..." if case_id else "Ask about this page...",
+                                         label_visibility="collapsed",
+                                         help="Answers use this page and the selected case or passage; unsupported facts are not guessed.")
+            with send_col:
+                submitted = st.form_submit_button("Send", use_container_width=True)
         if submitted and question.strip():
             try:
                 answer = answer_context_question(question.strip(), page, case_id, chunk_id)
@@ -768,27 +865,7 @@ def render_context_copilot(page: str, case_id: str | None = None,
                             {"role": "assistant", "content": answer["answer"],
                              "chunk_ids": answer.get("chunk_ids", []),
                              "sources": answer.get("sources", []), "source": answer.get("source")}))
-        history = st.session_state.get(history_key, [])
-        for turn_index in range(max(0, len(history) - 8), len(history)):
-            turn = history[turn_index]
-            st.markdown(f'<div class="iq-floating-turn">{"You" if turn["role"] == "user" else "Copilot"}</div>',
-                        unsafe_allow_html=True)
-            st.markdown(plain_text_html(turn["content"], muted=turn["role"] == "user"),
-                        unsafe_allow_html=True)
-            if turn["role"] == "assistant" and turn.get("chunk_ids"):
-                st.caption("Source passage: " + ", ".join(turn["chunk_ids"][:2]))
-                if st.button("Open cited passage", key=f"context_source_{scope}_{turn_index}"):
-                    first_chunk = turn["chunk_ids"][0]
-                    if case_id and case_id.startswith("FIC-CASE-"):
-                        st.session_state["fictional_intake_case_id"] = case_id
-                        st.session_state["fictional_intake_chunk_id"] = first_chunk
-                        st.session_state["context_pending_rag_view"] = "Fictional Intake"
-                    elif case_id:
-                        st.session_state["rag_case_id"] = case_id
-                        st.session_state["rag_case_doc_id"] = first_chunk.rsplit("-C", 1)[0]
-                        st.session_state["rag_case_chunk_id"] = first_chunk
-                        st.session_state["context_pending_rag_view"] = "Case records"
-                    st.switch_page("pages/8_Evidence_RAG.py")
+            st.rerun()
 
 
 def role_warning(current_role: str, expected_role: str):
