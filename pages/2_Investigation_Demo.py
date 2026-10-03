@@ -107,22 +107,22 @@ if fictional_intake_enabled():
             CASES[f"{item['case_id']} — generated fictional customer (calculated review)"] = item["case_id"]
 labels = list(CASES.keys())
 
-# If the queue dashboard sent us here with a specific case, default to it.
-default_idx = 0
+# Keep the selected case stable when another widget (including the floating
+# Copilot) reruns this page. A selectbox index that falls back to zero on the
+# next run can otherwise disagree with the active Copilot case.
 preselect = st.session_state.pop("selected_case_id", None)
-if preselect:
-    for i, label in enumerate(labels):
-        if CASES[label] == preselect:
-            default_idx = i
-            # The queue's explicit choice takes precedence over any earlier
-            # selection; subsequent reruns retain the widget's own keyed value.
-            st.session_state.pop("investigation_case_choice", None)
-            break
+if preselect in CASES.values():
+    st.session_state["investigation_selected_case_id"] = preselect
+    # An explicit queue choice replaces any previous widget selection.
+    st.session_state.pop("investigation_case_choice", None)
+selected_id = st.session_state.get("investigation_selected_case_id")
+default_idx = next((i for i, label in enumerate(labels) if CASES[label] == selected_id), 0)
 
 choice = st.selectbox("Choose a case to investigate", labels, index=default_idx,
                       key="investigation_case_choice",
                       help="Choose one fictional alert. CASE-001 and CASE-002 have older cached comparisons but unresolved account ownership.")
 case_id = CASES[choice]
+st.session_state["investigation_selected_case_id"] = case_id
 st.session_state["active_case_id"] = case_id
 render_context_copilot("Investigation Workspace", case_id)
 

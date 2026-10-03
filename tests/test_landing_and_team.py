@@ -161,6 +161,11 @@ class LandingAndTeamTests(unittest.TestCase):
         self.assertTrue(any("CASE-001" in label and "owner ambiguous" in label for label in labels))
         app.run(timeout=30)
         self.assertIn("CASE-041", app.selectbox(key="investigation_case_choice").value)
+        app.button(key="floating_copilot_open").click().run(timeout=30)
+        suggestion = app.selectbox(key="context_copilot_suggestion_CASE-041_0")
+        suggestion.set_value("Why was this alert triggered?").run(timeout=30)
+        self.assertIn("CASE-041", app.selectbox(key="investigation_case_choice").value)
+        self.assertEqual(app.session_state["active_case_id"], "CASE-041")
 
     def test_new_matched_case_offers_current_database_calculation(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
