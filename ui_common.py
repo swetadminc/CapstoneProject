@@ -271,11 +271,14 @@ _GLOBAL_CSS = """
 }
 .st-key-iq_floating_chat_history {
     height: clamp(120px, calc(100vh - 500px), 260px) !important;
-    min-height: 120px; overflow-y: auto;
+    min-height: 120px; max-height: clamp(120px, calc(100vh - 500px), 260px) !important;
+    flex: 0 0 auto !important;
+    overflow-y: auto;
     margin: 8px 0 !important; padding: 8px !important;
     border: 1px solid var(--iq-card-border); border-radius: 12px;
     background: #F3F7FF;
 }
+.st-key-iq_floating_chat_history > * { flex: 0 0 auto !important; }
 .iq-chat-message {
     width: fit-content; max-width: 93%; margin: 8px 0 12px;
     padding: 9px 11px; border: 1px solid var(--iq-card-border);
@@ -808,32 +811,39 @@ def render_context_copilot(page: str, case_id: str | None = None,
             ["What am I looking at?", "What can I do on this page?", "How do I choose a case?"]
         )
         history = st.session_state.get(history_key, [])
+        def render_chat_turn(turn_index: int) -> None:
+            turn = history[turn_index]
+            role_class = "iq-chat-user" if turn["role"] == "user" else "iq-chat-assistant"
+            speaker = "You" if turn["role"] == "user" else "Copilot"
+            st.markdown(
+                f'<div class="iq-chat-message {role_class}"><span class="iq-chat-speaker">'
+                f'{speaker}</span>{plain_text_html(turn["content"])}</div>',
+                unsafe_allow_html=True,
+            )
+            if turn["role"] == "assistant" and turn.get("chunk_ids"):
+                st.caption("Source passage: " + ", ".join(turn["chunk_ids"][:2]))
+                if st.button("Open cited passage", key=f"context_source_{scope}_{turn_index}"):
+                    first_chunk = turn["chunk_ids"][0]
+                    if case_id and case_id.startswith("FIC-CASE-"):
+                        st.session_state["fictional_intake_case_id"] = case_id
+                        st.session_state["fictional_intake_chunk_id"] = first_chunk
+                        st.session_state["context_pending_rag_view"] = "Fictional Intake"
+                    elif case_id:
+                        st.session_state["rag_case_id"] = case_id
+                        st.session_state["rag_case_doc_id"] = first_chunk.rsplit("-C", 1)[0]
+                        st.session_state["rag_case_chunk_id"] = first_chunk
+                        st.session_state["context_pending_rag_view"] = "Case records"
+                    st.switch_page("pages/8_Evidence_RAG.py")
+
         with st.container(border=False, key="iq_floating_chat_history"):
             if not history:
                 st.caption("Ask a question about this page or the selected case. Answers appear here.")
-            for turn_index in range(max(0, len(history) - 8), len(history)):
-                turn = history[turn_index]
-                role_class = "iq-chat-user" if turn["role"] == "user" else "iq-chat-assistant"
-                speaker = "You" if turn["role"] == "user" else "Copilot"
-                st.markdown(
-                    f'<div class="iq-chat-message {role_class}"><span class="iq-chat-speaker">'
-                    f'{speaker}</span>{plain_text_html(turn["content"])}</div>',
-                    unsafe_allow_html=True,
-                )
-                if turn["role"] == "assistant" and turn.get("chunk_ids"):
-                    st.caption("Source passage: " + ", ".join(turn["chunk_ids"][:2]))
-                    if st.button("Open cited passage", key=f"context_source_{scope}_{turn_index}"):
-                        first_chunk = turn["chunk_ids"][0]
-                        if case_id and case_id.startswith("FIC-CASE-"):
-                            st.session_state["fictional_intake_case_id"] = case_id
-                            st.session_state["fictional_intake_chunk_id"] = first_chunk
-                            st.session_state["context_pending_rag_view"] = "Fictional Intake"
-                        elif case_id:
-                            st.session_state["rag_case_id"] = case_id
-                            st.session_state["rag_case_doc_id"] = first_chunk.rsplit("-C", 1)[0]
-                            st.session_state["rag_case_chunk_id"] = first_chunk
-                            st.session_state["context_pending_rag_view"] = "Case records"
-                        st.switch_page("pages/8_Evidence_RAG.py")
+            if len(history) > 2:
+                with st.expander(f"Earlier messages ({len(history) - 2})"):
+                    for turn_index in range(max(0, len(history) - 10), len(history) - 2):
+                        render_chat_turn(turn_index)
+            for turn_index in range(max(0, len(history) - 2), len(history)):
+                render_chat_turn(turn_index)
 
         # A new picker key after each exchange returns it to the neutral
         # suggestion prompt without clearing the investigator's chat history.
