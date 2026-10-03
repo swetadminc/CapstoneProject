@@ -119,6 +119,16 @@ class EvidenceRagTests(unittest.TestCase):
                 app.switch_page("pages/2_Investigation_Demo.py").run(timeout=30)
                 self.assertTrue(any("feature-gated fictional intake store" in item.value
                                     for item in app.get("info")))
+                app.selectbox(key=f"fic_suggestion_{case_id}_0").set_value(
+                    "Request more information.").run(timeout=30)
+                self.assertFalse(app.exception)
+                self.assertIn("request the original identity/KYC",
+                              app.session_state[f"fictional_chat_{case_id}"][-1]["content"])
+                app.selectbox(key=f"fic_suggestion_{case_id}_2").set_value(
+                    "Explain for compliance review.").run(timeout=30)
+                self.assertFalse(app.exception)
+                self.assertIn("Compliance review brief",
+                              app.session_state[f"fictional_chat_{case_id}"][-1]["content"])
                 app.session_state[f"fic_action_{case_id}"] = "Escalate for Compliance review"
                 app.session_state[f"fic_rationale_{case_id}"] = (
                     "Independent identity and source-of-funds evidence is missing."
@@ -157,9 +167,25 @@ class EvidenceRagTests(unittest.TestCase):
         self.assertIn("knowledge_search.py", page)
         self.assertNotIn("github.com", page)
         labels = [item.label for item in app.get("expander")]
-        self.assertEqual(len(labels), 8)
+        self.assertEqual(sum(label[:1].isdigit() for label in labels), 8)
         self.assertIn("3 · Split case records", labels)
         self.assertIn("6 · Inspect a transaction link", labels)
+
+    def test_admin_defines_rag_okf_and_explains_bm25_score(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        app.session_state["user_name"] = "Knowledge Reviewer"
+        app.session_state["user_role"] = "Admin"
+        app.session_state["kb_admin_unlocked"] = True
+        app.switch_page("pages/1_Admin_Knowledge_Base.py").run(timeout=30)
+        self.assertFalse(app.exception)
+        text = "\n".join(item.value for item in app.get("markdown"))
+        self.assertIn("Retrieval-Augmented Generation", text)
+        self.assertIn("Open Knowledge Format", text)
+        self.assertIn("Case KYC and transaction records", text)
+        app.text_input(key="kb_query").set_value("source of funds").run(timeout=30)
+        self.assertFalse(app.exception)
+        self.assertTrue(any(item.label == "BM25 score" for item in app.get("metric")))
+        self.assertTrue(any("not a percentage" in item.value for item in app.get("info")))
 
     def test_document_selection_shows_its_chunks(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)

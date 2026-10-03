@@ -80,19 +80,46 @@ df["has_cache"] = df["case_id"].isin(CACHED_CASES)
 # ------------------------------------------------------------------
 # KPI strip
 # ------------------------------------------------------------------
+FLASHLIGHT_SVG = (
+    '<svg class="iq-flashlight-svg" viewBox="0 0 36 36" width="22" height="22" '
+    'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" '
+    'stroke-linejoin="round" focusable="false" aria-hidden="true">'
+    '<path d="M4 15.5h14v7H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2Z"/>'
+    '<path d="m18 14 8-2.5v15L18 24Z"/>'
+    '<path d="M29 13.5 33 11M29 19h5M29 24.5l4 2.5"/>'
+    '<path d="M7 15.5v7" opacity=".55"/>'
+    '</svg>'
+)
 kpis = [
-    ("📊", "Total alerts", len(df), "iq-kpi-blue"),
-    ("🕒", "Open", int((df["queue_status"] == "Open").sum()), "iq-kpi-amber"),
-    ("🔥", "High severity", int((df["severity"] == "High").sum()), "iq-kpi-red"),
-    ("🚨", "Escalated", int((df["queue_status"] == "Escalated").sum()), "iq-kpi-red"),
-    ("✅", "Closed", int((df["queue_status"] == "Closed").sum()), "iq-kpi-green"),
+    (FLASHLIGHT_SVG, "Total alerts", len(df), "iq-kpi-blue", "All stored fictional alerts", "Count of all alert rows in this queue, including any saved fictional-intake cases. This is not a live bank feed."),
+    ("🕒", "Open", int((df["queue_status"] == "Open").sum()), "iq-kpi-amber", "Awaiting review", "Cases whose current status is Open. An alert is a signal for review, not a fraud finding."),
+    ("📨", "Info requested", int((df["queue_status"] == "Info Requested").sum()), "iq-kpi-blue", "Waiting for records", "Cases whose latest recorded human action requested more information. It does not mean the requested documents were received or verified."),
+    ("🚨", "Escalated", int((df["queue_status"] == "Escalated").sum()), "iq-kpi-red", "Sent to Compliance queue", "Cases whose latest recorded human action was escalation. No external regulatory report is filed automatically."),
+    ("✅", "Closed", int(df["queue_status"].str.startswith("Closed").sum()), "iq-kpi-green", "Closed workflow state", "Cases whose current status is Closed or Closed (Compliance). Some may carry an original source status rather than a recorded human decision. A closed label is not proof that funds are lawful."),
+    ("🔥", "High severity", int((df["severity"] == "High").sum()), "iq-kpi-red", "Source priority label", "Alerts labelled High in the fictional source data. Severity is independent of case status, so this count overlaps the status cards."),
 ]
-for col, (icon, label, value, accent) in zip(st.columns(5), kpis):
-    col.markdown(
-        f'<div class="iq-card {accent}"><div class="iq-kpi-icon">{icon}</div>'
-        f'<div class="iq-kpi-label">{label}</div><div class="iq-kpi-value">{value:,}</div></div>',
-        unsafe_allow_html=True,
+known_status = df["queue_status"].isin(["Open", "Info Requested", "Escalated"]) | df["queue_status"].str.startswith("Closed")
+other_status_count = int((~known_status).sum())
+if other_status_count:
+    kpis.append(("🔄", "Other workflow", other_status_count, "iq-kpi-blue", "Additional review states",
+                 "Cases with another recorded workflow status, such as returned to an investigator or referred by Compliance."))
+cards = []
+for icon, label, value, accent, detail, definition in kpis:
+    cards.append(
+        f'<div class="iq-card iq-kpi-card {accent}" role="group" '
+        f'aria-label="{escape(label)}: {value:,}. {escape(definition)}" title="{escape(definition)}">'
+        f'<div class="iq-kpi-top"><span class="iq-kpi-icon" aria-hidden="true">{icon}</span>'
+        f'<span class="iq-kpi-help" aria-hidden="true">ⓘ</span></div>'
+        f'<div class="iq-kpi-label">{escape(label)}</div>'
+        f'<div class="iq-kpi-value">{value:,}</div>'
+        f'<div class="iq-kpi-detail">{escape(detail)}</div></div>'
     )
+st.markdown('<div class="iq-kpi-grid">' + ''.join(cards) + '</div>', unsafe_allow_html=True)
+st.caption("Status cards use the latest human action when one exists; otherwise they use the original source status. High severity is a separate source label "
+           "and can overlap any status. Hover over a card or open the definitions below.")
+with st.expander("What these queue numbers mean"):
+    for _, label, _, _, _, definition in kpis:
+        st.markdown(f"**{label}:** {definition}")
 
 st.divider()
 
@@ -101,13 +128,13 @@ st.divider()
 # ------------------------------------------------------------------
 fc1, fc2, fc3, fc4 = st.columns([1.2, 1.2, 1.2, 2])
 severity_filter = fc1.multiselect("Severity", sorted(df["severity"].unique()), default=[],
-                                  help="Show alerts with any selected severity; leave empty to show all.")
+                                  help="The alert priority label supplied by the fictional source data, such as High or Medium. It is not a fraud verdict. Select one or more values, or leave empty to show all.")
 status_filter = fc2.multiselect("Status", sorted(df["queue_status"].unique()), default=[],
-                                help="Current case status includes any recorded human decision.")
+                                help="Current workflow state. A latest recorded human action overrides the original source status; Info Requested does not mean documents were received, and Escalated does not mean a report was filed.")
 scenario_filter = fc3.multiselect("Scenario", sorted(df["scenario_id"].unique()), default=[],
-                                  help="Filter by the fictional scenario ID attached to each alert.")
+                                  help="The rule or typology identifier attached to the fictional alert, such as rapid movement or structuring. It describes why review was prompted, not a proven crime.")
 search = fc4.text_input("Search customer name", placeholder="e.g. Apex",
-                        help="Matches part of a customer name, ignoring letter case.")
+                        help="Find a stored fictional customer by any part of its name. This does not search transactions, account IDs or external people.")
 
 filtered = df.copy()
 if severity_filter:
@@ -156,7 +183,8 @@ for _, row in filtered.iterrows():
     # real Streamlit tooltip (the `help` kwarg) says the same thing without
     # needing the space, and names the actual case rather than a generic
     # label.
-    if cols[6].button("🔍", key=f"inv_{row['case_id']}", help=f"Investigate {row['case_id']}",
+    if cols[6].button("🔍", key=f"inv_{row['case_id']}",
+                       help=f"Open {row['case_id']} in the Investigation Workspace to inspect recorded activity, source passages and the human decision form.",
                        use_container_width=True):
         st.session_state["selected_case_id"] = row["case_id"]
         st.switch_page("pages/2_Investigation_Demo.py")

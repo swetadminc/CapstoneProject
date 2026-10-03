@@ -52,9 +52,20 @@ def answer_context_question(question: str, page: str, case_id: str | None = None
                             chunk_id: str | None = None) -> dict:
     """Answer from explicit page/case/chunk context; never infer an unseen case."""
     query = " ".join(question.lower().split())
-    if any(phrase in query for phrase in ("what am i looking at", "what is this page", "explain this page")):
+    if any(phrase in query for phrase in ("what am i looking at", "what is this page",
+                                          "explain this page", "what can i do on this page")):
         return {"answer": PAGE_PURPOSE.get(page, "This page has no registered Copilot description."),
                 "chunk_ids": [], "txn_ids": [], "sources": [], "source": "page_context"}
+    if "how do i choose a case" in query:
+        return {"answer": "Open Case Queue, select a stored alert, then open its Investigation Workspace. "
+                          "The Copilot uses the selected case only; it cannot choose a case for you.",
+                "chunk_ids": [], "txn_ids": [], "sources": [], "source": "navigation_help"}
+    if "what information can the copilot actually verify" in query:
+        return {"answer": "I can read this app's stored fictional case rows and indexed passages, "
+                          "check selected calculations and source IDs, and explain gaps. I cannot "
+                          "independently verify original identity files, outside-bank transactions, "
+                          "a person's intent, or whether funds are lawful.",
+                "chunk_ids": [], "txn_ids": [], "sources": [], "source": "capability_boundary"}
     if not case_id:
         return {"answer": "No case is selected. Choose a case in Case Queue before asking about its facts or evidence.",
                 "chunk_ids": [], "txn_ids": [], "sources": [], "source": "missing_case_context"}

@@ -22,6 +22,10 @@ class ContextCopilotTests(unittest.TestCase):
         missing = answer_context_question("Summarize this case", "Case Queue")
         self.assertIn("No case is selected", missing["answer"])
         self.assertEqual(missing["sources"], [])
+        self.assertIn("Case Queue", answer_context_question("What can I do on this page?", "Case Queue")["answer"])
+        self.assertIn("Case Queue", answer_context_question("How do I choose a case?", "Home")["answer"])
+        self.assertIn("cannot independently verify", answer_context_question(
+            "What information can the Copilot actually verify?", "Home")["answer"])
 
     def test_selected_evidence_requires_a_real_passage_in_this_case(self):
         with closing(sqlite3.connect(DB_PATH)) as conn:
@@ -92,9 +96,32 @@ class ContextCopilotTests(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertTrue(any("Selected passage CASE-ALERT-CASE-041-C1" in item.value
                             for item in app.get("markdown")))
-        next(item for item in app.button if item.label == "Open cited passage").click().run(timeout=30)
+        next(item for item in app.button if item.label == "Inspect the first cited source").click().run(timeout=30)
         self.assertFalse(app.exception)
         self.assertEqual(app.session_state["rag_case_choice"], "CASE-041")
+
+    def test_floating_chat_answers_three_consecutive_questions(self):
+        app_path = Path(__file__).resolve().parents[1] / "app.py"
+        app = AppTest.from_file(str(app_path)).run(timeout=30)
+        app.session_state["user_name"] = "Case Reviewer"
+        app.session_state["user_role"] = "Investigator"
+        app.session_state["selected_case_id"] = "CASE-041"
+        app.switch_page("pages/2_Investigation_Demo.py").run(timeout=30)
+        app.button(key="floating_copilot_open").click().run(timeout=30)
+        questions = (
+            "Why was this alert triggered?",
+            "How many transactions were stored in one month, and which need review?",
+            "What KYC and counterparty evidence is missing?",
+        )
+        for number, question in enumerate(questions, 1):
+            with self.subTest(number=number):
+                app.text_input(key="context_copilot_question").set_value(question)
+                next(item for item in app.button if item.label == "Send").click().run(timeout=30)
+                self.assertFalse(app.exception)
+                history = app.session_state["chat_CASE-041"]
+                self.assertEqual(len(history), number * 2)
+                self.assertEqual(history[-2]["content"], question)
+                self.assertTrue(history[-1]["content"].strip())
 
     def test_case_conversation_follows_navigation_but_not_a_new_case(self):
         app_path = Path(__file__).resolve().parents[1] / "app.py"

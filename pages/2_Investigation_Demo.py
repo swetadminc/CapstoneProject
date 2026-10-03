@@ -136,10 +136,14 @@ if case_id.startswith("FIC-CASE-"):
     else:
         st.error("A calculation or source-integrity check failed. Resolve this before relying on the packet.")
     s1, s2, s3, s4 = st.columns(4)
-    s1.metric("Completed rows", assessment["observed"]["completed_transaction_rows"])
-    s2.metric("Incoming (INR)", f"₹{assessment['observed']['incoming_inr']:,.0f}")
-    s3.metric("Outgoing (INR)", f"₹{assessment['observed']['outgoing_inr']:,.0f}")
-    s4.metric("Original identity files", packet["original_identity_files"])
+    s1.metric("Completed rows", assessment["observed"]["completed_transaction_rows"],
+              help="Completed fictional ledger rows used in the calculated review. Pending entries are excluded from money-movement totals.")
+    s2.metric("Incoming (INR)", f"₹{assessment['observed']['incoming_inr']:,.0f}",
+              help="Sum of completed incoming rows in this saved fictional packet; not independently verified source of funds.")
+    s3.metric("Outgoing (INR)", f"₹{assessment['observed']['outgoing_inr']:,.0f}",
+              help="Sum of completed outgoing rows in this packet; this does not prove the same money moved onward.")
+    s4.metric("Original identity files", packet["original_identity_files"],
+              help="Actual uploaded original identity files in the packet. Generated sample PAN/passport text is not counted.")
     st.caption("Observed amounts come from completed fictional ledger rows. The historical baseline and generated profile are assertions; counterparty KYC, independent source-of-funds records, and settlement proof are absent.")
     with st.expander(f"Recorded transaction rows · {len(packet['transactions'])}"):
         st.dataframe(packet["transactions"], hide_index=True, height=350)
@@ -147,7 +151,8 @@ if case_id.startswith("FIC-CASE-"):
         for gap in assessment["missing_evidence"]:
             st.warning(gap)
     st.write(assessment["recommended_action"])
-    if st.button("Inspect source records and exact chunks", key=f"fic_evidence_{case_id}"):
+    if st.button("Inspect source records and exact chunks", key=f"fic_evidence_{case_id}",
+                 help="Open the stored generated text, each exact indexed passage, and the missing-original evidence checks."):
         st.session_state["fictional_intake_case_id"] = case_id
         st.session_state["rag_view"] = "Fictional Intake"
         st.switch_page("pages/8_Evidence_RAG.py")
@@ -163,7 +168,8 @@ if case_id.startswith("FIC-CASE-"):
                 st.markdown(plain_text_html(turn["content"]), unsafe_allow_html=True)
                 if turn.get("sources"):
                     st.caption("Stored sources: " + ", ".join(turn["sources"]))
-                    if st.button("Inspect cited records and chunks", key=f"fic_chat_sources_{case_id}_{turn_index}"):
+                    if st.button("Inspect cited records and chunks", key=f"fic_chat_sources_{case_id}_{turn_index}",
+                                 help="Open the first cited source passage and its full fictional record."):
                         st.session_state["fictional_intake_case_id"] = case_id
                         st.session_state["rag_view"] = "Fictional Intake"
                         if turn.get("chunk_ids"):
@@ -175,15 +181,18 @@ if case_id.startswith("FIC-CASE-"):
         "Why did this case trigger review?",
         "What KYC and counterparty evidence is missing?",
         "Can you establish the source of funds?",
+        "Request more information.",
+        "Explain for compliance review.",
         "Can we say the funds are illegal?",
     ]
-    suggestion_cols = st.columns(2)
-    for index, suggested in enumerate(suggestions):
-        if suggestion_cols[index % 2].button(suggested, key=f"fic_question_{case_id}_{index}",
-                                             use_container_width=True):
-            st.session_state[f"fic_clicked_q_{case_id}"] = suggested
+    suggestion_key = f"fic_suggestion_{case_id}_{len(st.session_state[chat_key])}"
+    suggested_question = st.selectbox(
+        "Suggested questions", [""] + suggestions, key=suggestion_key,
+        format_func=lambda value: value or "Choose a question (optional)",
+        help="Choose a question for the Copilot, or type your own message below.",
+    )
     typed_question = st.chat_input("Ask the copilot about this case...", key=f"fic_chat_input_{case_id}")
-    question = st.session_state.pop(f"fic_clicked_q_{case_id}", None) or typed_question
+    question = suggested_question or typed_question
     if question:
         response = answer_fictional_case_question(question, packet, assessment)
         st.session_state[chat_key].append({"role": "user", "content": question})
@@ -192,13 +201,19 @@ if case_id.startswith("FIC-CASE-"):
         st.rerun()
     decision_panel = st.container(border=True)
     decision_panel.subheader("Human review action")
-    decision_panel.caption("Only a named human can record a follow-up. Closing as no concern is unavailable for this packet because independent evidence is missing.")
+    decision_panel.caption("After reviewing the Copilot's cited answer, choose the next human action. "
+                           "The Copilot cannot submit a decision. Closing as no concern is unavailable "
+                           "for this packet because independent evidence is missing.")
     investigator = decision_panel.text_input("Your name (investigator)", value=user_name,
-                                            key=f"fic_investigator_{case_id}")
+                                            key=f"fic_investigator_{case_id}",
+                                            help="Required display name attached to this human action and its audit entry; this is not identity authentication.")
     action = decision_panel.radio("Decision", ["Request more information", "Escalate for Compliance review"],
-                                  key=f"fic_action_{case_id}")
-    rationale = decision_panel.text_area("Rationale (required)", key=f"fic_rationale_{case_id}")
-    if decision_panel.button("Submit decision", type="primary", key=f"fic_submit_{case_id}"):
+                                  key=f"fic_action_{case_id}",
+                                  help="Request evidence that is missing, or send the case to a separate human Compliance review. Neither option declares funds illegal or files a report.")
+    rationale = decision_panel.text_area("Rationale (required)", key=f"fic_rationale_{case_id}",
+                                         help="Write the evidence and gaps behind your choice. This text is saved with the human action for audit review.")
+    if decision_panel.button("Submit decision", type="primary", key=f"fic_submit_{case_id}",
+                             help="Save the named investigator's action and rationale to the persistent audit trail; the Copilot cannot do this for you."):
         if not investigator.strip() or not rationale.strip():
             decision_panel.error("A named investigator and written rationale are required.")
         else:
@@ -208,6 +223,14 @@ if case_id.startswith("FIC-CASE-"):
             decision_panel.success("Human action and audit entry recorded.")
     history = get_human_actions(case_id)
     if history:
+        latest_action = history[-1]["action"]
+        if latest_action == "request_info":
+            decision_panel.info("Latest human action: more information requested. Next: collect and "
+                                "verify those records, then return to this case. This does not confirm "
+                                "that any documents were received.")
+        elif latest_action == "escalate":
+            decision_panel.info("Latest human action: escalated. Next: Compliance can review this case "
+                                "in the Compliance Queue. No external report has been filed.")
         with st.expander(f"Human action history · {len(history)}"):
             for item in history:
                 st.write(f"{item['timestamp']} · {item['action']} · {item['investigator']}")
@@ -327,10 +350,14 @@ if state_key in st.session_state:
     if activity and context["alert"]["alert_id"].startswith("ALERT-TEST-"):
         st.subheader("24-hour alert calculation")
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Incoming", f"₹{activity['incoming_total']:,.0f}")
-        m2.metric("Outgoing", f"₹{activity['outgoing_total']:,.0f}")
-        m3.metric("Versus monthly credits", f"{activity['incoming_monthly_multiplier']}x")
-        m4.metric("Outgoing / incoming", f"{activity['outgoing_to_incoming_pct']}%")
+        m1.metric("Incoming", f"₹{activity['incoming_total']:,.0f}",
+                  help="Completed incoming amount in the calculated 24-hour fictional alert window.")
+        m2.metric("Outgoing", f"₹{activity['outgoing_total']:,.0f}",
+                  help="Completed outgoing amount in that window; not proof that the same funds were transferred.")
+        m3.metric("Versus monthly credits", f"{activity['incoming_monthly_multiplier']}x",
+                  help="24-hour incoming total divided by the supplied monthly-credit baseline; an illustrative review ratio, not a risk probability.")
+        m4.metric("Outgoing / incoming", f"{activity['outgoing_to_incoming_pct']}%",
+                  help="24-hour outgoing total divided by incoming total; an account-level proxy, not linked-hop tracing.")
         st.caption(f"{activity['distinct_beneficiaries']} recorded outgoing beneficiary IDs. {activity['caveat']} The separate trigger/baseline ratio above compares one transaction with average transaction size, not the 24-hour total with monthly credits.")
     if evidence.get("evidence_window_empty"):
         st.caption("⚠️ No transactions fell inside this alert's review window — the transactions shown below "
@@ -386,7 +413,8 @@ if state_key in st.session_state:
             for passage in case_passages:
                 st.markdown(f"**{passage['chunk_id']}** · {passage['verification_status']}")
                 st.write(passage["chunk_text"])
-                if st.button("Open source and full chunk list", key=f"open_case_chunk_{case_id}_{passage['chunk_id']}"):
+                if st.button("Open source and full chunk list", key=f"open_case_chunk_{case_id}_{passage['chunk_id']}",
+                             help="Inspect this exact case passage inside its complete stored source record."):
                     st.session_state["rag_case_id"] = case_id
                     st.session_state["rag_case_doc_id"] = passage["doc_id"]
                     st.session_state["rag_case_chunk_id"] = passage["chunk_id"]
@@ -504,7 +532,8 @@ if state_key in st.session_state:
                     if turn.get("citations"):
                         st.caption("Sources: " + ", ".join(turn["citations"]))
                     if turn.get("chunk_ids") and st.button(
-                        "Inspect cited source chunk", key=f"copilot_chunk_{case_id}_{turn_index}"
+                        "Inspect cited source chunk", key=f"copilot_chunk_{case_id}_{turn_index}",
+                        help="Open the first case passage cited in this Copilot answer and check its source and verification status."
                     ):
                         first_chunk = turn["chunk_ids"][0]
                         st.session_state["rag_case_id"] = case_id

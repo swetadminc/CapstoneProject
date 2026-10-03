@@ -13,6 +13,7 @@ import os
 import sys
 import sqlite3
 import pandas as pd
+import altair as alt
 import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -53,23 +54,61 @@ df["current_status"] = df.apply(
     lambda row: resolve_status(row["status"], latest_decisions.get(row["case_id"])), axis=1
 )
 
+
+def category_chart(counts: pd.Series, category_title: str, count_title: str,
+                   color: str, descriptions: dict[str, str] | None = None):
+    """Full-length labels and a plain-English hover card for each stored group."""
+    chart_data = counts.rename("count").rename_axis("category").reset_index()
+    chart_data["category"] = chart_data["category"].astype(str)
+    chart_data["description"] = chart_data["category"].map(descriptions or {}).fillna(
+        "A category recorded in the fictional source data; this count is not a finding of wrongdoing."
+    )
+    return (
+        alt.Chart(chart_data)
+        .mark_bar(color=color, cornerRadiusEnd=5, size=24)
+        .encode(
+            y=alt.Y("category:N", title=category_title, sort="-x",
+                    axis=alt.Axis(labelLimit=350, labelFontSize=12)),
+            x=alt.X("count:Q", title=count_title, axis=alt.Axis(tickMinStep=1)),
+            tooltip=[alt.Tooltip("category:N", title=category_title),
+                     alt.Tooltip("count:Q", title=count_title, format=",d"),
+                     alt.Tooltip("description:N", title="What this means")],
+        )
+        .properties(height=max(170, 48 * len(chart_data)))
+    )
+
+
+SCENARIO_DESCRIPTIONS = {
+    "amount-anomaly": "Recorded alert category for an amount that needs comparison with the customer's expected activity.",
+    "dormant-reactivation": "Recorded alert category for activity after a period of little or no activity.",
+    "rapid-movement-of-funds": "Recorded alert category for money moving onward soon after it arrives; the same funds are not proven to have moved.",
+    "structuring": "Recorded alert category for a pattern of smaller transactions that needs human review.",
+    "velocity": "Recorded alert category for transaction frequency that needs review.",
+}
+
 col1, col2 = st.columns(2)
 with col1:
     st.subheader("Alerts by severity")
+    st.caption("Number of stored alerts in each source severity label. High is a review priority, not a fraud finding.")
     sev_order = ["High", "Medium", "Low"]
     sev_counts = df["severity"].value_counts().reindex(sev_order).fillna(0).astype(int)
-    st.bar_chart(sev_counts, color="#B02A2A")
+    st.altair_chart(category_chart(sev_counts, "Recorded severity", "Number of stored alerts", "#B02A2A"),
+                    use_container_width=True)
 
 with col2:
     st.subheader("Alerts by typology")
+    st.caption("Each bar counts alerts with that recorded scenario label. Hover over a bar for its full name, count, and meaning.")
     scen_counts = df["scenario_id"].value_counts()
-    st.bar_chart(scen_counts, color="#2E63BF")
+    st.altair_chart(category_chart(scen_counts, "Recorded alert typology", "Number of stored alerts",
+                                  "#2E63BF", SCENARIO_DESCRIPTIONS), use_container_width=True)
 
 col3, col4 = st.columns(2)
 with col3:
     st.subheader("Alerts by current status")
+    st.caption("Latest displayed status for each case, including saved human actions where available.")
     status_counts = df["current_status"].value_counts()
-    st.bar_chart(status_counts, color="#27844E")
+    st.altair_chart(category_chart(status_counts, "Current case status", "Number of cases", "#27844E"),
+                    use_container_width=True)
 
 with col4:
     st.subheader("High-severity share by typology")
@@ -80,14 +119,24 @@ with col4:
         .mul(100)
         .round(1)
     )
-    st.bar_chart(high_share, color="#B57808")
-    st.caption("% of that typology's alerts rated High severity")
+    share_data = high_share.rename("share_percent").rename_axis("typology").reset_index()
+    st.altair_chart(
+        alt.Chart(share_data).mark_bar(color="#B57808", cornerRadiusEnd=5, size=24).encode(
+            y=alt.Y("typology:N", title="Recorded alert typology", sort="-x",
+                    axis=alt.Axis(labelLimit=350, labelFontSize=12)),
+            x=alt.X("share_percent:Q", title="Share labelled High severity (%)", scale=alt.Scale(domain=[0, 100])),
+            tooltip=[alt.Tooltip("typology:N", title="Full typology"),
+                     alt.Tooltip("share_percent:Q", title="Share labelled High severity", format=".1f")],
+        ).properties(height=max(170, 48 * len(share_data))), use_container_width=True,
+    )
+    st.caption("Percentage of that typology's stored alerts labelled High severity; not the probability of crime.")
 
 st.divider()
 st.subheader("Alert volume over time")
 weekly = df.set_index("alert_date").resample("W").size().rename("alerts")
 st.area_chart(weekly, color="#2E63BF")
-st.caption(f"Weekly alert volume, {df['alert_date'].min().date()} to {df['alert_date'].max().date()}")
+st.caption(f"X-axis: week ending date. Y-axis: number of stored alerts that week. "
+           f"Source dates span {df['alert_date'].min().date()} to {df['alert_date'].max().date()}.")
 
 st.divider()
 st.subheader("Decisions recorded, by investigator")
@@ -97,16 +146,27 @@ else:
     by_investigator = decisions["investigator"].value_counts()
     c1, c2 = st.columns([1, 1])
     with c1:
-        st.bar_chart(by_investigator, color="#2E63BF")
+        st.caption("Number of saved human actions attributed to each display name, not unique cases or staff productivity.")
+        st.altair_chart(category_chart(by_investigator, "Display name", "Saved actions", "#2E63BF"),
+                        use_container_width=True)
     with c2:
-        st.markdown("**Decision mix**")
+        st.markdown("#### What people recorded")
+        st.caption("This groups every saved investigator and Compliance action. One case can have several actions, "
+                   "so these bars are not final case outcomes.")
         action_labels = {
             "close": "Closed", "escalate": "Escalated", "request_info": "Info Requested",
             "compliance_ack": "Acknowledged", "compliance_return": "Returned to Investigator",
             "compliance_refer": "Referred",
         }
         mix = decisions["action"].map(lambda a: action_labels.get(a, a)).value_counts()
-        st.dataframe(mix.rename("count"), use_container_width=True)
+        st.altair_chart(category_chart(mix, "Recorded human action", "Number of saved actions", "#087E74", {
+            "Closed": "An investigator recorded a close action with a rationale; this is not proof that funds were lawful.",
+            "Escalated": "An investigator sent a case for Compliance review.",
+            "Info Requested": "An investigator requested more information before deciding.",
+            "Acknowledged": "A Compliance reviewer acknowledged a case already escalated.",
+            "Returned to Investigator": "Compliance returned a case for more investigation.",
+            "Referred": "Compliance recorded a referral; this app does not submit a regulatory report.",
+        }), use_container_width=True)
 
 st.divider()
 st.caption(

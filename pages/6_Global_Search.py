@@ -104,7 +104,8 @@ if not alerts.empty:
         c2.write(row["customer_name"])
         c3.write(row["alert_type"])
         c4.write(row["severity"])
-        if c5.button("🔍", key=f"srch_case_{row['case_id']}", help=f"Investigate {row['case_id']}",
+        if c5.button("🔍", key=f"srch_case_{row['case_id']}",
+                     help=f"Open {row['case_id']} in the Investigation Workspace to inspect its recorded alert, evidence and human decisions.",
                      use_container_width=True):
             st.session_state["selected_case_id"] = row["case_id"]
             st.switch_page("pages/2_Investigation_Demo.py")

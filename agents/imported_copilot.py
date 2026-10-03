@@ -124,9 +124,12 @@ def answer_imported_case_question(question: str, case_id: str, evidence: dict | 
                  and datetime.fromisoformat(row["txn_datetime"]).month == month[1])]
     completed = [row for row in selected if row["status"] == "Completed"]
     wants_count = _mentions(query, "how many", "count", "number of transactions", "total transactions")
-    wants_trail = _mentions(query, "trail", "sequence", "timeline", "transaction", "transactions",
-                            "when", "from", "where", "transfer", "transfers", "happened", "who",
-                            "counterparty", "counterparties")
+    # A question about missing counterparty KYC/evidence must not dump the
+    # entire account ledger just because it contains the word "counterparty".
+    wants_trail = (_mentions(query, "trail", "sequence", "timeline", "transaction", "transactions",
+                             "transfer", "transfers") or
+                   (_mentions(query, "counterparty", "counterparties") and
+                    not _mentions(query, "kyc", "evidence", "missing", "gap", "verification")))
     wants_totals = _mentions(query, "how much", "amount", "total in", "total out", "credit", "debit")
     wants_signal = _mentions(query, "suspicious", "flag", "flagged", "alert", "risk", "detect",
                              "trigger", "why", "review", "concern", "unusual")
@@ -138,16 +141,23 @@ def answer_imported_case_question(question: str, case_id: str, evidence: dict | 
     wants_counterview = _mentions(query, "contradict", "against the alert", "against this alert",
                                   "exculpatory", "alternative explanation", "normal explanation",
                                   "innocent explanation")
+    if wants_signal and not _mentions(query, "trail", "sequence", "timeline"):
+        wants_trail = False
 
     if _mentions(query, "summarize this case", "summarise this case", "summarize case",
                  "summarise case", "case summary"):
+        original_count = sum(int(doc["is_original_upload"]) for doc in identity_docs)
         sections.append(f"Selected case {case_id}: source alert {alert['alert_id']} records "
                         f"{alert['alert_type']} for customer {alert['customer_id']} and account "
                         f"{alert['account_id']}. The supplied account ledger contains {len(rows)} "
                         f"row(s), including {sum(row['status'] == 'Completed' for row in rows)} "
-                        "completed row(s). This is an alert for review, not a finding of wrongdoing.")
+                        "completed row(s). This is an alert for review, not a finding of wrongdoing. "
+                        f"The customer's KYC field says {customer['kyc_status'] or 'not recorded'}, "
+                        f"but {original_count} original uploaded identity file(s) are available here. "
+                        "Next, check the original identity and source-of-funds records before deciding.")
         cite(f"CASE-ALERT-{case_id}", "Alert ID:")
         cite(f"CASE-LEDGER-ALL-{case_id}", "stored rows:")
+        cite(f"KYC-PROFILE-{alert['customer_id']}", "Dataset KYC status")
         if len(owner_ids) != 1 or alert["customer_id"] not in owner_ids:
             sections.append("Account-ownership warning: this account ID is missing or assigned to "
                             "multiple customers in the supplied tables. The ledger rows cannot be "
@@ -155,6 +165,49 @@ def answer_imported_case_question(question: str, case_id: str, evidence: dict | 
             cite(f"CASE-LEDGER-ALL-{case_id}", "SOURCE-DATA COLLISION")
         return {"answer": "\n\n".join(sections), "chunk_ids": chunk_ids,
                 "txn_ids": [], "sources": chunk_ids, "source": "imported_case_database"}
+
+    if _mentions(query, "request more information"):
+        cite(f"KYC-PROFILE-{alert['customer_id']}", "Dataset KYC status")
+        cite(f"CASE-ALERT-{case_id}", "Alert ID:")
+        cite(f"CASE-LEDGER-ALL-{case_id}", "stored rows:")
+        ownership_note = (" This account ID maps to multiple or no owners in the supplied data; "
+                          "resolve that collision before attributing its rows to this customer."
+                          if len(owner_ids) != 1 or alert["customer_id"] not in owner_ids else "")
+        return {
+            "answer": (f"For {case_id}, request original identity/KYC records and verification results, "
+                       "independent source-of-funds records, counterparty ownership, and matching "
+                       "postings for any claimed transfer chain. The stored workbook status and "
+                       "generated samples are not independent verification. State the specific missing "
+                       "records in your rationale before a named investigator chooses 'Request more "
+                       "information'. This action does not confirm receipt of those records."
+                       + ownership_note),
+            "chunk_ids": chunk_ids, "txn_ids": [], "sources": chunk_ids,
+            "source": "imported_case_database",
+        }
+
+    if _mentions(query, "explain for compliance review"):
+        cite(f"CASE-ALERT-{case_id}", "Alert ID:")
+        cite(f"KYC-PROFILE-{alert['customer_id']}", "Dataset KYC status")
+        cite(f"CASE-LEDGER-ALL-{case_id}", "stored rows:")
+        originals = sum(int(doc["is_original_upload"]) for doc in identity_docs)
+        ownership_note = (" The supplied account ID has missing or multiple owners, so its ledger "
+                          "rows cannot be confidently attributed to this customer."
+                          if len(owner_ids) != 1 or alert["customer_id"] not in owner_ids else "")
+        return {
+            "answer": (f"Compliance review brief for {case_id}: source alert {alert['alert_id']} "
+                       f"records '{alert['alert_type']}' for account {alert['account_id']}. "
+                       f"The supplied account ledger has {len(rows)} row(s), of which "
+                       f"{sum(row['status'] == 'Completed' for row in rows)} are marked completed. "
+                       "This imported rule label is a review signal; it has not been independently "
+                       f"recomputed here. The dataset KYC status is {customer['kyc_status'] or 'not recorded'}, "
+                       f"with {originals} original uploaded identity file(s) available in this app. "
+                       "Independent source-of-funds and counterparty-chain proof are not established. "
+                       "A named investigator must weigh evidence, record a rationale, and choose "
+                       "'Escalate for Compliance review' only if warranted. No regulatory report is "
+                       "filed here." + ownership_note),
+            "chunk_ids": chunk_ids, "txn_ids": [], "sources": chunk_ids,
+            "source": "imported_case_database",
+        }
 
     if _mentions(query, "review window", "alert window") and _mentions(
         query, "how many", "count", "number of transactions"

@@ -247,8 +247,8 @@ page_flow("Understand the complete workflow before opening a screen", [
 ], "Search and Analytics help explore the fictional data; admin screens show retrieval and rule previews. No regulatory filing is automated.")
 
 # ---------------------------------------------------------------------
-# Queue snapshot — the same numbers Case Queue shows, so this page is a
-# real dashboard home, not just a list of links to click through.
+# Queue snapshot of the preloaded alerts. Feature-gated fictional-intake
+# cases are shown separately in Case Queue, so its total can differ.
 # Staggered .iq-rise entrance so the cards cascade in under the hero.
 # ---------------------------------------------------------------------
 if os.path.exists(DB_PATH):
@@ -266,15 +266,23 @@ if os.path.exists(DB_PATH):
 
     st.write("")
     k1, k2, k3, k4 = st.columns(4)
-    for i, (col, icon, label, value, accent) in enumerate([
-        (k1, "📊", "Preloaded alerts", total_alerts, "iq-kpi-blue"), (k2, "🕒", "Preloaded open", open_alerts, "iq-kpi-amber"),
-        (k3, "🔥", "High severity", high_sev, "iq-kpi-red"), (k4, "🚨", "Escalated", escalated, "iq-kpi-red"),
+    for i, (col, icon, label, value, accent, detail, definition) in enumerate([
+        (k1, "📊", "Preloaded alerts", total_alerts, "iq-kpi-blue", "Fictional source alerts", "All alerts in the bundled fictional dataset. Saved fictional-intake cases are counted separately in Case Queue."),
+        (k2, "🕒", "Preloaded open", open_alerts, "iq-kpi-amber", "Awaiting review", "Bundled alerts whose current workflow status is Open. An alert is not proof of wrongdoing."),
+        (k3, "🔥", "High severity", high_sev, "iq-kpi-red", "Priority label", "Bundled alerts labelled High by the source data. This overlaps workflow status and is not a crime verdict."),
+        (k4, "🚨", "Escalated", escalated, "iq-kpi-red", "Human action", "Bundled cases whose latest recorded investigator decision is escalation. Nothing is filed automatically with a regulator."),
     ]):
         col.markdown(
-            f'<div class="iq-card {accent} iq-rise iq-stagger-{i+1}"><div class="iq-kpi-icon">{icon}</div>'
-            f'<div class="iq-kpi-label">{label}</div><div class="iq-kpi-value">{value:,}</div></div>',
+            f'<div class="iq-card iq-kpi-card {accent} iq-rise iq-stagger-{i+1}" role="group" '
+            f'aria-label="{label}: {value:,}. {definition}" title="{definition}">'
+            f'<div class="iq-kpi-top"><span class="iq-kpi-icon" aria-hidden="true">{icon}</span>'
+            f'<span class="iq-kpi-help" aria-hidden="true">ⓘ</span></div>'
+            f'<div class="iq-kpi-label">{label}</div><div class="iq-kpi-value">{value:,}</div>'
+            f'<div class="iq-kpi-detail">{detail}</div></div>',
             unsafe_allow_html=True,
         )
+    st.caption("These cards summarize preloaded fictional alerts. High severity overlaps status; open and "
+               "escalated are workflow states. Hover over a card or use Help & definitions in the sidebar.")
     st.write("")
 
 st.subheader("Start here")
@@ -333,9 +341,19 @@ else:
             "alerts": "Seed Alerts", "knowledge_base": "KB Documents", "knowledge_chunks": "KB Chunks",
             "past_cases": "Past Cases", "documents": "Documents",
         }
+        metric_help = {
+            "customers": "Number of fictional customer rows in the bundled source database; not verified identities.",
+            "accounts": "Number of account rows in the bundled dataset; duplicate or ambiguous ownership is possible.",
+            "transactions": "Number of stored transaction rows; a row does not independently prove settlement or the origin of funds.",
+            "alerts": "Number of preloaded fictional alert rows; feature-gated intake cases are separate.",
+            "knowledge_base": "Number of synthetic OKF playbook source documents indexed for guidance retrieval.",
+            "knowledge_chunks": "Number of smaller indexed playbook passages available for keyword search and citation.",
+            "past_cases": "Number of fictional historical-case rows used as context, not evidence of guilt.",
+            "documents": "Number of source-dataset document-summary rows; this is not a count of uploaded original files.",
+        }
         for i, (t, label) in enumerate(labels.items()):
             with cols[i % 4]:
-                st.metric(label, f"{counts[t]:,}")
+                st.metric(label, f"{counts[t]:,}", help=metric_help[t])
 
         conn.close()
     except Exception as e:

@@ -81,13 +81,26 @@ c4.metric("Avg. words / chunk", f"{avg_words:.0f}",
 
 st.markdown(
     """
-    <span class="iq-chip">Format: OKF (Open Knowledge Format)</span>
-    <span class="iq-chip">Chunking: metadata chunk + 2-sentence body groups</span>
-    <span class="iq-chip">Index: SQLite FTS5 (inverted index, BM25 ranking)</span>
-    <span class="iq-chip">Retrieval today: keyword / lexical</span>
-    <span class="iq-chip">Vector / semantic: schema-ready, not yet built</span>
+    <span class="iq-chip" title="Open Knowledge Format: a Markdown document with YAML fields for its ID, scenario, title, escalation criteria and version, followed by guidance text.">Format: OKF (Open Knowledge Format)</span>
+    <span class="iq-chip" title="Each playbook has one title-and-criteria metadata chunk; its body is grouped into ordered two-sentence passages.">Chunking: metadata chunk + 2-sentence body groups</span>
+    <span class="iq-chip" title="SQLite full-text search maps words to matching passages. BM25 ranks keyword matches; its display score is not confidence or risk.">Index: SQLite FTS5 (inverted index, BM25 ranking)</span>
+    <span class="iq-chip" title="The current search matches words in indexed text. It does not compare vector embeddings or infer semantic similarity.">Retrieval today: keyword / lexical</span>
+    <span class="iq-chip" title="An embedding column exists in the schema, but no embedding model or vector search is active.">Vector / semantic: schema-ready, not yet built</span>
     """,
     unsafe_allow_html=True,
+)
+st.markdown(
+    "**RAG (Retrieval-Augmented Generation)** means finding relevant source passages first, "
+    "then using those passages to support an answer or draft with citations. In this product, "
+    "SQLite keyword search retrieves playbook and case-record passages. Some answers are "
+    "deterministic calculations; an optional model can draft text from retrieved context. "
+    "A citation identifies stored text, not independent proof."
+)
+st.markdown(
+    "**OKF (Open Knowledge Format)** is the structured format of our synthetic playbook files: "
+    "Markdown guidance plus YAML metadata such as document ID, scenario, title, version and "
+    "escalation criteria. We split that text into small, citable chunks before indexing it. "
+    "Case KYC and transaction records are stored and chunked separately; they are not OKF playbooks."
 )
 
 with st.expander("Exactly how a document becomes searchable chunks — the honest, full explanation"):
@@ -113,8 +126,9 @@ with st.expander("Exactly how a document becomes searchable chunks — the hones
 
         **4. Retrieval.** `data/knowledge_search.py` — `search(query)` — turns a question into indexed terms,
         runs a `MATCH` query against the FTS5 index, and returns the top-k chunks ranked by BM25 score, each
-        with its source document ID. This is the exact function the Evidence Agent calls during
-        investigation, and the Chat Agent calls for "Ask the Copilot."
+        with its source document ID. The Evidence Agent and the legacy Chat Agent use this playbook
+        search. The case-scoped Copilot also reads the selected case's separate evidence index and
+        stored ledger; not every Copilot answer runs this playbook search.
 
         **5. What's NOT built yet, stated plainly.** There is no embedding model and no vector database —
         that's a deliberate choice for this phase (see the note below), not an oversight. The `embedding`
@@ -168,7 +182,12 @@ st.divider()
 
 # --- 4. Live search demo, with autosuggest ---
 st.subheader("4 · Live retrieval — search the index right now")
-st.caption("This is the exact function the AI agent calls. Nothing here is pre-scripted.")
+st.caption("This runs the live keyword retrieval function used for playbook guidance. Results depend "
+           "on your query and the current index; case-record retrieval is a separate path.")
+st.info("**BM25 score guide:** A higher displayed number means a stronger keyword match among "
+        "results for this same search. It is not a percentage, confidence level, risk score, or "
+        "proof. Scores from different searches are not directly comparable; read the actual "
+        "passage and source before using it.")
 
 if "kb_query" not in st.session_state:
     st.session_state.kb_query = ""
@@ -198,7 +217,9 @@ if query:
         with st.container(border=True, key=f"iq_bordered_kb_{r['chunk_id']}"):
             cols = st.columns([1, 5])
             cols[0].metric("BM25 score", r["score"],
-                           help="SQLite FTS5 relevance rank for this keyword query; compare within this result list only.")
+                           help="Keyword-match ranking for this query. We reverse SQLite's raw BM25 rank "
+                                "so higher displayed values rank first. Compare only results from this "
+                                "same query; it is not a 0–100 score, probability, risk, or confidence.")
             cols[1].markdown(f"**{r['chunk_id']}** · from *{r['doc_title']}* (`{r['doc_id']}`)")
             cols[1].write(r["chunk_text"])
             cols[1].caption(f"If cited by the Copilot, the investigator sees: "

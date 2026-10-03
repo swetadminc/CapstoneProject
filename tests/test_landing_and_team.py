@@ -78,7 +78,7 @@ class LandingAndTeamTests(unittest.TestCase):
         self.assertNotIn("Enter the demo", page)
         self.assertIn(PROJECT_SLOGAN, page)
         self.assertIn('aria-label="How this page works"', page)
-        self.assertEqual(len(app.expander), 0)
+        self.assertEqual([item.label for item in app.expander], ["ℹ️ Help & definitions"])
         self.assertIn(("Seed Alerts", "44"), [(metric.label, metric.value) for metric in app.metric])
 
     def test_guest_can_enter_workspace_from_home(self):
@@ -148,6 +148,21 @@ class LandingAndTeamTests(unittest.TestCase):
         search = next(item for item in app.text_input if item.label == "Search customer name")
         search.set_value("[").run(timeout=30)
         self.assertFalse(app.exception)
+
+    def test_queue_cards_define_all_workflow_states_and_severity_overlap(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=90)
+        app.session_state["user_name"] = "Case Reviewer"
+        app.session_state["user_role"] = "Investigator"
+        app.switch_page("pages/0_Case_Queue.py").run(timeout=90)
+        self.assertFalse(app.exception)
+        page = "\n".join(item.value for item in app.get("markdown"))
+        self.assertEqual(page.count('class="iq-card iq-kpi-card'), 6)
+        self.assertIn('class="iq-flashlight-svg"', page)
+        self.assertIn("Info requested", page)
+        self.assertTrue(any("High severity is a separate source label" in item.value
+                            for item in app.get("caption")))
+        self.assertTrue(any(item.label == "What these queue numbers mean"
+                            for item in app.get("expander")))
 
     def test_selected_case_survives_investigation_rerun(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)

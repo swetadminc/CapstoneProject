@@ -98,7 +98,13 @@ if fictional_intake_enabled():
 view = st.segmented_control(
     "Explore evidence", views,
     key="rag_view", required=True,
-    help="Switch between original sources, live retrieval results, and the actual implementation without leaving InvestigateIQ.",
+    help="Case records: selected alert, customer, KYC summaries and ledger chunks. "
+         "Rule Lab: calculate an illustrative review signal from supplied numbers. "
+         "Fictional Intake (when enabled): inspect a saved generated packet. "
+         "Source & chunks: read synthetic playbooks and their exact passages. "
+         "Search the index: keyword-search those playbook passages. "
+         "Method & code: inspect the Python behind these steps. None of these views verifies "
+         "an original identity document or decides whether funds are lawful.",
 )
 context_case_id = st.session_state.get("active_case_id")
 
@@ -108,7 +114,10 @@ if view == "Case records":
         prior_case = st.session_state.get("active_case_id")
         st.session_state["rag_case_choice"] = (prior_case if prior_case in labels else
                                                 "CASE-043" if "CASE-043" in labels else next(iter(labels)))
-    case_id = st.selectbox("Case", list(labels), format_func=lambda value: labels[value], key="rag_case_choice")
+    case_id = st.selectbox("Case", list(labels), format_func=lambda value: labels[value],
+                           key="rag_case_choice",
+                           help="Choose the fictional alert whose stored customer profile, ledger, "
+                                "source records and indexed passages you want to inspect.")
     context_case_id = case_id
     st.session_state["active_case_id"] = case_id
     with closing(sqlite3.connect(DB_PATH)) as conn:
@@ -127,9 +136,12 @@ if view == "Case records":
                f"built {index_status['built_at_utc'] or 'at an unrecorded time'}. "
                "This is the index build time, not the source-document date or a saved-report snapshot.")
     left, right, third, fourth = st.columns(4)
-    left.metric("Case source records", len(sources))
-    right.metric("Illustrative identity records", coverage["sample_identity_records"])
-    third.metric("Original files uploaded", coverage["original_uploaded_files"])
+    left.metric("Case source records", len(sources),
+                help="Generated profile, identity, alert and transaction text records available for this case; a source record is not necessarily an original document.")
+    right.metric("Illustrative identity records", coverage["sample_identity_records"],
+                 help="Generated sample identity text for teaching. These are not scans or independently verified PAN, Aadhaar, passport or licence files.")
+    third.metric("Original files uploaded", coverage["original_uploaded_files"],
+                 help="Count of original identity files actually present in this application's evidence store, not the number of generated sample records.")
     fourth.metric(
         "Counterparties without customer profile",
         coverage["unknown_counterparty_count"],
@@ -154,10 +166,14 @@ if view == "Case records":
             signal = detected[0]
             st.subheader("Recomputed ten-transaction alert")
             a, b, c, d = st.columns(4)
-            a.metric("Incoming", f"₹{signal['incoming']:,.0f}")
-            b.metric("Outgoing", f"₹{signal['outgoing']:,.0f}")
-            c.metric("Versus monthly baseline", f"{signal['incoming_multiplier']}x")
-            d.metric("Beneficiaries", signal["beneficiary_count"])
+            a.metric("Incoming", f"₹{signal['incoming']:,.0f}",
+                     help="Completed incoming total recorded in this fictional alert's 24-hour window.")
+            b.metric("Outgoing", f"₹{signal['outgoing']:,.0f}",
+                     help="Completed outgoing total in the same window; it does not prove a direct link to the incoming funds.")
+            c.metric("Versus monthly baseline", f"{signal['incoming_multiplier']}x",
+                     help="Incoming total divided by the supplied historical monthly-credit baseline; a review signal, not a probability of crime.")
+            d.metric("Beneficiaries", signal["beneficiary_count"],
+                     help="Distinct recorded outgoing endpoint IDs in the window; their owners and KYC are not verified by this count.")
             st.caption(f"{signal['outbound_percent']}% outgoing/incoming. Both matched cases trigger the same review rule. These figures do not prove that a receipt funded a debit or determine the lawful purpose of funds.")
             with st.expander("Open the complete ten-row timeline and balance arithmetic"):
                 running = matched["opening_balance"]
@@ -273,7 +289,8 @@ if view == "Case records":
         with st.expander(f"{passage['chunk_id']} · {passage['word_count']} words",
                          expanded=passage["chunk_id"] == requested_case_chunk):
             st.write(passage["chunk_text"])
-            if st.button("Ask Copilot about this chunk", key=f"ask_case_chunk_{passage['chunk_id']}"):
+            if st.button("Ask Copilot about this chunk", key=f"ask_case_chunk_{passage['chunk_id']}",
+                         help="Select this exact passage as context for the floating case Copilot."):
                 st.session_state["context_evidence_case_id"] = case_id
                 st.session_state["context_evidence_chunk_id"] = passage["chunk_id"]
     st.divider()
@@ -320,10 +337,14 @@ elif view == "Rule Lab":
     outgoing_percent = outgoing_total / incoming_total * 100
     beneficiary_count = len({row["counterparty_account_id"] for row in lab_rows if row["direction"] == "DR"})
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Four credits total", f"₹{incoming_total:,.0f}")
-    m2.metric("Six debits total", f"₹{outgoing_total:,.0f}")
-    m3.metric("Incoming / monthly baseline", f"{incoming_ratio:.2f}x")
-    m4.metric("Outgoing / incoming", f"{outgoing_percent:.1f}%")
+    m1.metric("Four credits total", f"₹{incoming_total:,.0f}",
+              help="Sum of four generated incoming amounts in this in-memory lab batch.")
+    m2.metric("Six debits total", f"₹{outgoing_total:,.0f}",
+              help="Sum of six generated outgoing amounts in this in-memory lab batch.")
+    m3.metric("Incoming / monthly baseline", f"{incoming_ratio:.2f}x",
+              help="Generated incoming total divided by the supplied historical monthly-credit baseline; the illustrative threshold is at least 5x.")
+    m4.metric("Outgoing / incoming", f"{outgoing_percent:.1f}%",
+              help="Generated outgoing total divided by generated incoming total; the illustrative threshold is at least 80%.")
     st.dataframe([
         {"Rule check": "Incoming versus monthly baseline", "Observed": f"{incoming_ratio:.2f}x", "Required": "At least 5x", "Result": "Pass" if incoming_ratio >= 5 else "Below threshold"},
         {"Rule check": "Outgoing versus incoming", "Observed": f"{outgoing_percent:.1f}%", "Required": "At least 80%", "Result": "Pass" if outgoing_percent >= 80 else "Below threshold"},
@@ -343,12 +364,16 @@ elif view == "Fictional Intake":
     with st.form("fictional_intake_form"):
         a, b, c = st.columns(3)
         baseline = a.number_input("Intake monthly baseline (INR)", min_value=1, max_value=100_000_000,
-                                  value=80_000, step=10_000)
+                                  value=80_000, step=10_000,
+                                  help="Fictional historical monthly-credit comparison used by the fixed 24-hour review rule.")
         credit = b.number_input("Intake incoming transfer (INR)", min_value=1, max_value=100_000_000,
-                                value=300_000, step=10_000)
+                                value=300_000, step=10_000,
+                                help="Amount used for each generated incoming transaction in the saved fictional packet.")
         debit = c.number_input("Intake outgoing transfer (INR)", min_value=1, max_value=100_000_000,
-                               value=180_000, step=10_000)
-        submitted = st.form_submit_button("Calculate and save fictional case")
+                               value=180_000, step=10_000,
+                               help="Amount used for each generated outgoing transaction; endpoint ownership is not verified.")
+        submitted = st.form_submit_button("Calculate and save fictional case",
+                                          help="Recalculate the fixed signal and save a synthetic case only if the generated rows meet its thresholds.")
     intake_path = fictional_intake_path()
     if submitted:
         rows = make_generated_fictional_batch(int(credit), int(debit), int(baseline))
@@ -371,7 +396,9 @@ elif view == "Fictional Intake":
         if saved_ids:
             chosen = st.selectbox("Saved fictional case", saved_ids,
                                   index=saved_ids.index(st.session_state["fictional_intake_case_id"])
-                                  if st.session_state.get("fictional_intake_case_id") in saved_ids else 0)
+                                  if st.session_state.get("fictional_intake_case_id") in saved_ids else 0,
+                                  help="Choose a saved generated packet; its ledger and chunks are separate "
+                                       "from the imported workbook cases.")
             packet = read_fictional_case(conn, chosen)
             assessment = assess_fictional_case(conn, chosen)
             context_case_id = chosen
@@ -384,10 +411,14 @@ elif view == "Fictional Intake":
         else:
             st.error("The saved case failed a calculation or source-integrity check. Do not rely on its draft until the mismatch is reviewed.")
         s1, s2, s3, s4 = st.columns(4)
-        s1.metric("Stored transactions", len(packet["transactions"]))
-        s2.metric("Generated records", len(packet["documents"]))
-        s3.metric("Indexed chunks", len(packet["chunks"]))
-        s4.metric("Original identity files", packet["original_identity_files"])
+        s1.metric("Stored transactions", len(packet["transactions"]),
+                  help="Rows saved in this fictional case packet, including completed and pending entries.")
+        s2.metric("Generated records", len(packet["documents"]),
+                  help="Generated source texts, including profile, identity samples, alert and ledger; not uploaded originals.")
+        s3.metric("Indexed chunks", len(packet["chunks"]),
+                  help="Exact smaller passages stored for case-scoped keyword retrieval and citation.")
+        s4.metric("Original identity files", packet["original_identity_files"],
+                  help="Number of actual uploaded identity files. Generated PAN/passport text does not count.")
         st.caption(assessment["recommended_action"])
         with st.expander(f"Evidence gaps requiring human review · {len(assessment['missing_evidence'])}"):
             for gap in assessment["missing_evidence"]:
@@ -407,7 +438,9 @@ elif view == "Fictional Intake":
         if preferred_intake_doc not in document_by_id:
             preferred_intake_doc = document_ids[0]
         st.session_state[intake_source_key] = preferred_intake_doc
-        doc_id = st.selectbox("Generated source record", document_ids, key=intake_source_key)
+        doc_id = st.selectbox("Generated source record", document_ids, key=intake_source_key,
+                              help="Open one generated identity, profile, alert or ledger text record. "
+                                   "Generated text is not an original uploaded file.")
         doc = document_by_id[doc_id]
         st.caption(f"{doc['category']} · {doc['verification_status']} · SHA-256 {doc['content_sha256']}")
         with st.expander("Read full generated source text"):
@@ -421,7 +454,8 @@ elif view == "Fictional Intake":
                              (requested_intake_chunk is None and chunk["chunk_index"] == 0)):
                 st.caption(f"Chunk ID: {chunk['chunk_id']}")
                 st.write(chunk["chunk_text"])
-                if st.button("Ask Copilot about this chunk", key=f"ask_fic_chunk_{chunk['chunk_id']}"):
+                if st.button("Ask Copilot about this chunk", key=f"ask_fic_chunk_{chunk['chunk_id']}",
+                             help="Select this exact generated passage for a case-scoped Copilot question."):
                     st.session_state["context_evidence_case_id"] = chosen
                     st.session_state["context_evidence_chunk_id"] = chunk["chunk_id"]
         phrase = st.text_input("Search this case's indexed chunks", key=f"fic_chunk_search_{chosen}",
@@ -485,6 +519,9 @@ elif view == "Source & chunks":
 elif view == "Search the index":
     st.subheader("3 · Search the index")
     st.caption("SQLite FTS5 matches indexed terms and BM25 ranks the chunks. This is lexical retrieval, not vector or semantic search.")
+    st.info("**BM25 score guide:** Higher displayed scores rank stronger keyword matches within "
+            "this one search. The number is not a percentage, risk or AI confidence score. "
+            "Read the passage and its source; do not compare scores from different queries.")
     query = st.text_input("Question or keywords", placeholder="e.g. structuring cash deposits", help="Run the same retrieval function used by the evidence agent.")
     if query.strip():
         results = search(query, k=5)
@@ -495,7 +532,8 @@ elif view == "Search the index":
                 st.markdown(f"**{result['chunk_id']}** · {result['doc_id']} · BM25 display score {result['score']}")
                 st.write(result["chunk_text"])
                 st.button("Open this chunk in its source", key=f"rag_open_{result['chunk_id']}",
-                          on_click=open_chunk, args=(result["doc_id"], result["chunk_id"]))
+                          on_click=open_chunk, args=(result["doc_id"], result["chunk_id"]),
+                          help="Jump to this exact stored passage in its full synthetic source document.")
 
 else:
     st.subheader("4 · Inspect the implementation")

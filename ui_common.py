@@ -264,19 +264,27 @@ _GLOBAL_CSS = """
     top: 68px; bottom: auto;
     width: min(390px, calc(100vw - 32px));
     max-height: min(680px, calc(100vh - 82px)); overflow-y: auto;
-    overscroll-behavior: contain; padding: 14px 15px;
+    overscroll-behavior: contain; padding: 10px 12px;
     border: 1.5px solid #91B8F0; border-radius: 18px;
     background: var(--iq-card-bg); color: var(--iq-heading);
     box-shadow: 0 16px 45px rgba(13, 34, 73, .30);
 }
+.st-key-iq_floating_copilot_open:has(.iq-chat-expanded) {
+    width: min(650px, calc(100vw - 32px));
+    max-height: calc(100vh - 82px);
+}
 .st-key-iq_floating_chat_history {
-    height: clamp(120px, calc(100vh - 500px), 260px) !important;
-    min-height: 120px; max-height: clamp(120px, calc(100vh - 500px), 260px) !important;
+    height: clamp(180px, calc(100vh - 450px), 340px) !important;
+    min-height: 180px; max-height: clamp(180px, calc(100vh - 450px), 340px) !important;
     flex: 0 0 auto !important;
     overflow-y: auto;
-    margin: 8px 0 !important; padding: 8px !important;
-    border: 1px solid var(--iq-card-border); border-radius: 12px;
+    margin: 3px 0 !important; padding: 8px !important;
+    border: 1.5px solid #91B8F0; border-radius: 12px;
     background: #F3F7FF;
+}
+.st-key-iq_floating_copilot_open:has(.iq-chat-expanded) .st-key-iq_floating_chat_history {
+    height: clamp(210px, calc(100vh - 420px), 460px) !important;
+    max-height: clamp(210px, calc(100vh - 420px), 460px) !important;
 }
 .st-key-iq_floating_chat_history > * { flex: 0 0 auto !important; }
 .iq-chat-message {
@@ -294,7 +302,7 @@ _GLOBAL_CSS = """
     font-weight: 800; color: var(--iq-text-secondary);
 }
 .st-key-iq_floating_copilot_open [data-testid="stFormSubmitButton"] button {
-    background: #2E63BF !important; border: 1px solid #8CB5F4 !important;
+    background: #087E74 !important; border: 1.5px solid #51C8B8 !important;
     color: #FFFFFF !important; min-width: 0 !important;
     padding: 0 6px !important;
 }
@@ -309,7 +317,41 @@ _GLOBAL_CSS = """
     position: sticky; bottom: 0; z-index: 2;
     background: var(--iq-card-bg);
 }
-.iq-floating-title { color: var(--iq-heading); font-size: 16px; font-weight: 800; }
+.st-key-iq_floating_header [data-testid="stHorizontalBlock"] {
+    align-items: center !important; gap: 6px !important;
+}
+.st-key-iq_floating_copilot_open [data-testid="stHorizontalBlock"]:has(.iq-floating-title) {
+    align-items: center !important; gap: 6px !important;
+}
+.st-key-iq_floating_copilot_open [data-testid="stHorizontalBlock"]:has(.iq-floating-title) [data-testid="stColumn"]:first-child {
+    flex: 1 1 auto !important; min-width: 0 !important;
+}
+.st-key-iq_floating_copilot_open [data-testid="stHorizontalBlock"]:has(.iq-floating-title) [data-testid="stColumn"]:nth-child(2),
+.st-key-iq_floating_copilot_open [data-testid="stHorizontalBlock"]:has(.iq-floating-title) [data-testid="stColumn"]:nth-child(3) {
+    flex: 0 0 42px !important; width: 42px !important; min-width: 42px !important;
+}
+.st-key-iq_floating_header [data-testid="stColumn"]:first-child {
+    flex: 1 1 auto !important; min-width: 0 !important;
+}
+.st-key-iq_floating_header [data-testid="stColumn"]:nth-child(2),
+.st-key-iq_floating_header [data-testid="stColumn"]:nth-child(3) {
+    flex: 0 0 42px !important; width: 42px !important; min-width: 42px !important;
+}
+.st-key-iq_floating_header [data-testid="stButton"] button {
+    width: 42px !important; min-width: 42px !important;
+    height: 42px !important; min-height: 42px !important; padding: 0 !important;
+}
+.iq-floating-title {
+    display: flex; align-items: center; min-height: 42px;
+    color: var(--iq-heading); font-size: 16px; font-weight: 800; line-height: 1.2;
+}
+.iq-floating-context { color: var(--iq-text-secondary); font-size: 12px; line-height: 1.25; }
+.st-key-iq_floating_copilot_open [data-testid="stSelectbox"] { margin-bottom: 0 !important; }
+.st-key-iq_floating_copilot_open [data-testid="stButton"] button {
+    border: 1.5px solid #91B8F0 !important;
+}
+.st-key-iq_floating_copilot_open button:hover { border-color: #3FA6D5 !important; }
+[role="option"] { white-space: normal !important; overflow-wrap: anywhere; }
 @media (max-width: 600px) {
     [class*="st-key-iq_floating_copilot_"] { right: 12px; bottom: 12px; }
     .st-key-iq_floating_copilot_open {
@@ -317,9 +359,9 @@ _GLOBAL_CSS = """
         width: calc(100vw - 24px); max-height: calc(100vh - 80px);
     }
     .st-key-iq_floating_chat_history {
-        height: clamp(90px, calc(100vh - 540px), 180px) !important;
-        max-height: clamp(90px, calc(100vh - 540px), 180px) !important;
-        min-height: 90px;
+        height: clamp(140px, calc(100vh - 430px), 280px) !important;
+        max-height: clamp(140px, calc(100vh - 430px), 280px) !important;
+        min-height: 140px;
     }
     .st-key-iq_floating_copilot_open [data-testid="stHorizontalBlock"] {
         flex-direction: row !important; flex-wrap: nowrap !important;
@@ -333,12 +375,23 @@ _GLOBAL_CSS = """
     .st-key-iq_floating_copilot_open [data-testid="stHorizontalBlock"] [data-testid="stColumn"]:last-child {
         flex: 0 0 70px !important;
     }
+    .st-key-iq_floating_copilot_open .st-key-iq_floating_header [data-testid="stColumn"]:nth-child(2),
+    .st-key-iq_floating_copilot_open .st-key-iq_floating_header [data-testid="stColumn"]:nth-child(3) {
+        flex: 0 0 42px !important; width: 42px !important; min-width: 42px !important;
+    }
     .st-key-iq_floating_copilot_open [data-testid="stFormSubmitButton"] button {
         min-width: 0 !important; padding: 0 6px !important;
     }
 }
 .iq-kpi-label { color: var(--iq-text-secondary); font-size: 13px; margin-bottom: 2px; }
 .iq-kpi-value { font-size: 26px; font-weight: 700; color: var(--iq-heading); }
+.iq-kpi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 5px 0 8px; }
+.iq-kpi-card { min-height: 132px; box-sizing: border-box; padding: 14px 16px; }
+.iq-kpi-top { display: flex; align-items: flex-start; justify-content: space-between; }
+.iq-kpi-detail { color: var(--iq-text-secondary); font-size: 12px; line-height: 1.35; margin-top: 3px; }
+.iq-kpi-help { color: var(--iq-primary); font-size: 17px; line-height: 1; }
+@media (min-width: 1550px) { .iq-kpi-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .iq-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; } }
 /* KPI tiles (Total/Open/High severity/Escalated/Closed) used to render
    identically regardless of what they meant — a colored left accent
    ties each one to the same red/amber/green vocabulary already used for
@@ -357,6 +410,7 @@ _GLOBAL_CSS = """
     margin-bottom: 6px;
 }
 .iq-kpi-blue .iq-kpi-icon { background: var(--iq-status-info-bg); }
+.iq-flashlight-svg { color: #2459AB; display: block; }
 .iq-kpi-amber .iq-kpi-icon { background: var(--iq-sev-medium-bg); }
 .iq-kpi-red .iq-kpi-icon { background: var(--iq-sev-high-bg); }
 .iq-kpi-green .iq-kpi-icon { background: var(--iq-sev-low-bg); }
@@ -464,6 +518,14 @@ _DARK_OVERRIDE_CSS = """
 }
 .st-key-iq_floating_chat_history { background: #142033 !important; border-color: #648AC4 !important; }
 .iq-chat-message.iq-chat-user { background: #254267 !important; border-color: #648AC4 !important; }
+.st-key-iq_floating_copilot_open { border-color: #79A9EA !important; }
+.st-key-iq_floating_copilot_open [data-testid="stButton"] button,
+.st-key-iq_floating_copilot_open [data-testid="stSelectbox"] .react-aria-ComboBox > div {
+    border-color: #79A9EA !important;
+}
+.st-key-iq_floating_copilot_open [data-testid="stFormSubmitButton"] button {
+    background: #087E74 !important; border-color: #66DDCD !important;
+}
 .iq-team-card {
     background: #1D2D47 !important; border-color: #729BDD !important;
     box-shadow: 0 0 0 1px rgba(130, 170, 230, 0.22), 0 9px 24px rgba(0, 0, 0, 0.18);
@@ -503,6 +565,8 @@ _DARK_OVERRIDE_CSS = """
 .iq-kpi-icon {
     background: #2A4267 !important; box-shadow: inset 0 0 0 1px #6C91C6;
 }
+.iq-flashlight-svg { color: #C5DCFF !important; }
+.iq-kpi-help { color: #A9C9FF !important; }
 /* Streamlit's own chrome — these are its documented-by-convention
    data-testid hooks (stable across 1.x releases, widely relied on by the
    Streamlit community for exactly this kind of app-level theming) rather
@@ -691,6 +755,26 @@ def status_badge(status: str) -> str:
     return f'<span class="iq-badge {cls}">{safe}</span>' if cls else safe
 
 
+def _sidebar_glossary() -> None:
+    """Short, consistent definitions available from every workspace page."""
+    with st.expander("ℹ️ Help & definitions"):
+        st.markdown(
+            "**Alert:** a stored activity pattern flagged for human review, not proof of crime.\n\n"
+            "**Severity:** the source data's priority label; it does not determine the case outcome.\n\n"
+            "**Status:** the latest recorded workflow state, including a human action when one exists.\n\n"
+            "**KYC:** know-your-customer information. A dataset status or generated sample is not an "
+            "independently verified identity file.\n\n"
+            "**Evidence chunk:** a smaller indexed passage linked to its stored source record. "
+            "A citation is a pointer, not proof that the source is authentic.\n\n"
+            "**RAG:** retrieval-augmented generation—retrieve relevant passages before using them "
+            "to support a draft or answer. This app uses keyword search, not vector embeddings.\n\n"
+            "**BM25:** a keyword-match ranking used to order search results; not a probability, "
+            "risk score or AI confidence.\n\n"
+            "**Human decision:** an investigator's recorded action and written reason. "
+            "The Copilot cannot submit it or file a regulatory report."
+        )
+
+
 def require_login(allow_guest: bool = False):
     """Call near the top of every page. Shows a one-time name+role form if
     the session doesn't have an identity yet; otherwise renders the small
@@ -714,6 +798,7 @@ def require_login(allow_guest: bool = False):
                 st.toggle("🌙 Dark mode", key="dark_mode_toggle",
                           on_change=_remember_theme_choice,
                           help="Switch the display theme for this browser session; it does not change case data.")
+                _sidebar_glossary()
             return None, None
         st.write("")
         lcol1, lcol2, lcol3 = st.columns([1, 2, 1])
@@ -749,6 +834,7 @@ def require_login(allow_guest: bool = False):
         st.toggle("🌙 Dark mode", key="dark_mode_toggle",
                   on_change=_remember_theme_choice,
                   help="Switch the display theme for this browser session; it does not change case data.")
+        _sidebar_glossary()
         if st.button("Switch user", key="switch_user_btn",
                      help="Clear this display identity and choose another; saved decisions remain in the audit log."):
             del st.session_state["user_name"]
@@ -778,15 +864,26 @@ def render_context_copilot(page: str, case_id: str | None = None,
     history_key = (f"fictional_chat_{case_id}" if case_id and case_id.startswith("FIC-CASE-")
                    else f"chat_{case_id}" if case_id else f"context_chat_{scope}")
     with st.container(key="iq_floating_copilot_open"):
-        title_col, close_col = st.columns([4, 1])
-        with title_col:
-            st.markdown('<div class="iq-floating-title">✦ InvestigateIQ Copilot</div>',
-                        unsafe_allow_html=True)
-        with close_col:
-            if st.button("×", key="floating_copilot_close", help="Close the floating Copilot chat."):
-                st.session_state["iq_floating_copilot_open"] = False
-                st.rerun()
-        st.caption(f"{page} · " + (f"Case {case_id}" if case_id else "No case selected"))
+        with st.container(key="iq_floating_header"):
+            title_col, expand_col, close_col = st.columns([5, 1, 1], vertical_alignment="center")
+            with title_col:
+                st.markdown('<div class="iq-floating-title">✦ InvestigateIQ Copilot</div>',
+                            unsafe_allow_html=True)
+            with expand_col:
+                expanded = bool(st.session_state.get("iq_floating_copilot_expanded", False))
+                if st.button("↙" if expanded else "⤢", key="floating_copilot_expand",
+                             help="Make the conversation compact" if expanded else "Expand the conversation"):
+                    st.session_state["iq_floating_copilot_expanded"] = not expanded
+                    st.rerun()
+            with close_col:
+                if st.button("×", key="floating_copilot_close", help="Close the floating Copilot chat."):
+                    st.session_state["iq_floating_copilot_open"] = False
+                    st.rerun()
+        if st.session_state.get("iq_floating_copilot_expanded", False):
+            st.markdown('<span class="iq-chat-expanded" hidden></span>', unsafe_allow_html=True)
+        st.markdown('<div class="iq-floating-context">' + escape(page) + ' · ' +
+                    (f'Case {escape(case_id)}' if case_id else 'No case selected') + '</div>',
+                    unsafe_allow_html=True)
         if "user_name" not in st.session_state:
             st.info("Enter your workspace with a display name to ask the Copilot.")
             return
@@ -802,27 +899,46 @@ def render_context_copilot(page: str, case_id: str | None = None,
             st.caption(f"Selected passage: {chunk_id}")
         suggestions = (
             ["Why was this alert triggered?",
-             "How many transactions were stored in one month, and which need review?",
-             "Show me the transaction sequence: when, from whom, and to whom.",
+             "Summarize this case in plain English.",
+             "How many transactions were stored in the latest month?",
+             "How much money came in and went out in the latest month?",
+             "Show the transaction sequence and recorded counterparties.",
+             "Which transactions need review, and why?",
+             "What does the KYC status actually verify?",
              "What KYC and counterparty evidence is missing?",
              "Can you establish the source of funds?",
-             "Why does the saved report have zero case passages while current evidence has chunks?"]
+             "What evidence should we request next?",
+             "Request more information.",
+             "Explain for compliance review.",
+             "Can we conclude that these funds are lawful or unlawful?"]
             if case_id else
-            ["What am I looking at?", "What can I do on this page?", "How do I choose a case?"]
+            ["What am I looking at?", "What can I do on this page?", "How do I choose a case?",
+             "What information can the Copilot actually verify?"]
         )
+        if chunk_id:
+            suggestions.insert(0, "Explain this evidence passage in plain English.")
+        if case_id and os.path.isfile(os.path.join(os.path.dirname(__file__), "data", "cached_reports",
+                                               f"{case_id}.json")):
+            suggestions.append("Why does the saved report have zero case passages while current evidence has chunks?")
         history = st.session_state.get(history_key, [])
         def render_chat_turn(turn_index: int) -> None:
             turn = history[turn_index]
             role_class = "iq-chat-user" if turn["role"] == "user" else "iq-chat-assistant"
             speaker = "You" if turn["role"] == "user" else "Copilot"
             st.markdown(
-                f'<div class="iq-chat-message {role_class}"><span class="iq-chat-speaker">'
+                f'<div class="iq-chat-message {role_class}" '
+                f'title="{escape(turn["content"], quote=True) if turn["role"] == "user" else ""}">'
+                f'<span class="iq-chat-speaker">'
                 f'{speaker}</span>{plain_text_html(turn["content"])}</div>',
                 unsafe_allow_html=True,
             )
             if turn["role"] == "assistant" and turn.get("chunk_ids"):
-                st.caption("Source passage: " + ", ".join(turn["chunk_ids"][:2]))
-                if st.button("Open cited passage", key=f"context_source_{scope}_{turn_index}"):
+                ids = turn["chunk_ids"]
+                st.caption("Evidence used: " + ", ".join(ids[:3]) +
+                           (f" · {len(ids) - 3} more cited passage(s)" if len(ids) > 3 else "") +
+                           ". These are stored sources, not independent verification.")
+                if st.button("Inspect the first cited source", key=f"context_source_{scope}_{turn_index}",
+                             help="Open the exact stored source passage and its verification status."):
                     first_chunk = turn["chunk_ids"][0]
                     if case_id and case_id.startswith("FIC-CASE-"):
                         st.session_state["fictional_intake_case_id"] = case_id
@@ -835,13 +951,15 @@ def render_context_copilot(page: str, case_id: str | None = None,
                         st.session_state["context_pending_rag_view"] = "Case records"
                     st.switch_page("pages/8_Evidence_RAG.py")
 
+        if len(history) > 2:
+            with st.expander(f"Earlier messages ({len(history) - 2})"):
+                for turn_index in range(max(0, len(history) - 20), len(history) - 2):
+                    render_chat_turn(turn_index)
         with st.container(border=False, key="iq_floating_chat_history"):
             if not history:
                 st.caption("Ask a question about this page or the selected case. Answers appear here.")
-            if len(history) > 2:
-                with st.expander(f"Earlier messages ({len(history) - 2})"):
-                    for turn_index in range(max(0, len(history) - 10), len(history) - 2):
-                        render_chat_turn(turn_index)
+            else:
+                st.caption("Latest exchange · hover over your question to read it in full")
             for turn_index in range(max(0, len(history) - 2), len(history)):
                 render_chat_turn(turn_index)
 
@@ -863,7 +981,8 @@ def render_context_copilot(page: str, case_id: str | None = None,
                                          label_visibility="collapsed",
                                          help="Answers use this page and the selected case or passage; unsupported facts are not guessed.")
             with send_col:
-                submitted = st.form_submit_button("Send", use_container_width=True)
+                submitted = st.form_submit_button("Send", use_container_width=True,
+                                                   help="Send your question about the selected case to the Copilot. Answers should be checked against cited records before making a decision.")
         if submitted and question.strip():
             try:
                 answer = answer_context_question(question.strip(), page, case_id, chunk_id)

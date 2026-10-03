@@ -167,7 +167,9 @@ class CaseCopilotTests(unittest.TestCase):
                 app.session_state["selected_case_id"] = case_id
                 app.switch_page("pages/2_Investigation_Demo.py").run(timeout=30)
                 self.assertFalse(app.exception)
-                app.button(key=f"fic_question_{case_id}_1").click().run(timeout=30)
+                app.selectbox(key=f"fic_suggestion_{case_id}_0").set_value(
+                    "How many transactions are stored in one month, and which need review?"
+                ).run(timeout=30)
                 self.assertFalse(app.exception)
                 self.assertTrue(any("Transaction count in October 2026: 10" in item.value
                                     for item in app.get("markdown")))
@@ -360,6 +362,72 @@ class CaseCopilotTests(unittest.TestCase):
                     "SELECT 1 FROM case_evidence_chunks WHERE chunk_id=? AND instr(chunk_text,?)>0",
                     (chunk_id, txn_id),
                 ).fetchone() for chunk_id in trail["chunk_ids"]))
+
+    def test_counterparty_kyc_gap_does_not_dump_transaction_timeline(self):
+        answer = answer_imported_case_question(
+            "What KYC and counterparty evidence is missing?", "CASE-001"
+        )
+        self.assertIn("KYC:", answer["answer"])
+        self.assertIn("Next evidence to request:", answer["answer"])
+        self.assertNotIn("Recorded completed-row sequence:", answer["answer"])
+        self.assertLess(len(answer["answer"]), 1800)
+        with closing(sqlite3.connect(":memory:")) as conn:
+            result = intake_fictional_batch(conn, make_generated_fictional_batch(300000, 180000, 80000), 80000)
+            packet = read_fictional_case(conn, result["case_id"])
+            assessment = assess_fictional_case(conn, result["case_id"])
+            fictional = answer_fictional_case_question(
+                "What KYC and counterparty evidence is missing?", packet, assessment
+            )
+            self.assertIn("KYC status:", fictional["answer"])
+            self.assertNotIn("Recorded completed-row sequence:", fictional["answer"])
+            summary = answer_fictional_case_question("Summarize this case in plain English.", packet, assessment)
+            self.assertIn(result["case_id"], summary["answer"])
+            self.assertTrue(summary["chunk_ids"])
+
+    def test_expanded_suggested_questions_return_bounded_cited_answers(self):
+        questions = (
+            "Summarize this case in plain English.",
+            "How many transactions were stored in the latest month?",
+            "How much money came in and went out in the latest month?",
+            "Show the transaction sequence and recorded counterparties.",
+            "Which transactions need review, and why?",
+            "What does the KYC status actually verify?",
+            "What KYC and counterparty evidence is missing?",
+            "Can you establish the source of funds?",
+            "What evidence should we request next?",
+            "Request more information.",
+            "Explain for compliance review.",
+            "Can we conclude that these funds are lawful or unlawful?",
+        )
+        for question in questions:
+            with self.subTest(question=question):
+                answer = answer_imported_case_question(question, "CASE-041")
+                self.assertTrue(answer["answer"].strip())
+                self.assertTrue(answer["chunk_ids"])
+                if "need review" in question:
+                    self.assertNotIn("Recorded completed-row sequence:", answer["answer"])
+
+    def test_human_follow_up_suggestions_do_not_submit_a_decision(self):
+        with closing(sqlite3.connect(":memory:")) as conn:
+            result = intake_fictional_batch(
+                conn, make_generated_fictional_batch(300000, 180000, 80000), 80000
+            )
+            packet = read_fictional_case(conn, result["case_id"])
+            assessment = assess_fictional_case(conn, result["case_id"])
+            for question, expected in (
+                ("Request more information.", "identity/KYC"),
+                ("Explain for compliance review.", "Compliance review brief"),
+            ):
+                for answerer in (
+                    lambda: answer_imported_case_question(question, "CASE-041"),
+                    lambda: answer_fictional_case_question(question, packet, assessment),
+                ):
+                    with self.subTest(question=question, answerer=answerer):
+                        response = answerer()
+                        self.assertIn(expected, response["answer"])
+                        self.assertTrue(response["chunk_ids"])
+                        self.assertIn("named investigator", response["answer"])
+                        self.assertNotIn("decision recorded", response["answer"].lower())
 
     def test_saved_draft_candidates_are_distinct_from_source_trigger(self):
         cached = json.loads((Path(__file__).resolve().parents[1] / "data" / "cached_reports" /

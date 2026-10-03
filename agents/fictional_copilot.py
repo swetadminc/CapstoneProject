@@ -91,10 +91,60 @@ def answer_fictional_case_question(question: str, packet: dict, assessment: dict
                 "the transfer. Recorded activity alone does not establish intent.",
                 "chunk_ids": [], "txn_ids": [], "sources": [], "source": "evidence_limit"}
 
+    if _mentions(query, "summarize this case", "summarise this case", "case summary"):
+        cite("ALERT", "Incoming INR")
+        cite("LEDGER", "unverified endpoint")
+        return {
+            "answer": (f"Case {case_id} is a fictional account-level review alert. "
+                       f"Its stored packet contains {len(rows)} transaction row(s). "
+                       "The saved signal identifies activity for a human to check; it does not prove "
+                       "money laundering. The key missing checks are original KYC, the source of "
+                       "funds, and verified ownership of transfer endpoints."),
+            "chunk_ids": chunk_ids, "txn_ids": [], "sources": chunk_ids,
+            "source": "calculated_case",
+        }
+
+    if _mentions(query, "request more information"):
+        cite("KYC", "KYC verification status")
+        cite("ALERT", "External counterparty KYC")
+        cite("LEDGER", "unverified endpoint")
+        return {
+            "answer": (f"For {case_id}, request the original identity/KYC files and their verification "
+                       "results; independent source-of-funds records; ownership/KYC for the recorded "
+                       "counterparty endpoints; and matching sender/recipient postings for any claimed "
+                       "transfer chain. The stored packet has generated identity text and a one-sided "
+                       "ledger, not those independent checks. State which record is missing in your "
+                       "written rationale, then a named investigator can choose 'Request more "
+                       "information' below. This does not mean the documents have been received."),
+            "chunk_ids": chunk_ids, "txn_ids": [], "sources": chunk_ids,
+            "source": "calculated_case",
+        }
+
+    if _mentions(query, "explain for compliance review"):
+        signal = packet["signal"]
+        cite("ALERT", "Incoming INR")
+        cite("KYC", "KYC verification status")
+        cite("LEDGER", "unverified endpoint")
+        return {
+            "answer": (f"Compliance review brief for {case_id}: the fictional packet contains "
+                       f"{len(rows)} transaction row(s). Its saved 24-hour account-level signal "
+                       f"records incoming at {signal['incoming_multiplier']}x the supplied monthly "
+                       f"baseline, outgoing/incoming at {signal['outbound_percent']}%, and "
+                       f"{signal['beneficiary_count']} distinct outgoing beneficiary IDs. These are "
+                       "reasons to review the account, not a finding that any transaction is illegal. "
+                       "Original identity verification, independent source-of-funds proof, and "
+                       "counterparty ownership/matching postings are missing. A named investigator "
+                       "should record a rationale and choose 'Escalate for Compliance review' below "
+                       "only if escalation is warranted. No regulatory report is filed here."),
+            "chunk_ids": chunk_ids, "txn_ids": [], "sources": chunk_ids,
+            "source": "calculated_case",
+        }
+
     wants_count = _mentions(query, "how many", "count", "number of transactions", "total transactions")
-    wants_trail = _mentions(query, "trail", "sequence", "timeline", "transaction", "transactions",
-                            "when", "from", "where", "transfer", "transfers", "happened", "who",
-                            "counterparty", "counterparties")
+    wants_trail = (_mentions(query, "trail", "sequence", "timeline", "transaction", "transactions",
+                             "transfer", "transfers") or
+                   (_mentions(query, "counterparty", "counterparties") and
+                    not _mentions(query, "kyc", "evidence", "missing", "gap", "verification")))
     wants_totals = _mentions(query, "how much", "amount", "total in", "total out", "credit", "debit")
     wants_signal = _mentions(query, "suspicious", "flag", "flagged", "alert", "risk", "detect",
                              "trigger", "why", "review", "concern", "unusual")
@@ -103,6 +153,8 @@ def answer_fictional_case_question(question: str, packet: dict, assessment: dict
                             "where did this customer get", "where did the customer get")
     wants_gaps = _mentions(query, "missing", "gap", "next", "request", "action", "evidence")
     wants_verdict = _mentions(query, "legal", "illegal", "lawful", "unlawful", "fraud", "laundering", "guilty")
+    if wants_signal and not _mentions(query, "trail", "sequence", "timeline"):
+        wants_trail = False
     month = _month_requested(query, rows)
     selected = [row for row in rows if (not month or
                 (datetime.fromisoformat(row["txn_datetime"]).year == month[0]
