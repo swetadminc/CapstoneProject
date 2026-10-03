@@ -270,7 +270,7 @@ _GLOBAL_CSS = """
     box-shadow: 0 16px 45px rgba(13, 34, 73, .30);
 }
 .st-key-iq_floating_chat_history {
-    height: clamp(120px, calc(100vh - 420px), 320px) !important;
+    height: clamp(120px, calc(100vh - 500px), 260px) !important;
     min-height: 120px; overflow-y: auto;
     margin: 8px 0 !important; padding: 8px !important;
     border: 1px solid var(--iq-card-border); border-radius: 12px;
@@ -292,7 +292,8 @@ _GLOBAL_CSS = """
 }
 .st-key-iq_floating_copilot_open [data-testid="stFormSubmitButton"] button {
     background: #2E63BF !important; border: 1px solid #8CB5F4 !important;
-    color: #FFFFFF !important;
+    color: #FFFFFF !important; min-width: 0 !important;
+    padding: 0 6px !important;
 }
 .st-key-iq_floating_copilot_open [data-testid="stFormSubmitButton"] button * {
     color: #FFFFFF !important;
