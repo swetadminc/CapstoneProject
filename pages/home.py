@@ -231,7 +231,7 @@ if os.path.exists(_walkthrough_path):
         with description_col:
             st.markdown("#### Follow a case, step by step")
             st.write("Follow a selected case through its recorded activity, Copilot questions, and cited evidence. Use the live screens below to inspect the current workflow yourself.")
-            st.caption("The recording illustrates the workflow; it may not show the latest Copilot controls. No case finding determines whether funds are lawful or unlawful.")
+            st.caption("The recording uses captured product screens and an example case; live records may change. No case finding determines whether funds are lawful or unlawful.")
     st.video(_walkthrough_path)
     st.caption("Full narrated product walkthrough. Use the page links below to inspect every step yourself.")
 else:

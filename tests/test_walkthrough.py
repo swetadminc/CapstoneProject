@@ -19,10 +19,18 @@ class WalkthroughTests(unittest.TestCase):
         for unwanted in ("team", "capstone", "course", "professor", "I I T Bombay"):
             self.assertNotIn(unwanted.lower(), narration.lower())
         for required in ("Case zero four one", "Cash", "R A G", "Grounding Validator",
-                         "Request more information", "separate fictional transaction packet", "no decision is recorded"):
+                         "Request more information", "separate fictional transaction packet", "no decision is recorded",
+                         "passcode", "fifty seven indexed chunks", "three hundred fictional accounts",
+                         "one million two hundred thousand", "Neither case is proven legal or illegal",
+                         "old index version", "twenty one", "zero original identity files"):
             self.assertIn(required.lower(), narration.lower())
         for captured_public_screen in ("22_public_intake_form.jpg", "24_public_intake_chunks.jpg",
-                                       "25_public_intake_review.jpg", "26_public_intake_compliance.jpg"):
+                                       "25_public_intake_review.jpg", "26_public_intake_compliance.jpg",
+                                       "27_public_admin_knowledge_open.png", "30_public_admin_chunks_table.png",
+                                       "31_public_admin_search.png", "32_public_admin_rule_open.png",
+                                       "33_public_admin_rule_preview.png", "34_public_intake_rows.png",
+                                       "37_public_copilot_count_kyc.png", "38_public_saved_vs_current.png",
+                                       "39_public_exact_case_chunk.png", "40_public_chunk_copilot.png"):
             self.assertIn(captured_public_screen, [scene["screen"] for scene in SCENES])
         self.assertGreaterEqual(sum(bool(scene.get("visual")) for scene in SCENES), 3)
         self.assertTrue(POSTER.is_file())
