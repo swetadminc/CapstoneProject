@@ -325,12 +325,12 @@ else:
         for t in tables:
             counts[t] = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
 
-        st.success("Connected to `data/investigateiq.db` — live query below, not hardcoded numbers.")
+        st.success("Connected to the bundled seed database — counts below are queried, not hardcoded. Saved fictional intake cases appear in the Case Queue separately.")
 
         cols = st.columns(4)
         labels = {
             "customers": "Customers", "accounts": "Accounts", "transactions": "Transactions",
-            "alerts": "Alerts", "knowledge_base": "KB Documents", "knowledge_chunks": "KB Chunks",
+            "alerts": "Seed Alerts", "knowledge_base": "KB Documents", "knowledge_chunks": "KB Chunks",
             "past_cases": "Past Cases", "documents": "Documents",
         }
         for i, (t, label) in enumerate(labels.items()):

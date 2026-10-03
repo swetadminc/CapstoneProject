@@ -79,6 +79,7 @@ class LandingAndTeamTests(unittest.TestCase):
         self.assertIn(PROJECT_SLOGAN, page)
         self.assertIn('aria-label="How this page works"', page)
         self.assertEqual(len(app.expander), 0)
+        self.assertIn(("Seed Alerts", "44"), [(metric.label, metric.value) for metric in app.metric])
 
     def test_guest_can_enter_workspace_from_home(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
