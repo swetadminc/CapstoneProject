@@ -28,10 +28,11 @@ import streamlit.components.v1 as components
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.runtime_db import get_latest_decision_per_case, resolve_status
 from project_identity import COURSE_LABEL, GROUP_LABEL, PROJECT_DESCRIPTION, PROJECT_NAME
-from ui_common import ROLES, require_login, page_flow
+from ui_common import ROLES, require_login, page_flow, render_context_copilot
 
 st.set_page_config(page_title="InvestigateIQ", page_icon="🔎", layout="wide")
 user_name, user_role = require_login(allow_guest=True)
+render_context_copilot("Home", st.session_state.get("active_case_id"))
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "investigateiq.db")
 
@@ -226,11 +227,11 @@ if os.path.exists(_walkthrough_path):
     if os.path.exists(_poster_path):
         cover_col, description_col = st.columns([1, 2])
         with cover_col:
-            st.image(_poster_path, caption="CASE-041 walkthrough", width="stretch")
+            st.image(_poster_path, caption="InvestigateIQ product walkthrough", width="stretch")
         with description_col:
             st.markdown("#### Follow a case, step by step")
-            st.write("Follow CASE-041 from workspace entry through the copilot, source documents, exact RAG chunks, a proposed human next step, and the conditional Compliance path.")
-            st.caption("A decision is recorded only when the investigator submits it. This case walkthrough does not submit one.")
+            st.write("Follow a selected case through its recorded activity, Copilot questions, and cited evidence. Use the live screens below to inspect the current workflow yourself.")
+            st.caption("The recording illustrates the workflow; it may not show the latest Copilot controls. No case finding determines whether funds are lawful or unlawful.")
     st.video(_walkthrough_path)
     st.caption("Full narrated product walkthrough. Use the page links below to inspect every step yourself.")
 else:
@@ -279,15 +280,15 @@ if os.path.exists(DB_PATH):
 st.subheader("Start here")
 
 NAV_CARDS = [
-    ("👥", "Project & Team", "Project purpose, group identity and draft roster", "pages/7_Project_Team.py"),
-    ("🗂️", "Case Queue", "Preloaded alerts and saved fictional cases", "pages/0_Case_Queue.py"),
-    ("🕵️", "Investigation Workspace", "Evidence, chat, decision, audit log", "pages/2_Investigation_Demo.py"),
-    ("🛡️", "Compliance Queue", "Escalated cases awaiting review", "pages/3_Compliance_Queue.py"),
-    ("📊", "Analytics", "Trends across the alert population", "pages/5_Analytics.py"),
-    ("🔍", "Global Search", "Find a customer, account, or transaction", "pages/6_Global_Search.py"),
-    ("🧩", "Evidence & RAG", "Inspect synthetic source documents and searchable chunks", "pages/8_Evidence_RAG.py"),
-    ("🔐", "Admin: Knowledge Base", "Inspect the synthetic retrieval index", "pages/1_Admin_Knowledge_Base.py"),
-    ("⚙️", "Admin: Rule Config", "Preview rule thresholds (restricted settings)", "pages/4_Admin_Rule_Config.py"),
+    ("👥", "Project & Team", "Product aim, group details, and responsibility plan.", "See the planned responsibility areas for each member.", "pages/7_Project_Team.py"),
+    ("🗂️", "Case Queue", "Filter alerts by customer, status, and severity.", "Choose a case to begin an investigation.", "pages/0_Case_Queue.py"),
+    ("🕵️", "Investigation Workspace", "Ask case questions and inspect cited records.", "Review findings, decide, and check the audit trail.", "pages/2_Investigation_Demo.py"),
+    ("🛡️", "Compliance Queue", "Review cases escalated by an investigator.", "Record a separate human follow-up; no automatic filing.", "pages/3_Compliance_Queue.py"),
+    ("📊", "Analytics", "Explore alert volumes and severity patterns.", "Read workload trends, not fraud verdicts.", "pages/5_Analytics.py"),
+    ("🔍", "Global Search", "Find a customer, account, or transaction.", "Open the matching record for its context.", "pages/6_Global_Search.py"),
+    ("🧩", "Evidence & RAG", "Inspect fictional KYC, alerts, and ledger sources.", "Compare source text, exact chunks, and evidence gaps.", "pages/8_Evidence_RAG.py"),
+    ("🔐", "Admin: Knowledge Base", "Browse the indexed investigation guidance.", "Check the source text behind a retrieved passage.", "pages/1_Admin_Knowledge_Base.py"),
+    ("⚙️", "Admin: Rule Config", "Preview thresholds against fictional alerts.", "A red match means review, not proven wrongdoing.", "pages/4_Admin_Rule_Config.py"),
 ]
 
 # Fresh st.columns(3) per row of 3, rather than one set of columns indexed
@@ -301,12 +302,13 @@ NAV_CARDS = [
 for row_start in range(0, len(NAV_CARDS), 3):
     row = NAV_CARDS[row_start:row_start + 3]
     cols = st.columns(3)
-    for j, (icon, label, help_text, target) in enumerate(row):
+    for j, (icon, label, help_text, next_step, target) in enumerate(row):
         with cols[j]:
             st.markdown(f'<div class="iq-rise iq-stagger-{j + 1}">', unsafe_allow_html=True)
             with st.container(border=True, key=f"iq_bordered_nav_{row_start + j}"):
                 st.markdown(f'<p class="iq-nav-title"><span class="iq-nav-icon" aria-hidden="true">{icon}</span>{label}</p>', unsafe_allow_html=True)
                 st.caption(help_text)
+                st.markdown(f'<p class="iq-nav-detail">{next_step}</p>', unsafe_allow_html=True)
                 st.page_link(target, label="Open →", help=help_text)
             st.markdown('</div>', unsafe_allow_html=True)
 

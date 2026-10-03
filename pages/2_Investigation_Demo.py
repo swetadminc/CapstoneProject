@@ -23,6 +23,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agents.investigation_agent import investigate, GEMINI_API_KEY, GEMINI_MODEL
 from agents.chat_agent import ask_question, answer_from_saved_evidence, answer_fictional_case_question
 from agents.imported_copilot import answer_imported_case_question
+from data.case_evidence import case_evidence_index_status
+from data.knowledge_search import DB_PATH
 from agents.grounding_validator import GroundingValidator
 from agents.transaction_investigation_agent import anchor_cached_evidence
 from data.runtime_db import record_human_decision, get_audit_log, get_human_actions, log_audit_event
@@ -30,7 +32,7 @@ from data.fictional_intake import (
     assess_fictional_case, fictional_intake_enabled, fictional_intake_path, init_fictional_intake,
     list_fictional_cases, read_fictional_case,
 )
-from ui_common import require_login, page_banner, page_flow, plain_text_html
+from ui_common import require_login, page_banner, page_flow, plain_text_html, render_context_copilot
 from report_pdf import build_report_pdf
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "cached_reports")
@@ -121,6 +123,8 @@ choice = st.selectbox("Choose a case to investigate", labels, index=default_idx,
                       key="investigation_case_choice",
                       help="Choose one fictional alert. CASE-001 and CASE-002 have older cached comparisons but unresolved account ownership.")
 case_id = CASES[choice]
+st.session_state["active_case_id"] = case_id
+render_context_copilot("Investigation Workspace", case_id)
 
 if case_id.startswith("FIC-CASE-"):
     with closing(sqlite3.connect(fictional_intake_path())) as intake_conn:
@@ -216,15 +220,15 @@ if st.button("🧩 Inspect this case's KYC, transaction records and chunks",
     st.switch_page("pages/8_Evidence_RAG.py")
 
 cached = load_cached(case_id)
-mode_options = ["Cached (instant, zero API cost)"] if cached else []
+mode_options = ["Saved report (historical snapshot, no API call)"] if cached else []
 mode_options.append("Calculated (current database, no AI call)")
 if GEMINI_API_KEY:
     mode_options.append("AI draft (live Gemini call)")
 if not cached:
     st.caption(f"No saved report for {case_id}. A current-database calculation is available below.")
 mode = st.radio("Mode", mode_options, horizontal=True,
-                 help="Cached replays a saved report; Calculated recomputes the case from source rows without an AI call; AI draft calls Gemini when configured.")
-use_cache = mode.startswith("Cached")
+                 help="Saved report replays its historical evidence snapshot; Calculated recomputes the case from current source rows without an AI call; AI draft calls Gemini when configured.")
+use_cache = mode.startswith("Saved report")
 use_calculated = mode.startswith("Calculated")
 
 if use_cache:
@@ -348,8 +352,37 @@ if state_key in st.session_state:
         st.page_link("pages/8_Evidence_RAG.py", label="🧩 See how source documents become searchable chunks",
                      help="Open the read-only Evidence & RAG page to inspect document text, chunks, retrieval and code links.")
         case_passages = evidence.get("case_chunks", [])
-        with st.expander(f"Retrieved case passages · {len(case_passages)} indexed chunks"):
-            st.caption("FTS5/BM25-selected fictional source passages. Their retrieval score is not a verification or a verdict.")
+        with closing(sqlite3.connect(DB_PATH)) as current_conn:
+            index_status = case_evidence_index_status(current_conn, case_id)
+        if use_cache:
+            with st.container(border=True):
+                st.markdown("**Saved Report Evidence — snapshot at generation time**")
+                st.caption(f"Generated {cached.get('generated_at') or 'at an unrecorded time'} · "
+                           f"{len(case_passages)} case passage(s), "
+                           f"{len(evidence.get('window_transactions', []))} transaction row(s), "
+                           f"{len(evidence.get('documents', []))} document summary record(s), and "
+                           f"{len(guidance)} playbook passage(s) captured in this report. "
+                           "This count does not describe the current index. "
+                           "Historical index snapshot/version: not recorded. The available records "
+                           "do not establish when additional current passages became available.")
+            st.warning("Saved finding labels and validator checks belong to this historical draft. "
+                       "They do not independently verify the alert rule, original KYC, or whether funds are lawful. "
+                       "Choose Calculated mode to compare against current stored records.")
+        with st.container(border=True):
+            st.markdown("**Current Available Evidence — case-scoped index**")
+            built_at = index_status["built_at_utc"] or "build time not recorded"
+            st.caption(f"{index_status['source_count']} source record(s) · "
+                       f"{index_status['chunk_count']} indexed passage(s) · index built {built_at}. "
+                       "Indexing is not independent document verification.")
+        label = (f"Saved report case passages · {len(case_passages)} captured" if use_cache else
+                 f"Current run retrieved case passages · {len(case_passages)}")
+        with st.expander(label):
+            st.caption("These are passages captured for this report. The current index may differ. "
+                       "Retrieval relevance is not verification or a verdict.")
+            if not case_passages:
+                st.info(("No case passages were captured in this saved report." if use_cache else
+                         "This run retrieved no case passages.") +
+                        " Open Evidence & RAG to inspect currently indexed case sources and chunks.")
             for passage in case_passages:
                 st.markdown(f"**{passage['chunk_id']}** · {passage['verification_status']}")
                 st.write(passage["chunk_text"])
@@ -420,6 +453,13 @@ if state_key in st.session_state:
     # ---------------------------------------------------------
     with col_chat:
         st.subheader("💬 Ask the Copilot")
+        case_context_label = (f"Selected case: {case_id} · {context['customer']['name']} · "
+                              f"alert {context['alert']['alert_id']}.")
+        source_context_label = (
+            "Case questions use current stored rows and chunks; saved-report findings remain a historical snapshot."
+            if use_cache else "Answers are scoped to this case."
+        )
+        st.caption(f"{case_context_label} {source_context_label}")
 
         chat_key = f"chat_{case_id}"
         if chat_key not in st.session_state:
@@ -431,19 +471,24 @@ if state_key in st.session_state:
             st.info("Ask about the selected case's stored transactions, month count, alert and KYC. "
                     "These database answers cite exact source chunks; broader free-form AI needs a model connection.")
         SUGGESTED = [
-            "Why was this alert triggered?",
-            "How many transactions were stored in one month, which need review, and is KYC verified?",
-            "Show me the transaction sequence.",
-            "Can you establish the source of funds?",
-            "What evidence supports the concern?",
-            "What is missing?",
-            "What should I do next?",
+            ("Why this alert?", "Why was this alert triggered?"),
+            ("Count + KYC", "How many transactions were stored in one month, which need review, and is KYC verified?"),
+            ("Transaction trail", "Show me the transaction sequence."),
+            ("Source of funds", "Can you establish the source of funds?"),
+            ("Supporting evidence", "What evidence supports the concern?"),
+            ("Counter-evidence", "What evidence might contradict this alert?"),
+            ("Evidence gaps", "What is missing?"),
+            ("Next step", "What should I do next?"),
+            ("Old vs current evidence", "Why does the saved report have zero case passages while current evidence has chunks?"),
         ]
         st.caption("Suggested questions:")
-        for i, sq in enumerate(SUGGESTED):
-            if st.button(sq, key=f"sugg_{case_id}_{i}", use_container_width=True,
-                         help="Review an answer based on this case; the live model is used only when configured."):
-                st.session_state[f"clicked_q_{case_id}"] = sq
+        suggestion_columns = st.columns(2)
+        for i, (label, question_text) in enumerate(SUGGESTED):
+            if suggestion_columns[i % 2].button(
+                label, key=f"sugg_{case_id}_{i}", use_container_width=True,
+                help=question_text,
+            ):
+                st.session_state[f"clicked_q_{case_id}"] = question_text
 
         chat_box = st.container(height=600, border=True, key=f"iq_bordered_chat_{case_id}")
         with chat_box:
@@ -454,6 +499,8 @@ if state_key in st.session_state:
                         st.caption("From saved case evidence · no live model call")
                     if turn.get("source") == "imported_case_database":
                         st.caption("From the selected case's stored account rows and exact source chunks · no model call")
+                    if turn.get("source") == "evidence_provenance":
+                        st.caption("Saved-report snapshot compared with the current case index · no model call")
                     if turn.get("citations"):
                         st.caption("Sources: " + ", ".join(turn["citations"]))
                     if turn.get("chunk_ids") and st.button(
@@ -480,9 +527,20 @@ if state_key in st.session_state:
                              ("month", "transaction", "trail", "sequence", "kyc", "identity",
                               "suspicious", "flagged", "source of funds", "origin of funds",
                               "counterparty", "counterparties", "how much", "amount",
-                              "credit", "debit", "when", "where", "need review"))
+                              "credit", "debit", "when", "where", "need review",
+                              "saved report", "snapshot", "current evidence", "current index",
+                              "zero chunks", "0 chunks", "case passages", "contradict",
+                              "exculpatory", "alternative explanation", "against this alert",
+                              "against the alert"))
             if structured:
-                answer = answer_imported_case_question(question, case_id, evidence, report)
+                snapshot_info = ({"generated_at": cached.get("generated_at"),
+                                  "case_chunk_count": len(evidence.get("case_chunks", [])),
+                                  "transaction_count": len(evidence.get("window_transactions", [])),
+                                  "document_count": len(evidence.get("documents", [])),
+                                  "guidance_count": len(guidance)}
+                                 if use_cache and cached else None)
+                answer = answer_imported_case_question(
+                    question, case_id, evidence, report, saved_report_info=snapshot_info)
             elif offline_qa:
                 answer = answer_from_saved_evidence(question, context, evidence, guidance, report)
             else:
@@ -490,7 +548,12 @@ if state_key in st.session_state:
                     try:
                         answer = ask_question(case_id, question, chat_history[:-1], context, evidence, guidance)
                     except Exception as e:
-                        st.error(f"Could not get an answer: {e}")
+                        chat_history.append({
+                            "role": "assistant",
+                            "content": "The live model did not return an answer. No AI conclusion was generated. "
+                                       "You can still review stored evidence or ask a bounded case question.",
+                            "citations": [], "chunk_ids": [], "source": "model_unavailable",
+                        })
                         answer = None
             if answer:
                 chat_history.append({

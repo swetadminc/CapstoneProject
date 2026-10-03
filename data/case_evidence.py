@@ -406,6 +406,35 @@ def case_evidence_coverage(conn: sqlite3.Connection, case_id: str) -> dict:
     }
 
 
+def case_evidence_index_status(conn: sqlite3.Connection, case_id: str) -> dict:
+    """Describe the currently indexed case scope, without implying source verification.
+
+    Older databases have no build manifest; in that case the time and digest
+    remain unknown rather than being inferred from a file modification time.
+    """
+    alert = conn.execute("SELECT customer_id FROM alerts WHERE case_id=?", (case_id,)).fetchone()
+    if alert is None:
+        raise ValueError(f"Unknown case: {case_id}")
+    customer_id = alert[0]
+    scope = "customer_id=? AND (case_id IS NULL OR case_id=?)"
+    params = (customer_id, case_id)
+    sources = conn.execute(f"SELECT COUNT(*) FROM case_evidence_sources WHERE {scope}", params).fetchone()[0]
+    chunks = conn.execute(f"SELECT COUNT(*) FROM case_evidence_chunks WHERE {scope}", params).fetchone()[0]
+    manifest_exists = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='evidence_index_builds'"
+    ).fetchone()
+    manifest = (conn.execute(
+        "SELECT built_at_utc, content_sha256, chunk_count FROM evidence_index_builds "
+        "WHERE index_name='case_evidence_chunks_fts'"
+    ).fetchone() if manifest_exists else None)
+    return {
+        "case_id": case_id, "source_count": sources, "chunk_count": chunks,
+        "built_at_utc": manifest[0] if manifest else None,
+        "content_sha256": manifest[1] if manifest else None,
+        "global_chunk_count": manifest[2] if manifest else None,
+    }
+
+
 def search_case_chunks(conn: sqlite3.Connection, case_id: str, query: str, limit: int = 4) -> list[dict]:
     """Retrieve case/customer source passages using the same FTS5/BM25 method.
 

@@ -17,10 +17,11 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import DB_PATH
-from ui_common import require_login, page_banner, page_flow
+from ui_common import require_login, page_banner, page_flow, render_context_copilot
 
 st.set_page_config(page_title="InvestigateIQ — Global Search", page_icon="🔍", layout="wide")
 user_name, user_role = require_login()
+render_context_copilot("Global Search", st.session_state.get("active_case_id"))
 
 page_banner("🔍", "Global Search", "Find a customer, account, or transaction across the full dataset")
 page_flow("Find a fictional record without knowing its case ID", [

@@ -1,10 +1,12 @@
 """Evidence lineage and conservative transfer-tracing regressions."""
 
 import sqlite3
+import hashlib
 import unittest
 from contextlib import closing
 
-from data.case_evidence import case_evidence_coverage, chunk_source_text, search_case_chunks
+from data.case_evidence import (case_evidence_coverage, case_evidence_index_status,
+                                chunk_source_text, search_case_chunks)
 from data.fund_flow import case_transactions, case_window_links, trace_transaction
 from data.knowledge_search import DB_PATH
 
@@ -17,6 +19,45 @@ class CaseEvidenceTests(unittest.TestCase):
     def tearDown(self):
         self.conn.close()
 
+    def test_current_index_manifest_is_real_and_case_scoped(self):
+        from datetime import datetime, timezone
+        status = case_evidence_index_status(self.conn, "CASE-041")
+        self.assertGreater(status["source_count"], 0)
+        self.assertGreater(status["chunk_count"], 0)
+        self.assertEqual(len(status["content_sha256"]), 64)
+        self.assertEqual(status["global_chunk_count"],
+                         self.conn.execute("SELECT COUNT(*) FROM case_evidence_chunks").fetchone()[0])
+        digest = hashlib.sha256()
+        for chunk_id, chunk_text in self.conn.execute(
+            "SELECT chunk_id, chunk_text FROM case_evidence_chunks ORDER BY chunk_id"
+        ):
+            digest.update(chunk_id.encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(chunk_text.encode("utf-8"))
+            digest.update(b"\n")
+        self.assertEqual(status["content_sha256"], digest.hexdigest())
+        self.assertIsNotNone(datetime.fromisoformat(status["built_at_utc"]).tzinfo)
+        self.assertLessEqual(datetime.fromisoformat(status["built_at_utc"]),
+                             datetime.now(timezone.utc))
+        with self.assertRaises(ValueError):
+            case_evidence_index_status(self.conn, "CASE-NOT-FOUND")
+
+    def test_legacy_index_does_not_invent_build_time(self):
+        with closing(sqlite3.connect(":memory:")) as legacy:
+            legacy.executescript("""
+                CREATE TABLE alerts(case_id TEXT, customer_id TEXT);
+                CREATE TABLE case_evidence_sources(customer_id TEXT, case_id TEXT);
+                CREATE TABLE case_evidence_chunks(customer_id TEXT, case_id TEXT);
+                INSERT INTO alerts VALUES ('CASE-OLD', 'CUST-OLD');
+                INSERT INTO case_evidence_sources VALUES ('CUST-OLD', NULL);
+                INSERT INTO case_evidence_chunks VALUES ('CUST-OLD', NULL);
+            """)
+            status = case_evidence_index_status(legacy, "CASE-OLD")
+            self.assertEqual(status["source_count"], 1)
+            self.assertEqual(status["chunk_count"], 1)
+            self.assertIsNone(status["built_at_utc"])
+            self.assertIsNone(status["content_sha256"])
+
     def test_every_case_has_case_records_and_customer_kyc_samples(self):
         case_ids = [row[0] for row in self.conn.execute("SELECT case_id FROM alerts")]
         self.assertGreaterEqual(len(case_ids), 40)
@@ -26,6 +67,28 @@ class CaseEvidenceTests(unittest.TestCase):
             self.assertEqual(coverage["original_uploaded_files"], 0)
             self.assertIn("cannot be determined", coverage["conclusion"])
             self.assertTrue(case_transactions(self.conn, case_id))
+
+    def test_alert_trigger_ids_and_account_ownership_are_consistent_or_flagged(self):
+        ambiguous = []
+        for case_id, customer_id, account_id, trigger_id in self.conn.execute(
+            "SELECT case_id, customer_id, account_id, trigger_transaction_id FROM alerts"
+        ):
+            with self.subTest(case_id=case_id):
+                owners = {row[0] for row in self.conn.execute(
+                    "SELECT customer_id FROM accounts WHERE account_id=?", (account_id,)
+                )}
+                self.assertIn(customer_id, owners)
+                if len(owners) != 1:
+                    ambiguous.append(case_id)
+                    self.assertTrue(any("Source-data collision" in gap for gap in
+                                        case_evidence_coverage(self.conn, case_id)["gaps"]))
+                if trigger_id:
+                    trigger = self.conn.execute(
+                        "SELECT account_id FROM transactions WHERE txn_id=?", (trigger_id,)
+                    ).fetchone()
+                    self.assertIsNotNone(trigger)
+                    self.assertEqual(trigger[0], account_id)
+        self.assertEqual(sorted(ambiguous), ["CASE-001", "CASE-002"])
 
     def test_case_source_chunks_reconstruct_exact_body(self):
         for doc_id in ("KYC-PROFILE-CUST-1005", "SAMPLE-PAN-CUST-1005", "CASE-LEDGER-CASE-041"):

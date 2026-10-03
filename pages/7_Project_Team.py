@@ -17,7 +17,7 @@ from project_identity import (
     COURSE_LABEL, GROUP_LABEL, PROJECT_DESCRIPTION, PROJECT_NAME,
     ROSTER_NOTE, TEAM_MEMBERS, TEAM_RESPONSIBILITIES,
 )
-from ui_common import LOGO_FULL_DARK, LOGO_FULL_LIGHT, page_banner, page_flow, require_login
+from ui_common import LOGO_FULL_DARK, LOGO_FULL_LIGHT, page_banner, page_flow, require_login, render_context_copilot
 
 
 def flip_theme():
@@ -32,6 +32,7 @@ def clear_demo_identity():
 
 st.set_page_config(page_title="InvestigateIQ — Project & Team", page_icon="👥", layout="wide")
 user_name, user_role = require_login(allow_guest=True)
+render_context_copilot("Project & Team", st.session_state.get("active_case_id"))
 
 page_banner("👥", "Project & Team", "The people and purpose behind InvestigateIQ")
 page_flow("Meet the draft team and understand the product's boundaries", [

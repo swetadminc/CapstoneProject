@@ -53,6 +53,9 @@ class EvidenceRagTests(unittest.TestCase):
         self.assertIn("Transaction path", headings)
         self.assertIn("FICTIONAL COURSE SAMPLE", page)
         self.assertNotIn("github.com", page)
+        self.assertTrue(any("Current case index:" in item.value and
+                            "not the source-document date" in item.value
+                            for item in app.get("caption")))
 
     def test_matched_case_shows_recomputed_timeline(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)

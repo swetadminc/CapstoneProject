@@ -18,10 +18,11 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import DB_PATH
 from data.runtime_db import get_all_human_actions, get_latest_decision_per_case, resolve_status
-from ui_common import require_login, page_banner, page_flow
+from ui_common import require_login, page_banner, page_flow, render_context_copilot
 
 st.set_page_config(page_title="InvestigateIQ — Analytics", page_icon="📊", layout="wide")
 user_name, user_role = require_login()
+render_context_copilot("Analytics", st.session_state.get("active_case_id"))
 
 page_banner("📊", "Analytics", "Trends across the alert population and investigator activity")
 page_flow("Summarize the fictional alert population and recorded human activity", [

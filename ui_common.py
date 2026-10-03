@@ -14,6 +14,7 @@ requires that name explicitly at submit time — this doesn't remove that
 requirement, it just removes the retyping.
 """
 import os
+import sqlite3
 from html import escape
 import streamlit as st
 from streamlit.errors import StreamlitSecretNotFoundError
@@ -230,6 +231,10 @@ _GLOBAL_CSS = """
 .iq-status-info { background: var(--iq-status-info-bg); color: var(--iq-status-info); }
 .iq-hero-badge { background: var(--iq-primary); color: white; padding: 1px 7px; border-radius: 5px; font-size: 11px; margin-left: 6px; }
 .iq-nav-title { font-size: 17px; font-weight: 700; color: var(--iq-heading); margin: 0 0 2px 0; line-height: 1.3; }
+.iq-nav-detail {
+    color: var(--iq-text-secondary); font-size: 13px; line-height: 1.45;
+    margin: 0; padding-left: 10px; border-left: 2px dotted var(--iq-card-border);
+}
 .iq-nav-icon {
     display: inline-flex; align-items: center; justify-content: center;
     width: 28px; height: 28px; margin-right: 8px; vertical-align: middle;
@@ -308,10 +313,9 @@ _GLOBAL_CSS = """
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Home navigation descriptions can wrap to different line counts. Keep
-   every tile the same size and anchor its Open link to the bottom. */
+/* Keep the home navigation informative without leaving a large blank panel. */
 [class*="st-key-iq_bordered_nav_"] {
-    min-height: 180px;
+    min-height: 164px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -647,13 +651,76 @@ def require_login(allow_guest: bool = False):
         st.toggle("🌙 Dark mode", key="dark_mode_toggle",
                   on_change=_remember_theme_choice,
                   help="Switch the display theme for this browser session; it does not change case data.")
+        active_case = st.session_state.get("active_case_id")
+        copilot_label = f"✦ Open Copilot · {active_case}" if active_case else "✦ Choose case for Copilot"
+        if st.button(copilot_label, key="open_case_copilot_global",
+                     help="Open the case-scoped Copilot for your last selected case, "
+                          "or choose a case first if none is selected in this browser session."):
+            if active_case:
+                st.session_state["selected_case_id"] = active_case
+                st.switch_page("pages/2_Investigation_Demo.py")
+            else:
+                st.switch_page("pages/0_Case_Queue.py")
         if st.button("Switch user", key="switch_user_btn",
                      help="Clear this display identity and choose another; saved decisions remain in the audit log."):
             del st.session_state["user_name"]
             del st.session_state["user_role"]
+            st.session_state.pop("active_case_id", None)
+            st.session_state.pop("selected_case_id", None)
             st.rerun()
 
     return st.session_state["user_name"], st.session_state["user_role"]
+
+
+def render_context_copilot(page: str, case_id: str | None = None,
+                           chunk_id: str | None = None) -> None:
+    """Sidebar Q&A shared across pages; history follows the selected case."""
+    if "user_name" not in st.session_state:
+        return
+    from agents.context_copilot import answer_context_question
+
+    scope = case_id or f"page_{page.replace(' ', '_')}"
+    history_key = (f"fictional_chat_{case_id}" if case_id and case_id.startswith("FIC-CASE-")
+                   else f"chat_{case_id}" if case_id else f"context_chat_{scope}")
+    with st.sidebar.expander("✦ Ask InvestigateIQ", expanded=False):
+        st.caption(f"Page: {page} · " + (f"Selected case: {case_id}" if case_id else "No case selected"))
+        if chunk_id:
+            st.caption(f"Selected passage: {chunk_id}")
+        with st.form("context_copilot_form", clear_on_submit=True):
+            question = st.text_input("Your question", key="context_copilot_question",
+                                     placeholder="What am I looking at?",
+                                     help="Answers use this page and the explicitly selected case or passage; unsupported facts are not guessed.")
+            submitted = st.form_submit_button("Ask", use_container_width=True)
+        if submitted and question.strip():
+            try:
+                answer = answer_context_question(question.strip(), page, case_id, chunk_id)
+            except (OSError, ValueError, sqlite3.Error) as exc:
+                answer = {"answer": f"I could not read the selected case safely: {type(exc).__name__}. "
+                                    "Try again after checking the stored case data.",
+                          "chunk_ids": [], "sources": [], "source": "read_error"}
+            history = st.session_state.setdefault(history_key, [])
+            history.extend(({"role": "user", "content": question.strip()},
+                            {"role": "assistant", "content": answer["answer"],
+                             "chunk_ids": answer.get("chunk_ids", []),
+                             "sources": answer.get("sources", []), "source": answer.get("source")}))
+        recent = st.session_state.get(history_key, [])[-2:]
+        for turn_index, turn in enumerate(recent):
+            st.markdown(plain_text_html(turn["content"], muted=turn["role"] == "user"),
+                        unsafe_allow_html=True)
+            if turn["role"] == "assistant" and turn.get("chunk_ids"):
+                st.caption("Source passage: " + ", ".join(turn["chunk_ids"][:2]))
+                if st.button("Open cited passage", key=f"context_source_{scope}_{turn_index}"):
+                    first_chunk = turn["chunk_ids"][0]
+                    if case_id and case_id.startswith("FIC-CASE-"):
+                        st.session_state["fictional_intake_case_id"] = case_id
+                        st.session_state["fictional_intake_chunk_id"] = first_chunk
+                        st.session_state["context_pending_rag_view"] = "Fictional Intake"
+                    elif case_id:
+                        st.session_state["rag_case_id"] = case_id
+                        st.session_state["rag_case_doc_id"] = first_chunk.rsplit("-C", 1)[0]
+                        st.session_state["rag_case_chunk_id"] = first_chunk
+                        st.session_state["context_pending_rag_view"] = "Case records"
+                    st.switch_page("pages/8_Evidence_RAG.py")
 
 
 def role_warning(current_role: str, expected_role: str):

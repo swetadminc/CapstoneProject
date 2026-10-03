@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import DB_PATH
 from data.fictional_intake import fictional_intake_enabled, fictional_intake_path, init_fictional_intake, list_fictional_cases
 from data.runtime_db import get_latest_decision_per_case, resolve_status
-from ui_common import require_login, page_banner, page_flow, severity_badge, status_badge
+from ui_common import require_login, page_banner, page_flow, severity_badge, status_badge, render_context_copilot
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "cached_reports")
 CACHED_CASES = {name[:-5] for name in os.listdir(CACHE_DIR) if name.endswith(".json")}
@@ -171,3 +171,4 @@ st.caption(
     "but not all have been individually reviewed; use Calculated mode when no saved report or model is available. "
     "All data is fictional."
 )
+render_context_copilot("Case Queue", st.session_state.get("active_case_id"))

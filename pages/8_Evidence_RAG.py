@@ -11,7 +11,8 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.build_database import chunk_body
 from data.knowledge_search import DB_PATH, search
-from data.case_evidence import case_evidence_coverage, chunk_source_text, search_case_chunks
+from data.case_evidence import (case_evidence_coverage, case_evidence_index_status,
+                                chunk_source_text, search_case_chunks)
 from data.fund_flow import case_transactions, case_window_links, trace_transaction
 from data.incoming_monitor import detect_pass_through, make_fictional_lab_batch
 from data.fictional_intake import (
@@ -20,7 +21,7 @@ from data.fictional_intake import (
 )
 from agents.evidence_agent import EvidenceAgent
 from agents.grounding_validator import GroundingValidator
-from ui_common import require_login, page_banner, page_flow
+from ui_common import require_login, page_banner, page_flow, render_context_copilot
 
 st.set_page_config(page_title="InvestigateIQ — Evidence & RAG", page_icon="🧩", layout="wide")
 require_login(allow_guest=True)
@@ -84,6 +85,9 @@ def open_case_chunk(doc_id: str, chunk_id: str) -> None:
 
 if "rag_view" not in st.session_state:
     st.session_state["rag_view"] = "Case records"
+pending_context_view = st.session_state.pop("context_pending_rag_view", None)
+if pending_context_view:
+    st.session_state["rag_view"] = pending_context_view
 requested_case = st.session_state.pop("rag_case_id", None)
 if requested_case:
     st.session_state["rag_case_choice"] = requested_case
@@ -96,15 +100,21 @@ view = st.segmented_control(
     key="rag_view", required=True,
     help="Switch between original sources, live retrieval results, and the actual implementation without leaving InvestigateIQ.",
 )
+context_case_id = st.session_state.get("active_case_id")
 
 if view == "Case records":
     labels = {row["case_id"]: f"{row['case_id']} — {row['name']}" for row in case_options}
     if st.session_state.get("rag_case_choice") not in labels:
-        st.session_state["rag_case_choice"] = "CASE-043" if "CASE-043" in labels else next(iter(labels))
+        prior_case = st.session_state.get("active_case_id")
+        st.session_state["rag_case_choice"] = (prior_case if prior_case in labels else
+                                                "CASE-043" if "CASE-043" in labels else next(iter(labels)))
     case_id = st.selectbox("Case", list(labels), format_func=lambda value: labels[value], key="rag_case_choice")
+    context_case_id = case_id
+    st.session_state["active_case_id"] = case_id
     with closing(sqlite3.connect(DB_PATH)) as conn:
         conn.row_factory = sqlite3.Row
         coverage = case_evidence_coverage(conn, case_id)
+        index_status = case_evidence_index_status(conn, case_id)
         matched = conn.execute("SELECT * FROM matched_case_metadata WHERE case_id=?", (case_id,)).fetchone()
         sources = conn.execute(
             "SELECT * FROM case_evidence_sources WHERE customer_id=? AND (case_id IS NULL OR case_id=?) "
@@ -113,6 +123,9 @@ if view == "Case records":
             (coverage["customer_id"], case_id),
         ).fetchall()
     st.info("These records were generated from a fictional workbook or matched-case fixture. Illustrative PAN/Aadhaar/passport/licence text is not an original document or an independent KYC check. The case-document rows contain summaries only.")
+    st.caption(f"Current case index: {index_status['chunk_count']} searchable passage(s) · "
+               f"built {index_status['built_at_utc'] or 'at an unrecorded time'}. "
+               "This is the index build time, not the source-document date or a saved-report snapshot.")
     left, right, third, fourth = st.columns(4)
     left.metric("Case source records", len(sources))
     right.metric("Illustrative identity records", coverage["sample_identity_records"])
@@ -228,9 +241,12 @@ if view == "Case records":
     source_map = {row["doc_id"]: row for row in sources}
     requested_case_doc = st.session_state.pop("rag_case_doc_id", None)
     case_doc_ids = list(source_map)
+    preferred_case_doc = requested_case_doc or st.session_state.get("rag_case_source_choice")
+    if preferred_case_doc not in source_map:
+        preferred_case_doc = case_doc_ids[0]
+    st.session_state["rag_case_source_choice"] = preferred_case_doc
     selected = st.selectbox(
-        "Case source", case_doc_ids,
-        index=case_doc_ids.index(requested_case_doc) if requested_case_doc in source_map else 0,
+        "Case source", case_doc_ids, key="rag_case_source_choice",
         format_func=lambda key: f"{source_map[key]['document_type']} · {source_map[key]['title']}",
         help="Customer-wide profile and sample identity records appear for every case; case alert, transaction packet and summary rows appear where available.",
     )
@@ -250,10 +266,16 @@ if view == "Case records":
     st.subheader("Exact indexed chunks")
     st.caption("Each paragraph of the displayed source becomes one ordered chunk. The original text is preserved exactly; this is a lexical FTS5 index, not an embedding store.")
     requested_case_chunk = st.session_state.pop("rag_case_chunk_id", None)
+    if requested_case_chunk:
+        st.session_state["context_evidence_case_id"] = case_id
+        st.session_state["context_evidence_chunk_id"] = requested_case_chunk
     for passage in passages:
         with st.expander(f"{passage['chunk_id']} · {passage['word_count']} words",
                          expanded=passage["chunk_id"] == requested_case_chunk):
             st.write(passage["chunk_text"])
+            if st.button("Ask Copilot about this chunk", key=f"ask_case_chunk_{passage['chunk_id']}"):
+                st.session_state["context_evidence_case_id"] = case_id
+                st.session_state["context_evidence_chunk_id"] = passage["chunk_id"]
     st.divider()
     st.subheader("Search this case's indexed records")
     case_query = st.text_input("Keywords", key="case_evidence_search", help="Search source-record chunks for this case and its customer; matching text is shown with its exact source ID.")
@@ -352,6 +374,8 @@ elif view == "Fictional Intake":
                                   if st.session_state.get("fictional_intake_case_id") in saved_ids else 0)
             packet = read_fictional_case(conn, chosen)
             assessment = assess_fictional_case(conn, chosen)
+            context_case_id = chosen
+            st.session_state["active_case_id"] = chosen
         else:
             packet = None
     if packet:
@@ -373,11 +397,17 @@ elif view == "Fictional Intake":
             st.dataframe(packet["transactions"], hide_index=True, height=350)
         document_by_id = {doc["doc_id"]: doc for doc in packet["documents"]}
         requested_intake_chunk = st.session_state.pop("fictional_intake_chunk_id", None)
+        if requested_intake_chunk:
+            st.session_state["context_evidence_case_id"] = chosen
+            st.session_state["context_evidence_chunk_id"] = requested_intake_chunk
         requested_intake_doc = requested_intake_chunk.rsplit("-C", 1)[0] if requested_intake_chunk else None
         document_ids = list(document_by_id)
-        doc_id = st.selectbox("Generated source record", document_ids,
-                              index=document_ids.index(requested_intake_doc)
-                              if requested_intake_doc in document_by_id else 0)
+        intake_source_key = f"fic_source_choice_{chosen}"
+        preferred_intake_doc = requested_intake_doc or st.session_state.get(intake_source_key)
+        if preferred_intake_doc not in document_by_id:
+            preferred_intake_doc = document_ids[0]
+        st.session_state[intake_source_key] = preferred_intake_doc
+        doc_id = st.selectbox("Generated source record", document_ids, key=intake_source_key)
         doc = document_by_id[doc_id]
         st.caption(f"{doc['category']} · {doc['verification_status']} · SHA-256 {doc['content_sha256']}")
         with st.expander("Read full generated source text"):
@@ -391,6 +421,9 @@ elif view == "Fictional Intake":
                              (requested_intake_chunk is None and chunk["chunk_index"] == 0)):
                 st.caption(f"Chunk ID: {chunk['chunk_id']}")
                 st.write(chunk["chunk_text"])
+                if st.button("Ask Copilot about this chunk", key=f"ask_fic_chunk_{chunk['chunk_id']}"):
+                    st.session_state["context_evidence_case_id"] = chosen
+                    st.session_state["context_evidence_chunk_id"] = chunk["chunk_id"]
         phrase = st.text_input("Search this case's indexed chunks", key=f"fic_chunk_search_{chosen}",
                                help="FTS5 searches only this saved fictional case; a match is not verification.")
         if phrase.strip():
@@ -483,3 +516,10 @@ else:
             st.markdown(f"**Source file:** `{path}` · **Function:** `{function.__qualname__}`")
             st.code(inspect.getsource(function), language="python")
 st.caption("All source documents and case data shown here are fictional course material. Human review remains necessary.")
+visible_doc_id = selected if view == "Case records" else doc_id if view == "Fictional Intake" and packet else None
+saved_context_chunk = st.session_state.get("context_evidence_chunk_id")
+context_chunk_id = (saved_context_chunk
+                    if visible_doc_id and saved_context_chunk
+                    and saved_context_chunk.rsplit("-C", 1)[0] == visible_doc_id
+                    and st.session_state.get("context_evidence_case_id") == context_case_id else None)
+render_context_copilot("Evidence & RAG", context_case_id, context_chunk_id)

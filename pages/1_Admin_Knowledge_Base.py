@@ -14,10 +14,11 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import search, suggest_terms, DB_PATH
-from ui_common import require_login, role_warning, page_banner, page_flow, get_admin_passcode
+from ui_common import require_login, role_warning, page_banner, page_flow, get_admin_passcode, render_context_copilot
 
 st.set_page_config(page_title="InvestigateIQ — Admin", page_icon="🔐", layout="wide")
 user_name, user_role = require_login()
+render_context_copilot("Admin — Knowledge Base", st.session_state.get("active_case_id"))
 
 ADMIN_PASSCODE = get_admin_passcode()
 

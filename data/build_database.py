@@ -11,6 +11,8 @@ Rebuilds the database from scratch every time (deterministic — same source dat
 in, same database out), so it's safe to re-run after editing the source Excel.
 """
 import sqlite3
+import hashlib
+import datetime
 import pandas as pd
 import os
 import re
@@ -192,6 +194,28 @@ def main():
     evidence_docs, evidence_chunks = build_case_evidence(conn)
     counts["case_evidence_sources"] = evidence_docs
     counts["case_evidence_chunks"] = evidence_chunks
+
+    # This describes the current generated index, not the date of any
+    # transaction, document, or older saved report. Hash the exact indexed
+    # passages so a future rebuild can be identified without guessing from a
+    # deployment timestamp or the database file's modification time.
+    digest = hashlib.sha256()
+    for chunk_id, chunk_text in conn.execute(
+        "SELECT chunk_id, chunk_text FROM case_evidence_chunks ORDER BY chunk_id"
+    ):
+        digest.update(chunk_id.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(chunk_text.encode("utf-8"))
+        digest.update(b"\n")
+    conn.execute("""CREATE TABLE evidence_index_builds (
+        index_name TEXT PRIMARY KEY, built_at_utc TEXT NOT NULL,
+        content_sha256 TEXT NOT NULL, chunk_count INTEGER NOT NULL
+    )""")
+    conn.execute(
+        "INSERT INTO evidence_index_builds VALUES (?,?,?,?)",
+        ("case_evidence_chunks_fts", datetime.datetime.now(datetime.timezone.utc).isoformat(),
+         digest.hexdigest(), evidence_chunks),
+    )
 
     cur = conn.cursor()
     for stmt in INDEXES:

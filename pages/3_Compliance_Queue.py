@@ -20,10 +20,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.knowledge_search import DB_PATH
 from data.fictional_intake import fictional_intake_enabled, fictional_intake_path, init_fictional_intake, list_fictional_cases
 from data.runtime_db import get_latest_decision_per_case, get_human_actions, record_human_decision
-from ui_common import require_login, role_warning, page_banner, page_flow, plain_text_html
+from ui_common import require_login, role_warning, page_banner, page_flow, plain_text_html, render_context_copilot
 
 st.set_page_config(page_title="InvestigateIQ — Compliance Queue", page_icon="🛡️", layout="wide")
 user_name, user_role = require_login()
+render_context_copilot("Compliance Queue", st.session_state.get("active_case_id"))
 
 page_banner("🛡️", "Compliance / Escalation Queue",
             "Cases an investigator escalated — Compliance reviews, acknowledges, or sends back. Nothing here is filed automatically.")

@@ -76,6 +76,21 @@ def answer_fictional_case_question(question: str, packet: dict, assessment: dict
             "chunk_ids": [], "txn_ids": [], "sources": [], "source": "calculated_case",
         }
 
+    if _mentions(query, "related to", "relationship between", "related parties"):
+        return {"answer": "The available case evidence does not establish that relationship. "
+                "Counterparty IDs in this packet do not verify ownership or a personal link.",
+                "chunk_ids": [], "txn_ids": [], "sources": [], "source": "evidence_limit"}
+    if "shell company" in query:
+        return {"answer": "The available case records do not establish that this entity is a shell company. "
+                "Independent registration, ownership, and business-activity records are not in this packet.",
+                "chunk_ids": [], "txn_ids": [], "sources": [], "source": "evidence_limit"}
+    if _mentions(query, "why did", "why has", "guess why") and _mentions(
+        query, "transfer", "transferred", "send", "sent", "move the money"
+    ):
+        return {"answer": "The available case evidence does not establish the customer's motive for "
+                "the transfer. Recorded activity alone does not establish intent.",
+                "chunk_ids": [], "txn_ids": [], "sources": [], "source": "evidence_limit"}
+
     wants_count = _mentions(query, "how many", "count", "number of transactions", "total transactions")
     wants_trail = _mentions(query, "trail", "sequence", "timeline", "transaction", "transactions",
                             "when", "from", "where", "transfer", "transfers", "happened", "who",
@@ -84,7 +99,8 @@ def answer_fictional_case_question(question: str, packet: dict, assessment: dict
     wants_signal = _mentions(query, "suspicious", "flag", "flagged", "alert", "risk", "detect",
                              "trigger", "why", "review", "concern", "unusual")
     wants_kyc = _mentions(query, "kyc", "identity", "pan", "passport", "verification", "verified")
-    wants_origin = _mentions(query, "source of funds", "origin of funds", "money came from")
+    wants_origin = _mentions(query, "source of funds", "origin of funds", "money came from",
+                            "where did this customer get", "where did the customer get")
     wants_gaps = _mentions(query, "missing", "gap", "next", "request", "action", "evidence")
     wants_verdict = _mentions(query, "legal", "illegal", "lawful", "unlawful", "fraud", "laundering", "guilty")
     month = _month_requested(query, rows)
@@ -160,7 +176,8 @@ def answer_fictional_case_question(question: str, packet: dict, assessment: dict
         cite("OVD", "No original")
 
     if wants_origin:
-        sections.append("The ledger identifies recorded incoming endpoint IDs, but it contains no independent "
+        sections.append("The source of funds is not established in the available evidence. "
+                        "The ledger identifies recorded incoming endpoint IDs, but it contains no independent "
                         "source-of-funds proof, verified sender owner, earlier-hop record, or onward settlement.")
         cite("LEDGER", "unverified endpoint")
         cite("KYC", "source-of-funds")

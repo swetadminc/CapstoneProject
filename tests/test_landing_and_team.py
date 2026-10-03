@@ -44,9 +44,9 @@ class LandingAndTeamTests(unittest.TestCase):
         screens = {scene["screen"] for scene in SCENES}
         self.assertTrue({"22_public_intake_form.jpg", "24_public_intake_chunks.jpg",
                          "25_public_intake_review.jpg", "26_public_intake_compliance.jpg"} <= screens)
-        self.assertIn("fictional intake on the public evidence", narration)
-        self.assertIn("they are not uploaded bank documents", narration)
-        self.assertIn("a no-concern closure is not offered", narration)
+        self.assertIn("fictional intake inside evidence", narration)
+        self.assertIn("no bank document or third-party alert is uploaded", narration)
+        self.assertIn("cannot close this incomplete packet as no concern", narration)
         self.assertNotIn("forty two alerts", narration)
         self.assertNotIn("four expandable steps", narration)
         self.assertNotIn("capstone", narration)
