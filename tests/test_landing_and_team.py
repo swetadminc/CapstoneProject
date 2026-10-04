@@ -161,11 +161,14 @@ class LandingAndTeamTests(unittest.TestCase):
         self.assertEqual(page.count('class="iq-kpi-info-icon"'), 8)
         self.assertIn("Source closed", page)
         self.assertIn('class="iq-queue-status"', page)
+        self.assertIn("imported source-workbook label", page)
         self.assertIn(".iq-queue-status .iq-badge", _GLOBAL_CSS)
         self.assertIn("max-width: 100%; white-space: normal", _GLOBAL_CSS)
         self.assertIn("Human closed", page)
         self.assertIn("Action", page)
         self.assertTrue(any(str(item.key).startswith("inv_") and item.label == "Open"
+                            for item in app.button))
+        self.assertTrue(any(str(item.key).startswith("evidence_CASE-") and item.label == "Evidence"
                             for item in app.button))
         self.assertIn("Info requested", page)
         self.assertTrue(any("High severity is a separate source label" in item.value

@@ -55,6 +55,62 @@ def load_queue():
     return df
 
 
+@st.cache_data(ttl=30)
+def load_case_evidence_summary():
+    """Return the evidence inventory needed to explain a closed status.
+
+    This deliberately counts *stored records*, document summaries, and original
+    uploads separately.  An indexed alert or ledger row is useful provenance,
+    but is not the same thing as an independently verified supporting file.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute("""
+        SELECT a.case_id,
+               COUNT(DISTINCT s.doc_id) AS indexed_case_records,
+               COUNT(DISTINCT CASE WHEN s.category='document_summary' THEN s.doc_id END)
+                   AS document_summaries,
+               COUNT(DISTINCT CASE WHEN s.is_original_upload=1 THEN s.doc_id END)
+                   AS original_uploads
+        FROM alerts a
+        LEFT JOIN case_evidence_sources s ON s.case_id=a.case_id
+        GROUP BY a.case_id
+    """).fetchall()
+    conn.close()
+    return {
+        case_id: {
+            "indexed_case_records": int(indexed_case_records or 0),
+            "document_summaries": int(document_summaries or 0),
+            "original_uploads": int(original_uploads or 0),
+        }
+        for case_id, indexed_case_records, document_summaries, original_uploads in rows
+    }
+
+
+def closed_status_evidence_note(status: str, evidence: dict) -> str:
+    """Plain-language hover text for a closed-looking queue status."""
+    records = evidence["indexed_case_records"]
+    summaries = evidence["document_summaries"]
+    originals = evidence["original_uploads"]
+    inventory = (
+        f"Stored case records: {records}; case-specific document summaries: {summaries}; "
+        f"original uploaded files: {originals}."
+    )
+    if status == "Source closed — unverified":
+        return (
+            "This is an imported source-workbook label, not a human closure recorded in this application. "
+            f"{inventory} Inspect evidence to see the exact records. The label does not prove the activity is legitimate."
+        )
+    if status == "Demo closed — simulated":
+        return (
+            "This is a clearly labeled fictional demonstration, not a human closure. "
+            f"{inventory} Its document summaries are authored test data, not authentic or independently verified files."
+        )
+    return (
+        "A human closure was recorded in this application. "
+        f"{inventory} A closure decision does not by itself prove that funds are lawful."
+    )
+
+
 df = load_queue()
 if fictional_intake_enabled():
     with closing(sqlite3.connect(fictional_intake_path())) as intake_conn:
@@ -76,6 +132,7 @@ if fictional_intake_enabled():
 decisions = get_latest_decision_per_case()
 df["queue_status"] = df.apply(lambda row: resolve_status(row["status"], decisions.get(row["case_id"])), axis=1)
 df["has_cache"] = df["case_id"].isin(CACHED_CASES)
+evidence_by_case = load_case_evidence_summary()
 
 # ------------------------------------------------------------------
 # KPI strip
@@ -189,9 +246,24 @@ for _, row in filtered.iterrows():
                       unsafe_allow_html=True)
     cols[3].markdown(f'<span class="iq-mobile-label">Severity: </span>{severity_badge(row["severity"])}',
                       unsafe_allow_html=True)
-    cols[4].markdown(f'<span class="iq-mobile-label">Status: </span>'
-                     f'<span class="iq-queue-status">{status_badge(row["queue_status"])}</span>',
-                      unsafe_allow_html=True)
+    queue_status = row["queue_status"]
+    is_closed = queue_status == "Source closed — unverified" or queue_status == "Demo closed — simulated" or queue_status.startswith("Closed")
+    evidence_inventory = evidence_by_case.get(row["case_id"], {
+        "indexed_case_records": 0, "document_summaries": 0, "original_uploads": 0,
+    })
+    if is_closed:
+        note = closed_status_evidence_note(queue_status, evidence_inventory)
+        cols[4].markdown(f'<span class="iq-mobile-label">Status: </span>'
+                         f'<span class="iq-queue-status" title="{escape(note)}" aria-label="{escape(note)}">'
+                         f'{status_badge(queue_status)}</span>', unsafe_allow_html=True)
+        if cols[4].button("Evidence", icon=":material/description:", key=f"evidence_{row['case_id']}",
+                          help=note, use_container_width=True):
+            st.session_state["rag_case_id"] = row["case_id"]
+            st.switch_page("pages/8_Evidence_RAG.py")
+    else:
+        cols[4].markdown(f'<span class="iq-mobile-label">Status: </span>'
+                         f'<span class="iq-queue-status">{status_badge(queue_status)}</span>',
+                          unsafe_allow_html=True)
     rule_text = escape(str(row["trigger_rule"] or "—"))
     cols[5].markdown(f'<span class="iq-mobile-label">Rule(s): </span>'
                      f'<span class="iq-queue-rule" title="{rule_text}" aria-label="{rule_text}">{rule_text}</span>',
