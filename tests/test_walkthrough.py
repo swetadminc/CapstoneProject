@@ -3,12 +3,13 @@
 import json
 import unittest
 
-from scripts.build_ui_walkthrough import OUTPUT, POSTER, ROOT, SCENE_FOCUS, SCENE_LABELS, SCENES, SCREENS, SUBTITLES, WIDTH, HEIGHT
+from scripts.build_ui_walkthrough import OUTPUT, POSTER, ROOT, SCENE_FOCUS, SCENE_LABELS, SCENES, SCREENS, SUBTITLES, VIDEO_TITLE, WIDTH, HEIGHT
 
 
 class WalkthroughTests(unittest.TestCase):
     def test_walkthrough_uses_captured_app_screens(self):
         self.assertGreaterEqual(len(SCENES), 25)
+        self.assertEqual(SCENES[0]["title"], VIDEO_TITLE)
         for scene in SCENES:
             self.assertTrue(scene["title"])
             first_letter = next((character for character in scene["title"] if character.isalpha()), "")
@@ -29,10 +30,17 @@ class WalkthroughTests(unittest.TestCase):
                                        "27_public_admin_knowledge_open.png", "30_public_admin_chunks_table.png",
                                        "31_public_admin_search.png", "32_public_admin_rule_open.png",
                                        "33_public_admin_rule_preview.png", "34_public_intake_rows.png",
-                                       "37_public_copilot_count_kyc.png", "38_public_saved_vs_current.png",
-                                       "39_public_exact_case_chunk.png", "40_public_chunk_copilot.png"):
+                                       "41_public_floating_home_guest.png", "42_public_floating_home_ready.png",
+                                       "44_public_floating_case_answer.png", "45_public_floating_count_kyc.png",
+                                       "46_public_floating_saved_current.png", "47_public_floating_chunk_answer.png",
+                                       "48_public_queue_current.png", "49_public_queue_filtered.png",
+                                       "39_public_exact_case_chunk.png"):
             self.assertIn(captured_public_screen, [scene["screen"] for scene in SCENES])
         self.assertGreaterEqual(sum(bool(scene.get("visual")) for scene in SCENES), 3)
+        self.assertIn("floating Copilot", narration)
+        self.assertIn("press Send at the bottom", narration)
+        self.assertIn("sixteen rows in the supplied account dataset", narration)
+        self.assertIn("six transactions in its narrower review window", narration)
         self.assertTrue(POSTER.is_file())
         self.assertGreater(POSTER.stat().st_size, 20_000)
 

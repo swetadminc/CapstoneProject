@@ -31,31 +31,32 @@ OUTPUT = ROOT / "assets" / "investigateiq_walkthrough.mp4"
 POSTER = ROOT / "assets" / "investigateiq_walkthrough_poster.png"
 SUBTITLES = ROOT / "assets" / "investigateiq_walkthrough.vtt"
 WIDTH, HEIGHT, FPS = 1280, 720, 12
+VIDEO_TITLE = "InvestigateIQ: Evidence-to-Decision Walkthrough"
 FONT = Path(r"C:\Windows\Fonts\segoeui.ttf")
 FONT_BOLD = Path(r"C:\Windows\Fonts\segoeuib.ttf")
 
-# Screenshot scenes came from an earlier deployed public application. The
+# Screenshot scenes come from the deployed public application. The
 # diagram scenes are explicitly explanatory graphics. Cursor movement is
 # animation, not footage of an unedited interaction. CASE-041's sample
 # decision form was not submitted in this capture.
 SCENES = [
-    {"screen": "01_home_guest.png", "title": "InvestigateIQ: Full Product Journey",
+    {"screen": "41_public_floating_home_guest.png", "title": VIDEO_TITLE,
      "narration": "Welcome to Investigate IQ, an investigation copilot for reviewing banking alerts. We will follow Case zero four one from its alert through transactions, a cited draft, evidence retrieval, and a human next step. We will then open a separate fictional intake packet to show how a new numeric case is actually stored and recalculated. Both paths use fabricated data. Neither determines whether money is legal or illegal, and neither files a regulatory report.",
      "caption": "One case, every screen, and the full evidence trail.", "target": None},
     {"screen": "02_public_identity.png", "title": "1 · Enter the Workspace",
      "narration": "We begin on Home. Enter a display name, here Case Reviewer, and choose the Investigator workflow role. Then open the workspace. The name helps attribute actions inside Investigate IQ; it is not bank-grade login or identity verification. Later, if a decision is submitted, the product requires a written rationale and saves the action to its audit history. Selecting a role alone does not make a decision.",
      "caption": "Display name → Investigator role → Open workspace", "target": (1010, 385)},
-    {"screen": "03_public_home_ready.png", "title": "The End-to-End Route",
+    {"screen": "42_public_floating_home_ready.png", "title": "The End-to-End Route",
      "visual": "journey", "narration": "Here is the route we will actually follow. A fictional monitoring alert enters the Case Queue. The investigator opens the case, checks source transactions, and reads the copilot's draft. Evidence and R A G shows exactly which synthetic playbook document was indexed and what chunks were retrieved. The investigator, not the AI, chooses whether to close, ask for information, or escalate. Only a submitted escalation enters Compliance.",
      "caption": "Alert → Case → Evidence → Copilot → Human decision → Compliance", "target": None},
-    {"screen": "03_public_home_ready.png", "title": "2 · Home and Navigation",
-     "narration": "Home explains what this product does and gives a route into the Case Queue. The left navigation also includes Investigation Workspace, Evidence and R A G, Compliance Queue, Analytics, Global Search, an information page, and two admin screens. We will visit each one. The page guides explain the purpose of a screen; they do not create a separate workflow or send the user to an external website.",
-     "caption": "All working screens stay within InvestigateIQ.", "target": (122, 164)},
-    {"screen": "04_public_queue.png", "title": "3 · Understand the Case Queue",
+    {"screen": "42_public_floating_home_ready.png", "title": "2 · Home and Navigation",
+     "narration": "Home explains what this product does and gives a route into the Case Queue. The left navigation also includes Investigation Workspace, Evidence and R A G, Compliance Queue, Analytics, Global Search, an information page, and two admin screens. The floating Ask Investigate IQ launcher stays at the lower right, independent of the navigation menu. Opening it does not change the case or leave the current page. We will visit each operational screen.",
+     "caption": "Pages on the left; floating Copilot at the lower right.", "target": (1180, 660)},
+    {"screen": "48_public_queue_current.png", "title": "3 · Understand the Case Queue",
      "narration": "The Case Queue is where an investigator begins. It lists fictional alerts with severity, status, scenario, and recorded trigger-rule metadata. The counts and filters help find work, but an alert is not evidence of a crime. This is not connected to a live bank monitoring system. The example we will use is Case zero four one, Coastal Wholesale Traders, a high-severity structuring-style alert.",
      "caption": "Queue counts orient the investigator; they do not prove wrongdoing.", "target": (711, 462)},
-    {"screen": "05_public_case_filtered.png", "title": "Find and Open CASE-041",
-     "narration": "Type Coastal into the customer filter. The list narrows to Case zero four one. Its row shows the customer, the structuring alert label, high severity, open status, and recorded rule R three. The small open button takes us directly to this case's Investigation Workspace. The rule label is source-dataset metadata; this screen does not independently recalculate the alert. We open the case to check what actually happened.",
+    {"screen": "49_public_queue_filtered.png", "title": "Find and Open CASE-041",
+     "narration": "Type Coastal into the customer filter. The list narrows to Case zero four one. Its row shows the customer, the structuring alert label, high severity, open status, and recorded rule R three. The clearly labeled Open button takes us directly to this case's Investigation Workspace. The rule label is source-dataset metadata; this screen does not independently recalculate the alert. We open the case to check what actually happened.",
      "caption": "Search Coastal → CASE-041 → Investigation Workspace", "target": (1153, 512)},
     {"screen": "06_public_investigation_start.png", "title": "4 · Run the Investigation",
      "narration": "The workspace keeps the selected case and offers a saved investigation replay or live analysis. For a reliable walkthrough, we choose the saved Case zero four one report. It is a previously generated AI draft, not a fresh model run. Live analysis is available only when a model connection is configured. The pipeline gathers alert details, customer K Y C, transaction patterns, relationships, available documents, and playbook guidance before drafting findings for human review.",
@@ -69,24 +70,24 @@ SCENES = [
     {"screen": "08_public_evidence.png", "title": "Check Findings and Missing Records",
      "narration": "The draft marks the deposit cluster as a red flag and cites the four cash transaction IDs. A separate finding says the file lacks documentation explaining why this pattern fits the customer's business. That missing document is not proof of an improper purpose; it is a reason to ask questions. The report asks for the business rationale and the agreements with the two retail partners. The Grounding Validator checks selected IDs and numeric wording, but not every sentence or the truth of an explanation.",
      "caption": "Cited pattern + missing explanation = investigate further, not conclude guilt.", "target": (575, 435)},
-    {"screen": "09_public_copilot_answer.png", "title": "5 · Ask the Copilot",
-     "narration": "On the right, Ask the Copilot lets the investigator ask what supports the concern, what is missing, or what to do next. With a configured model connection, it answers case questions and cites transaction and playbook IDs. The investigator must compare each cited ID with the source record. Without a model connection, the application offers a narrower, rule-based saved-evidence answer instead; it is not the same live AI service.",
-     "caption": "Ask a case question → read answer → check cited IDs", "target": (1015, 357), "caption_top": True},
-    {"screen": "09_public_copilot_answer.png", "title": "Do Not Mistake a Citation for Proof",
+    {"screen": "44_public_floating_case_answer.png", "title": "5 · Ask the Copilot",
+     "narration": "The floating Copilot opens on the right and shows the selected case. Suggested questions can fill the message field, and the investigator can also type a question and press Send at the bottom. The conversation appears above the composer. The selected case's answer can point to stored transactions or indexed passages. The saved investigation report is a separate historical draft, not a second chat. The Copilot's current answer is bounded by the records it can actually read.",
+     "caption": "Choose or type → Send below → read answer above", "target": (1110, 627), "caption_top": True},
+    {"screen": "44_public_floating_case_answer.png", "title": "Do Not Mistake a Citation for Proof",
      "narration": "Notice the distinction between a plausible answer and a verified conclusion. A citation tells us which transaction or playbook entry to inspect. It does not prove the prose is correct or that the activity is unlawful. The saved report even proposes escalation, but our second playbook requires a documented request for an explanation and no reasonable answer on file. We will not let the draft skip that condition. The investigator retains ownership of the next step.",
      "caption": "A source ID is a pointer for review, not an automatic verdict.", "target": (950, 349), "caption_top": True},
-    {"screen": "37_public_copilot_count_kyc.png", "title": "Ask About Transactions and KYC",
-     "narration": "Now ask the case copilot how many transactions are stored in the selected month, which rows need review, and whether K Y C is verified. For Case zero four one, the answer counts six September rows in the supplied ledger, not a complete bank-month statement. It separates four draft red-flag candidates from the single source-alert trigger, transaction nineteen nine two seven. The workbook K Y C field says Verified, but zero original identity files were uploaded, so that label is not independent verification. Each cited identifier can be opened on this site.",
-     "caption": "Six stored rows; candidates ≠ trigger; KYC label ≠ original proof", "target": (1010, 474)},
-    {"screen": "38_public_saved_vs_current.png", "title": "Saved Report Versus Current Evidence",
+    {"screen": "45_public_floating_count_kyc.png", "title": "Ask About Transactions and KYC",
+     "narration": "Now ask the case Copilot about transactions that are stored and whether K Y C is independently verified. For Case zero four one, the current answer counts sixteen rows in the supplied account dataset. The older saved report captured six transactions in its narrower review window. Neither number is a complete bank-month statement. The source alert identifies transaction nineteen nine two seven as its trigger; it does not independently classify every other row as suspicious. The workbook K Y C field says Verified, but zero original identity files were uploaded, so that label is not independent verification. The answer cites stored case passages for inspection.",
+     "caption": "16 stored account rows · 6 in saved review · KYC label ≠ original proof", "target": (1010, 474)},
+    {"screen": "46_public_floating_saved_current.png", "title": "Saved Report Versus Current Evidence",
      "narration": "A second question tests evidence provenance. The historical saved report captured zero case passages, while the current index contains twenty one for this case. The copilot names both scopes and their recorded times separately. It does not claim to know the old index version or when the extra passages arrived. A current citation cannot retroactively prove what the old report saw; the old report is retained as a snapshot.",
      "caption": "0 in saved draft · 21 currently indexed · historical version unknown", "target": (1020, 463)},
     {"screen": "39_public_exact_case_chunk.png", "title": "Open the Exact Case Passage",
      "narration": "Follow the copilot's cited case-ledger chunk to Evidence and R A G. The source identifier, verification status, and exact stored passage are visible here. This first chunk warns that the account rows are only the supplied fictional dataset, not a complete bank statement. The citation is an inspectable pointer; it does not authenticate the source or prove what happened at another bank.",
      "caption": "Copilot citation → exact stored text → verification limit", "target": (783, 421)},
-    {"screen": "40_public_chunk_copilot.png", "title": "Question the Selected Passage",
-     "narration": "The investigator can also ask the page-aware copilot about this selected chunk. It quotes that exact case-scoped text and identifies the source as stored rows only. The sidebar keeps the selected case visible across pages, but it does not invent an original document, a counterparty's K Y C, or a legal-money verdict. This is the boundary between useful retrieval and unsupported claims.",
-     "caption": "Selected chunk + case scope → bounded answer", "target": (166, 465)},
+    {"screen": "47_public_floating_chunk_answer.png", "title": "Question the Selected Passage",
+     "narration": "The investigator can also ask the floating, page-aware Copilot, What does this chunk say? The page shows passage C zero beside the answer. The answer quotes the exact stored text and identifies its status as source rows only. It warns that the supplied dataset is not a complete bank statement. It does not invent an original document, counterparty K Y C, or a legal-money verdict. This is the boundary between useful retrieval and unsupported claims.",
+     "caption": "Selected chunk + case scope → bounded answer", "target": (1040, 356)},
     {"screen": "10_public_rag_overview.png", "title": "6 · Open Evidence & RAG",
      "narration": "From the cited playbook, we move to Evidence and R A G without leaving the site. For this case, we use Source and chunks, Search the index, and Method and code. The page also offers Case records and a Rule Lab; Fictional Intake appears when enabled. The playbook collection has twenty four synthetic documents and fifty seven indexed chunks. Case zero four one points to playbook P B A M L S T R zero one. A document citation identifies a source; it does not prove every generated claim.",
      "caption": "Source & chunks | Search the index | Method & code", "target": (151, 329)},
@@ -157,7 +158,7 @@ SCENES = [
     {"screen": "25_public_intake_review.jpg", "title": "16 · Review the Calculated Case",
      "narration": "Open the new case in the Investigation Workspace. Its separate calculated review reloads the saved rows and checks source fingerprints and exact chunks. The observed amounts are one million two hundred thousand in and one million eighty thousand out: fifteen times the asserted monthly baseline, ninety percent outbound, and six beneficiaries. Fixed questions give answers anchored to those source IDs; this is not the six-agent or Gemini report from Case zero four one. Original identity files, independent source-of-funds proof, counterparty K Y C, and settlement confirmation are absent. A human may request information or escalate with a written reason, but cannot close this incomplete packet as no concern.",
      "caption": "Saved rows → calculated review → reasoned human action", "target": (835, 606)},
-    {"screen": "01_home_guest.png", "title": "What the Case Actually Concludes",
+    {"screen": "41_public_floating_home_guest.png", "title": "What the Case Actually Concludes",
      "visual": "closing", "narration": "Our conclusion is deliberately narrow. In Case zero four one, the cash-deposit cluster and playbook guidance justify asking for a business explanation and partner agreements; the draft alone does not record a decision. In the separate ten-transfer packet, the stored rows exceed the review threshold and an investigator recorded a reasoned escalation because independent evidence is missing. Neither case is proven legal or illegal by this application. A regulator filing did not occur. Investigate IQ shows the evidence trail and the unanswered questions; a human owns the judgment and the next action.",
      "caption": "Evidence supports follow-up; a human owns any recorded conclusion.", "target": None},
 ]
@@ -190,7 +191,7 @@ def poster_image(screen: Image.Image) -> Image.Image:
     draw.rounded_rectangle((112, 190, 1168, 532), radius=26,
                            fill=(15, 32, 59, 244), outline=(113, 159, 227, 255), width=3)
     draw.text((163, 225), "INVESTIGATEIQ", font=font(27, True), fill="#9EC6FF")
-    draw.text((163, 285), "Follow a Case, Step by Step", font=font(48, True), fill="white")
+    draw.text((163, 285), "Evidence-to-Decision Walkthrough", font=font(40, True), fill="white")
     draw.text((166, 366), "Case review  |  evidence trail  |  human decision", font=font(25), fill="#D8E7FF")
     draw.ellipse((962, 302, 1060, 400), fill="#2E63BF", outline="#A6CAFF", width=3)
     draw.polygon([(1000, 323), (1000, 379), (1041, 351)], fill="white")
@@ -222,19 +223,19 @@ def draw_pointer(draw: ImageDraw.ImageDraw, target: tuple[int, int], progress: f
 # follows the visible controls or evidence as that scene's narration advances.
 SCENE_FOCUS = {
     1: [(1030, 359), (1040, 442), (974, 501)],
-    3: [(1030, 103), (82, 162), (102, 329)],
+    3: [(1030, 103), (82, 162), (1180, 665)],
     4: [(496, 164), (524, 655), (890, 655)],
     5: [(1030, 360), (415, 507), (1153, 512)],
     6: [(480, 450), (744, 450), (1085, 450)],
     7: [(543, 113), (450, 242), (631, 242), (836, 242)],
     8: [(572, 235), (600, 395), (585, 523)],
     9: [(557, 505), (520, 348), (590, 585)],
-    10: [(977, 134), (1014, 266), (960, 506)],
-    11: [(977, 353), (609, 351), (894, 537)],
-    12: [(1000, 345), (1015, 465), (774, 535)],
-    13: [(520, 150), (972, 344), (1014, 492)],
+    10: [(990, 98), (1060, 335), (1110, 640)],
+    11: [(1020, 330), (1085, 468), (1080, 555)],
+    12: [(1020, 310), (1060, 430), (1100, 550)],
+    13: [(1020, 310), (1060, 430), (1100, 550)],
     14: [(765, 356), (775, 416), (527, 32)],
-    15: [(151, 198), (168, 458), (800, 419)],
+    15: [(960, 150), (1040, 330), (1040, 500)],
     16: [(522, 96), (502, 329), (760, 329)],
     17: [(660, 298), (680, 421), (792, 501)],
     18: [(745, 148), (683, 296), (631, 488), (638, 641)],
@@ -490,7 +491,8 @@ def build() -> tuple[Path, Path]:
                    "-f", "rawvideo", "-pixel_format", "rgb24", "-video_size", f"{WIDTH}x{HEIGHT}",
                    "-framerate", str(FPS), "-i", "-", "-i", str(narration),
                    "-c:v", "libopenh264", "-b:v", "360k", "-pix_fmt", "yuv420p",
-                   "-c:a", "aac", "-b:a", "80k", "-movflags", "+faststart", str(pending_output)]
+                   "-c:a", "aac", "-b:a", "80k", "-metadata", f"title={VIDEO_TITLE}",
+                   "-movflags", "+faststart", str(pending_output)]
         process = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
         try:
             assert process.stdin is not None

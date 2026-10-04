@@ -220,19 +220,20 @@ with demo_col:
                     st.session_state["user_role"] = demo_role
                     st.rerun()
 
-st.subheader("Watch how InvestigateIQ works")
+st.subheader("InvestigateIQ: Evidence-to-Decision Walkthrough")
 _walkthrough_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "investigateiq_walkthrough.mp4")
 _poster_path = os.path.join(os.path.dirname(_walkthrough_path), "investigateiq_walkthrough_poster.png")
+_subtitle_path = os.path.join(os.path.dirname(_walkthrough_path), "investigateiq_walkthrough.vtt")
 if os.path.exists(_walkthrough_path):
     if os.path.exists(_poster_path):
         cover_col, description_col = st.columns([1, 2])
         with cover_col:
-            st.image(_poster_path, caption="InvestigateIQ product walkthrough", width="stretch")
+            st.image(_poster_path, caption="Evidence-to-decision product walkthrough", width="stretch")
         with description_col:
-            st.markdown("#### Follow a case, step by step")
+            st.markdown("#### Follow the evidence, step by step")
             st.write("Follow a selected case through its recorded activity, Copilot questions, and cited evidence. Use the live screens below to inspect the current workflow yourself.")
             st.caption("The recording uses captured product screens and an example case; live records may change. No case finding determines whether funds are lawful or unlawful.")
-    st.video(_walkthrough_path)
+    st.video(_walkthrough_path, subtitles=_subtitle_path if os.path.exists(_subtitle_path) else None)
     st.caption("Full narrated product walkthrough. Use the page links below to inspect every step yourself.")
 else:
     st.info("The captioned walkthrough is being prepared. The flowchart and page guides below explain the workflow in the meantime.")
