@@ -41,6 +41,15 @@ SHEET_TO_TABLE = {
     "Documents": "documents",
 }
 
+# Demo workflow curation.  The workbook is retained unchanged as the raw
+# fictional source, but its many legacy "Closed - No Concern" labels make a
+# first-time demonstration look as though outcomes were already decided.
+# Keep one imported example (CASE-002) visible for the provenance discussion;
+# present the remaining imported rows as open review work.  CASE-045 is added
+# below as the separate, explicitly simulated closure with fictional document
+# summaries.  This never turns a case into a lawful-funds finding.
+DEMO_SOURCE_CLOSED_CASE_IDS = {"CASE-002"}
+
 INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_accounts_customer ON accounts(customer_id)",
     "CREATE INDEX IF NOT EXISTS idx_txn_account ON transactions(account_id)",
@@ -183,6 +192,10 @@ def main():
     counts = {}
     for sheet, table in SHEET_TO_TABLE.items():
         df = xl.parse(sheet)
+        if sheet == "Alerts":
+            imported_closed = df["status"].astype(str).str.startswith("Closed")
+            keep_closed = df["case_id"].isin(DEMO_SOURCE_CLOSED_CASE_IDS)
+            df.loc[imported_closed & ~keep_closed, "status"] = "Open"
         df.to_sql(table, conn, if_exists="replace", index=False)
         counts[table] = len(df)
 

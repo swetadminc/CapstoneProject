@@ -25,6 +25,15 @@ class ClosedCaseFixtureTests(unittest.TestCase):
         self.assertEqual(resolve_status("Closed - No Concern", None), "Source closed — unverified")
         self.assertEqual(alert["trigger_transaction_id"], CREDIT_ID)
 
+    def test_demo_curation_keeps_only_one_imported_source_closed_case(self):
+        rows = self.conn.execute(
+            "SELECT case_id FROM alerts WHERE status='Closed - No Concern' ORDER BY case_id"
+        ).fetchall()
+        self.assertEqual([row["case_id"] for row in rows], ["CASE-002"])
+        self.assertEqual(
+            self.conn.execute("SELECT COUNT(*) FROM alerts WHERE status='Open'").fetchone()[0], 38
+        )
+
     def test_summaries_match_ledger_but_are_not_original_proof(self):
         alert = self.conn.execute("SELECT * FROM alerts WHERE case_id=?", (CASE_ID,)).fetchone()
         customer = self.conn.execute("SELECT * FROM customers WHERE customer_id=?", (alert["customer_id"],)).fetchone()

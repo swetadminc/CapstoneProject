@@ -206,6 +206,43 @@ def get_all_human_actions() -> list:
     return [dict(r) for r in rows]
 
 
+def reset_demo_human_decisions(admin_name: str) -> dict:
+    """Remove all persistent human decisions for a deliberate demo reset.
+
+    This is intentionally narrow: it deletes the decision rows and their
+    human-authored audit rows, but keeps system/AI audit events and rule
+    configuration.  A new system audit entry records who performed the reset
+    and the exact counts removed.  It must only be exposed behind the Admin
+    passcode and a deliberate UI confirmation.
+    """
+    if not admin_name or not admin_name.strip():
+        raise ValueError("An admin name is required to reset demo decisions.")
+    init_runtime_db()
+    conn = _connect()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        decision_count = conn.execute("SELECT COUNT(*) FROM human_actions").fetchone()[0]
+        human_audit_count = conn.execute("SELECT COUNT(*) FROM audit_log WHERE actor='human'").fetchone()[0]
+        conn.execute("DELETE FROM human_actions")
+        conn.execute("DELETE FROM audit_log WHERE actor='human'")
+        _insert_audit_event(
+            conn, "SYSTEM-DEMO", actor="system", action="demo_human_decisions_reset",
+            actor_name=admin_name.strip(),
+            details={"human_decisions_removed": decision_count,
+                     "human_audit_entries_removed": human_audit_count},
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+    return {
+        "human_decisions_removed": decision_count,
+        "human_audit_entries_removed": human_audit_count,
+    }
+
+
 def get_latest_decision_per_case() -> dict:
     """One query for the whole queue dashboard, instead of one query per
     case: {case_id: {"action": ..., "investigator": ..., "timestamp": ...}}

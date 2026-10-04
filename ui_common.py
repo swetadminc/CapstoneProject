@@ -358,6 +358,22 @@ _GLOBAL_CSS = """
 [class*="st-key-inv_"] button:hover {
     background: linear-gradient(120deg, #05695F, #087E74) !important;
 }
+[class*="st-key-evidence_"] button {
+    background: linear-gradient(120deg, #5C43B5, #2E63BF 58%, #087E74) !important;
+    border: 1.5px solid #8DB9FF !important;
+    color: #FFFFFF !important;
+    min-height: 32px; padding: 0 8px !important;
+    font-size: 12px; font-weight: 750; white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(46, 99, 191, .22);
+    transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+[class*="st-key-evidence_"] button * { color: #FFFFFF !important; }
+[class*="st-key-evidence_"] button:hover {
+    background: linear-gradient(120deg, #7A4CDE, #1D79C7 56%, #04A38E) !important;
+    border-color: #B8D6FF !important;
+    box-shadow: 0 5px 14px rgba(46, 99, 191, .34);
+    filter: brightness(1.06); transform: translateY(-1px);
+}
 [data-testid="stButton"] button[kind="primary"] {
     background: linear-gradient(120deg, #087E74, #0A9A89) !important;
     border-color: #51C8B8 !important; color: #FFFFFF !important;
@@ -591,7 +607,8 @@ _GLOBAL_CSS = """
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .iq-rise, [class*="st-key-iq_bordered_nav_"]:hover {
+    .iq-rise, [class*="st-key-iq_bordered_nav_"]:hover,
+    [class*="st-key-evidence_"] button:hover {
         animation: none !important; transition: none !important; transform: none !important;
     }
 }

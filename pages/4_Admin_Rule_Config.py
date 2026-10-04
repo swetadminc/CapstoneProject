@@ -15,7 +15,7 @@ import streamlit as st
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from data.runtime_db import get_rule_config, set_rule_params, get_audit_log
+from data.runtime_db import get_rule_config, set_rule_params, get_audit_log, reset_demo_human_decisions
 from data.trigger_rules import preview_trigger_counts
 from ui_common import require_login, role_warning, page_banner, page_flow, get_admin_passcode, render_context_copilot
 
@@ -149,6 +149,35 @@ with st.expander("Change history for these thresholds"):
     else:
         for row in rows:
             st.write(f"{row['timestamp'][:19].replace('T',' ')} UTC — **{row['actor_name']}** — {row['action']}")
+
+st.divider()
+st.subheader("Demo reset — human decisions")
+st.warning(
+    "This removes every recorded investigator and Compliance decision from the persistent demo store, "
+    "and removes their matching human audit entries. Rule settings and system/AI audit entries stay intact. "
+    "It cannot be undone from this screen."
+)
+reset_name = st.text_input(
+    "Admin name for demo reset", value=user_name, key="demo_reset_admin_name",
+    help="The reset itself is recorded as a system audit event with this name and the count removed.",
+)
+reset_confirmed = st.checkbox(
+    "I understand this permanently removes all human demo decisions.", key="demo_reset_confirmed",
+    help="This acknowledgement is required before the reset button becomes available.",
+)
+if st.button("Reset all human demo decisions", type="primary", disabled=not reset_confirmed,
+             key="demo_reset_decisions",
+             help="Permanently removes every human decision and its matching human audit entry. This does not delete fictional alert or evidence records."):
+    try:
+        result = reset_demo_human_decisions(reset_name)
+    except Exception as error:
+        st.error(f"Could not reset the demo decisions: {error}")
+    else:
+        st.success(
+            f"Demo reset complete: removed {result['human_decisions_removed']} human decision(s) and "
+            f"{result['human_audit_entries_removed']} matching audit entr{'y' if result['human_audit_entries_removed'] == 1 else 'ies'}."
+        )
+        st.cache_data.clear()
 
 st.divider()
 st.caption(

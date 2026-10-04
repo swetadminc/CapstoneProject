@@ -58,6 +58,21 @@ class RuntimeDBTransactionTests(unittest.TestCase):
             )
         self.assertEqual(runtime_db.get_human_actions("CASE-TEST"), [])
 
+    def test_demo_reset_removes_human_decisions_but_keeps_system_history(self):
+        runtime_db.record_human_decision("CASE-TEST", "Investigator", "close",
+                                         "Evidence reviewed", [], [])
+        runtime_db.log_audit_event("CASE-TEST", "system", "report_generated")
+
+        result = runtime_db.reset_demo_human_decisions("Demo Admin")
+
+        self.assertEqual(result, {"human_decisions_removed": 1, "human_audit_entries_removed": 1})
+        self.assertEqual(runtime_db.get_human_actions("CASE-TEST"), [])
+        events = runtime_db.get_audit_log("CASE-TEST")
+        self.assertEqual([event["action"] for event in events], ["report_generated"])
+        reset_events = runtime_db.get_audit_log("SYSTEM-DEMO")
+        self.assertEqual(len(reset_events), 1)
+        self.assertEqual(reset_events[0]["actor_name"], "Demo Admin")
+
     def test_decision_is_immutable_until_compliance_returns_case(self):
         runtime_db.record_human_decision("CASE-TEST", "Investigator", "escalate",
                                          "Needs a second review", [], [])
