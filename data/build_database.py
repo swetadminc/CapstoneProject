@@ -44,11 +44,13 @@ SHEET_TO_TABLE = {
 # Demo workflow curation.  The workbook is retained unchanged as the raw
 # fictional source, but its many legacy "Closed - No Concern" labels make a
 # first-time demonstration look as though outcomes were already decided.
-# Keep one imported example (CASE-002) visible for the provenance discussion;
+# Keep two imported examples visible for the provenance discussion: CASE-002
+# has document-summary rows, while CASE-003 deliberately demonstrates the
+# evidence gap that an imported closed label cannot resolve.
 # present the remaining imported rows as open review work.  CASE-045 is added
 # below as the separate, explicitly simulated closure with fictional document
 # summaries.  This never turns a case into a lawful-funds finding.
-DEMO_SOURCE_CLOSED_CASE_IDS = {"CASE-002"}
+DEMO_SOURCE_CLOSED_CASE_IDS = {"CASE-002", "CASE-003"}
 
 INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_accounts_customer ON accounts(customer_id)",
