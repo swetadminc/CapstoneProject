@@ -346,6 +346,11 @@ _GLOBAL_CSS = """
 }
 [class*="st-key-inv_"] button * { color: #FFFFFF !important; }
 .iq-queue-header { white-space: nowrap; }
+.iq-queue-status { display: inline-block; max-width: 100%; min-width: 0; vertical-align: top; }
+.iq-queue-status .iq-badge {
+    box-sizing: border-box; max-width: 100%; white-space: normal;
+    overflow-wrap: anywhere; line-height: 1.25; text-align: center;
+}
 .iq-queue-rule {
     display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
     overflow: hidden; overflow-wrap: anywhere; line-height: 1.4;
@@ -557,6 +562,21 @@ _GLOBAL_CSS = """
    appears only once stacked, and the now-redundant header row itself
    hides at that same breakpoint. */
 .iq-mobile-label { display: none; font-weight: 600; color: var(--iq-text-secondary); }
+@media (min-width: 641px) and (max-width: 1200px) {
+    [data-testid="stHorizontalBlock"]:has(.iq-queue-header) { display: none; }
+    [data-testid="stHorizontalBlock"]:has(.iq-queue-row) {
+        display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px 14px !important; padding: 12px; margin: 8px 0;
+        border: 1px solid var(--iq-card-border); border-radius: 12px;
+        background: var(--iq-card-bg);
+    }
+    [data-testid="stHorizontalBlock"]:has(.iq-queue-row) > [data-testid="stColumn"] {
+        width: auto !important; flex: none !important; min-width: 0 !important;
+    }
+    [data-testid="stHorizontalBlock"]:has(.iq-queue-row) .iq-mobile-label {
+        display: block; font-size: 11px; margin-bottom: 2px;
+    }
+}
 @media (max-width: 640px) {
     .iq-mobile-label { display: inline; }
     .iq-queue-rule { display: inline; overflow: visible; }

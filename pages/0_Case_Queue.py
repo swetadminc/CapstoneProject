@@ -162,7 +162,7 @@ st.caption(f"Showing {len(filtered)} of {len(df)} alerts")
 # ------------------------------------------------------------------
 # Queue table
 # ------------------------------------------------------------------
-queue_column_widths = [1.6, 2.2, 2.6, 1.3, 1.3, 1.7, 1.6]
+queue_column_widths = [1.4, 2.0, 2.4, 1.0, 2.1, 1.7, 1.2]
 header = st.columns(queue_column_widths)
 for col, label in zip(header, ["Case", "Customer", "Alert Type", "Severity", "Status", "Rule(s)", "Action"]):
     col.markdown(f'<span class="iq-queue-header"><strong>{label}</strong></span>', unsafe_allow_html=True)
@@ -189,7 +189,8 @@ for _, row in filtered.iterrows():
                       unsafe_allow_html=True)
     cols[3].markdown(f'<span class="iq-mobile-label">Severity: </span>{severity_badge(row["severity"])}',
                       unsafe_allow_html=True)
-    cols[4].markdown(f'<span class="iq-mobile-label">Status: </span>{status_badge(row["queue_status"])}',
+    cols[4].markdown(f'<span class="iq-mobile-label">Status: </span>'
+                     f'<span class="iq-queue-status">{status_badge(row["queue_status"])}</span>',
                       unsafe_allow_html=True)
     rule_text = escape(str(row["trigger_rule"] or "—"))
     cols[5].markdown(f'<span class="iq-mobile-label">Rule(s): </span>'

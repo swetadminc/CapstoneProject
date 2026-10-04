@@ -11,7 +11,7 @@ from streamlit.testing.v1 import AppTest
 
 from project_identity import PROJECT_SLOGAN, ROSTER_NOTE, TEAM_MEMBERS, TEAM_RESPONSIBILITIES
 from scripts.build_ui_walkthrough import SCENES
-from ui_common import severity_badge, status_badge
+from ui_common import _GLOBAL_CSS, severity_badge, status_badge
 
 APP_PATH = Path(__file__).resolve().parents[1] / "app.py"
 
@@ -160,6 +160,9 @@ class LandingAndTeamTests(unittest.TestCase):
         self.assertIn('class="iq-flashlight-svg"', page)
         self.assertEqual(page.count('class="iq-kpi-info-icon"'), 8)
         self.assertIn("Source closed", page)
+        self.assertIn('class="iq-queue-status"', page)
+        self.assertIn(".iq-queue-status .iq-badge", _GLOBAL_CSS)
+        self.assertIn("max-width: 100%; white-space: normal", _GLOBAL_CSS)
         self.assertIn("Human closed", page)
         self.assertIn("Action", page)
         self.assertTrue(any(str(item.key).startswith("inv_") and item.label == "Open"
