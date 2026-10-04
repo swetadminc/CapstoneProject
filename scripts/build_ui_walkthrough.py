@@ -43,31 +43,31 @@ SCENES = [
     {"screen": "41_public_floating_home_guest.png", "title": VIDEO_TITLE,
      "narration": "Welcome to Investigate IQ, an investigation copilot for reviewing banking alerts. We will follow Case zero four one from its alert through transactions, a cited draft, evidence retrieval, and a human next step. We will then open a separate fictional intake packet to show how a new numeric case is actually stored and recalculated. Both paths use fabricated data. Neither determines whether money is legal or illegal, and neither files a regulatory report.",
      "caption": "One case, every screen, and the full evidence trail.", "target": None},
-    {"screen": "02_public_identity.png", "title": "1 · Enter the Workspace",
+    {"screen": "53_public_queue_current_top.png", "title": "1 · Enter the Workspace",
      "narration": "We begin on Home. Enter a display name, here Case Reviewer, and choose the Investigator workflow role. Then open the workspace. The name helps attribute actions inside Investigate IQ; it is not bank-grade login or identity verification. Later, if a decision is submitted, the product requires a written rationale and saves the action to its audit history. Selecting a role alone does not make a decision.",
      "caption": "Display name → Investigator role → Open workspace", "target": (1010, 385)},
-    {"screen": "42_public_floating_home_ready.png", "title": "The End-to-End Route",
+    {"screen": "home_scroll_current.png", "title": "The End-to-End Route",
      "visual": "journey", "narration": "Here is the route we will actually follow. A fictional monitoring alert enters the Case Queue. The investigator opens the case, checks source transactions, and reads the copilot's draft. Evidence and R A G shows exactly which synthetic playbook document was indexed and what chunks were retrieved. The investigator, not the AI, chooses whether to close, ask for information, or escalate. Only a submitted escalation enters Compliance.",
      "caption": "Alert → Case → Evidence → Copilot → Human decision → Compliance", "target": None},
-    {"screen": "42_public_floating_home_ready.png", "title": "2 · Home and Navigation",
+    {"screen": "home_scroll_current.png", "title": "2 · Home and Navigation", "scroll": True,
      "narration": "Home explains what this product does and gives a route into the Case Queue. The left navigation also includes Investigation Workspace, Evidence and R A G, Compliance Queue, Analytics, Global Search, an information page, and two admin screens. The floating Ask Investigate IQ launcher stays at the lower right, independent of the navigation menu. Opening it does not change the case or leave the current page. We will visit each operational screen.",
      "caption": "Pages on the left; floating Copilot at the lower right.", "target": (1180, 660)},
-    {"screen": "48_public_queue_current.png", "title": "3 · Understand the Case Queue",
+    {"screen": "queue_scroll_current.png", "title": "3 · Understand the Case Queue", "scroll": True,
      "narration": "The Case Queue is where an investigator begins. It lists fictional alerts with severity, status, scenario, and recorded trigger-rule metadata. The counts and filters help find work, but an alert is not evidence of a crime. This is not connected to a live bank monitoring system. A closed or Compliance-reviewed row can expose its Evidence button so the supporting records are inspectable; its action label is not an invitation to reopen a completed decision. The example we will use is Case zero four one, Coastal Wholesale Traders, a high-severity structuring-style alert.",
      "caption": "Queue counts orient the investigator; they do not prove wrongdoing.", "target": (711, 462)},
-    {"screen": "49_public_queue_filtered.png", "title": "Find and Open CASE-041",
+    {"screen": "queue_scroll_current.png", "title": "Find and Open CASE-041", "scroll": True, "scroll_start": 0.32, "scroll_end": 0.82,
      "narration": "Type Coastal into the customer filter. The list narrows to Case zero four one. Its row shows the customer, the structuring alert label, high severity, open status, and recorded rule R three. The clearly labeled Open button takes us directly to this case's Investigation Workspace. The rule label is source-dataset metadata; this screen does not independently recalculate the alert. We open the case to check what actually happened.",
      "caption": "Search Coastal → CASE-041 → Investigation Workspace", "target": (1153, 512)},
-    {"screen": "06_public_investigation_start.png", "title": "4 · Run the Investigation",
+    {"screen": "workspace_scroll_current.png", "title": "4 · Run the Investigation", "scroll": True, "scroll_start": 0.0, "scroll_end": 0.30,
      "narration": "The workspace keeps the selected case and offers a saved investigation replay or live analysis. For a reliable walkthrough, we choose the saved Case zero four one report. It is a previously generated AI draft, not a fresh model run. Live analysis is available only when a model connection is configured. The pipeline gathers alert details, customer K Y C, transaction patterns, relationships, available documents, and playbook guidance before drafting findings for human review.",
      "caption": "CASE-041 + cached report = repeatable investigation view", "target": (510, 555)},
-    {"screen": "07_public_case_summary.png", "title": "Read the Case Context",
+    {"screen": "workspace_scroll_current.png", "title": "Read the Case Context", "scroll": True, "scroll_start": 0.16, "scroll_end": 0.42,
      "narration": "The customer is Coastal Wholesale Traders, a wholesale distribution business. The review window contains six credits from September twenty second through September twenty seventh. The account's prior baseline average is three hundred ninety five thousand rupees. The trigger transaction is nine hundred seventy five thousand rupees, which is displayed as about two point five times that baseline. There are no prior cases in this dataset. These are context facts to verify, not a verdict.",
      "caption": "6 credits · ₹395,000 baseline · 2.5× trigger ratio", "target": (683, 238)},
-    {"screen": "08_public_evidence.png", "title": "Separate Cash from Other Credits",
+    {"screen": "workspace_scroll_current.png", "title": "Separate Cash from Other Credits", "scroll": True, "scroll_start": 0.28, "scroll_end": 0.58,
      "narration": "The six credits are not all identical. Four are recorded as cash deposits: transaction nineteen nine two seven for nine hundred seventy five thousand, nineteen nine two eight for nine hundred sixty thousand, nineteen nine three zero for nine hundred fifty five thousand, and nineteen nine three two for nine hundred eighty thousand rupees. Together those four cash entries total three million eight hundred seventy thousand rupees. The other two credits are recorded as payments from Retail Partner A and B, so they should not silently be described as cash.",
      "caption": "Four cited cash deposits total ₹3,870,000; two other credits are partner payments.", "target": (552, 404)},
-    {"screen": "08_public_evidence.png", "title": "Check Findings and Missing Records",
+    {"screen": "workspace_scroll_current.png", "title": "Check Findings and Missing Records", "scroll": True, "scroll_start": 0.42, "scroll_end": 0.70,
      "narration": "The draft marks the deposit cluster as a red flag and cites the four cash transaction IDs. A separate finding says the file lacks documentation explaining why this pattern fits the customer's business. That missing document is not proof of an improper purpose; it is a reason to ask questions. The report asks for the business rationale and the agreements with the two retail partners. The Grounding Validator checks selected IDs and numeric wording, but not every sentence or the truth of an explanation.",
      "caption": "Cited pattern + missing explanation = investigate further, not conclude guilt.", "target": (575, 435)},
     {"screen": "44_public_floating_case_answer.png", "title": "5 · Ask the Copilot",
@@ -107,10 +107,10 @@ SCENES = [
      "visual": "code",
      "narration": "The Method and code view keeps the implementation inside Investigate IQ. It has eight expandable steps covering alert calculation, guidance and case chunking, case and guidance search, transaction links, context gathering, and citation checks. This diagram highlights four representative functions. The code supports explainability, but the validator is limited: it checks selected citations and wording patterns, not the full factual correctness of a generated report.",
      "caption": "Eight code panels; four representative functions illustrated", "target": (785, 339)},
-    {"screen": "14_public_human_decision.png", "title": "7 · Reach the Human Decision",
+    {"screen": "workspace_scroll_current.png", "title": "7 · Reach the Human Decision", "scroll": True, "scroll_start": 0.66, "scroll_end": 0.98,
      "narration": "Back in the Investigation Workspace, the Human Decision panel offers close with no concern, request more information, or escalate to Compliance. The AI cannot select or submit any of them. The investigator's name and written reason are required for a recorded decision. This matters because the retrieved playbook is conditional, and the case file has no documented business explanation yet. A machine-generated escalation suggestion cannot replace those checks or the human decision.",
      "caption": "AI drafts; the investigator chooses and writes the reason.", "target": (543, 334), "caption_top": True},
-    {"screen": "15_public_reasoned_decision.png", "title": "Our Proposed Next Step",
+    {"screen": "workspace_scroll_current.png", "title": "Our Proposed Next Step", "scroll": True, "scroll_start": 0.54, "scroll_end": 0.83,
      "narration": "For this example, Request more information is the cautious option shown in the form. The proposed rationale asks for the business explanation of the cash-deposit cluster and agreements with Retail Partner A and B before a final conclusion. That is not the same as declaring the activity harmless; it keeps the issue open for follow-up. The rationale is drafted here. Until Submit decision is pressed, no decision is recorded and the case does not move to Compliance.",
      "caption": "A draft rationale alone does not record a decision.", "target": (747, 350)},
     {"screen": "26_public_intake_compliance.jpg", "title": "8 · What Compliance Receives", "visual": "compliance_states",
@@ -438,6 +438,25 @@ def render_frame(scene: dict, scene_index: int, elapsed: float, duration: int,
         draw.rounded_rectangle((160, 497, 160 + round(958 * progress), 504),
                                radius=4, fill="#8AC4FF")
         return image
+    if scene.get("scroll"):
+        # Current app captures are stitched from the same viewport at several
+        # deliberate scroll positions. Move the camera slowly through that
+        # tall capture so the walkthrough shows the page flow instead of a
+        # frozen crop. The start/end fractions let adjacent scenes continue
+        # from the previous section without jumping back to the top.
+        max_top = max(0, base.height - HEIGHT)
+        start = float(scene.get("scroll_start", 0.0))
+        end = float(scene.get("scroll_end", 1.0))
+        top = round(max_top * (start + (end - start) * progress))
+        image = base.crop((0, top, WIDTH, min(base.height, top + HEIGHT))).convert("RGB")
+        if image.height < HEIGHT:
+            padded = Image.new("RGB", (WIDTH, HEIGHT), "#F4F7FC")
+            padded.paste(image, (0, 0))
+            image = padded
+        draw = ImageDraw.Draw(image)
+        draw_scene_label(draw, scene_index)
+        draw_pointer(draw, (1080, 625), progress)
+        return image
     # A slow camera move plus a travelling cursor makes the navigation
     # sequence legible instead of presenting motionless screenshots.
     scale = 1 + 0.025 * progress
@@ -490,8 +509,10 @@ def build() -> tuple[Path, Path]:
     missing = [scene["screen"] for scene in SCENES if not (SCREENS / scene["screen"]).is_file()]
     if missing:
         raise FileNotFoundError(f"Missing captured app screens: {', '.join(missing)}")
-    screen_images = [Image.open(SCREENS / scene["screen"]).convert("RGB").resize((WIDTH, HEIGHT))
-                     for scene in SCENES]
+    screen_images = []
+    for scene in SCENES:
+        image = Image.open(SCREENS / scene["screen"]).convert("RGB")
+        screen_images.append(image if scene.get("scroll") else image.resize((WIDTH, HEIGHT)))
     POSTER.parent.mkdir(parents=True, exist_ok=True)
     poster_image(screen_images[0]).save(POSTER)
     with tempfile.TemporaryDirectory(prefix="investigateiq-ui-video-") as temp:

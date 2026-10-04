@@ -30,10 +30,11 @@ class WalkthroughTests(unittest.TestCase):
                                        "27_public_admin_knowledge_open.png", "30_public_admin_chunks_table.png",
                                        "31_public_admin_search.png", "32_public_admin_rule_open.png",
                                        "33_public_admin_rule_preview.png", "34_public_intake_rows.png",
-                                       "41_public_floating_home_guest.png", "42_public_floating_home_ready.png",
+                                       "41_public_floating_home_guest.png", "53_public_queue_current_top.png",
+                                       "home_scroll_current.png", "queue_scroll_current.png",
+                                       "workspace_scroll_current.png",
                                        "44_public_floating_case_answer.png", "45_public_floating_count_kyc.png",
                                        "46_public_floating_saved_current.png", "47_public_floating_chunk_answer.png",
-                                       "48_public_queue_current.png", "49_public_queue_filtered.png",
                                        "39_public_exact_case_chunk.png"):
             self.assertIn(captured_public_screen, [scene["screen"] for scene in SCENES])
         self.assertGreaterEqual(sum(bool(scene.get("visual")) for scene in SCENES), 3)
@@ -41,6 +42,7 @@ class WalkthroughTests(unittest.TestCase):
         self.assertIn("press Send at the bottom", narration)
         self.assertIn("sixteen rows in the supplied account dataset", narration)
         self.assertIn("six transactions in its narrower review window", narration)
+        self.assertTrue(any(scene.get("scroll") for scene in SCENES))
         self.assertTrue(POSTER.is_file())
         self.assertGreater(POSTER.stat().st_size, 20_000)
 
