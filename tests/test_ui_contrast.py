@@ -69,6 +69,7 @@ class SidebarContrastTests(unittest.TestCase):
         self.assertIn('--iq-tooltip-icon: #B8D8FF', _DARK_OVERRIDE_CSS)
         self.assertIn('[data-testid="stTooltipIcon"]', _DARK_OVERRIDE_CSS)
         self.assertIn('fill: var(--iq-tooltip-icon) !important', _DARK_OVERRIDE_CSS)
+        self.assertIn('stroke: none !important', _DARK_OVERRIDE_CSS)
         self.assertIn('focus-within', _DARK_OVERRIDE_CSS)
 
     def test_dark_mode_preserves_text_contrast_for_chips_and_evidence_tabs(self):

@@ -737,7 +737,9 @@ _DARK_OVERRIDE_CSS = """
 }
 .stApp [data-testid="stTooltipIcon"] svg,
 .stApp [data-testid="stTooltipIcon"] path {
-    fill: var(--iq-tooltip-icon) !important; stroke: var(--iq-tooltip-icon) !important;
+    /* Streamlit's help glyph is a filled path. A same-colour stroke painted
+       over that path turns the question mark into a featureless dot. */
+    fill: var(--iq-tooltip-icon) !important; stroke: none !important;
     opacity: 1 !important;
 }
 .stApp [data-testid="stTooltipIcon"]:hover,
@@ -748,7 +750,7 @@ _DARK_OVERRIDE_CSS = """
 .stApp [data-testid="stTooltipIcon"]:hover path,
 .stApp [data-testid="stTooltipIcon"]:focus-within svg,
 .stApp [data-testid="stTooltipIcon"]:focus-within path {
-    fill: #FFFFFF !important; stroke: #FFFFFF !important;
+    fill: #FFFFFF !important; stroke: none !important;
 }
 .st-key-iq_floating_chat_history { background: #142033 !important; border-color: #648AC4 !important; }
 .iq-chat-message.iq-chat-user { background: #254267 !important; border-color: #648AC4 !important; }
