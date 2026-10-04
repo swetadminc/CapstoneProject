@@ -3,13 +3,14 @@
 import unittest
 import os
 import tempfile
+from html import escape as html_escape
 from pathlib import Path
 from unittest.mock import patch
 from xml.etree import ElementTree
 
 from streamlit.testing.v1 import AppTest
 
-from project_identity import PROJECT_SLOGAN, ROSTER_NOTE, TEAM_MEMBERS
+from project_identity import PROJECT_SLOGAN, ROSTER_NOTE, TEAM_MEMBERS, TEAM_RESPONSIBILITIES
 from ui_common import WORKFLOW_ROLE_DETAILS
 from scripts.build_ui_walkthrough import SCENES
 from ui_common import _GLOBAL_CSS, severity_badge, status_badge
@@ -102,7 +103,7 @@ class LandingAndTeamTests(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertEqual(app.session_state["user_role"], "Compliance Officer")
 
-    def test_team_page_shows_confirmed_roster_without_contact_details_or_roles(self):
+    def test_team_page_shows_confirmed_roster_and_responsibility_areas_without_contact_details(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
         app.switch_page("pages/7_Project_Team.py").run(timeout=30)
         self.assertFalse(app.exception)
@@ -111,14 +112,16 @@ class LandingAndTeamTests(unittest.TestCase):
             self.assertIn(member, page)
         self.assertEqual(page.count('class="iq-team-card"'), len(TEAM_MEMBERS))
         self.assertLess(page.index("Team member: Sweta Singh"), page.index("Team member: Rahul Chainani"))
-        self.assertIn("does not attribute individual work or roles", ROSTER_NOTE)
+        self.assertIn("Responsibility areas below are planning/demo assignments", ROSTER_NOTE)
         self.assertTrue(any("Contact details are intentionally not displayed" in item.value
                             for item in app.get("info")))
+        for name, (area, responsibility) in TEAM_RESPONSIBILITIES.items():
+            self.assertIn(html_escape(area), page)
+            self.assertIn(html_escape(responsibility), page)
         self.assertNotIn("@gmail.com", page)
-        self.assertNotIn("Application development &amp; integration", page)
-        self.assertNotIn("CEO / Product Visionary", page)
-        self.assertNotIn("Solution Architect", page)
         self.assertTrue(any(item.value == "Workflow roles in this demo" for item in app.get("subheader")))
+        self.assertTrue(any(item.label == "What each role can do" for item in app.get("expander")))
+        self.assertIn("Investigates an alert", page)
         self.assertEqual(set(WORKFLOW_ROLE_DETAILS), {"Investigator", "Team Lead", "Compliance Officer", "Admin"})
 
     def test_team_settings_can_switch_theme(self):

@@ -10,7 +10,7 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from project_identity import (
     COURSE_LABEL, GROUP_LABEL, PROJECT_DESCRIPTION, PROJECT_NAME,
-    ROSTER_NOTE, TEAM_MEMBERS,
+    ROSTER_NOTE, TEAM_MEMBERS, TEAM_RESPONSIBILITIES,
 )
 from ui_common import (
     LOGO_FULL_DARK, LOGO_FULL_LIGHT, WORKFLOW_ROLE_DETAILS, page_banner,
@@ -37,7 +37,7 @@ page_flow("Meet the team and understand the product's boundaries", [
     ("Read the purpose", "See the problem and the human-controlled workflow."),
     ("Meet the group", "Review the confirmed project roster."),
     ("Set up your workspace", "Choose a readable theme and enter a display identity on Home."),
-], "Contact details and unverified individual contribution claims are not displayed.")
+], "Contact details are not displayed. Responsibility areas are shown for planning and demo orientation.")
 
 intro, identity = st.columns([2, 1])
 with intro:
@@ -59,7 +59,7 @@ with identity:
 
 st.divider()
 st.subheader("Team members")
-st.caption("Confirmed project roster. Contact details and individual contribution claims are not displayed.")
+st.caption("Confirmed project roster. Each card shows the planning/demo responsibility area for that member; it is not a completion claim.")
 member_cards = []
 for name in TEAM_MEMBERS:
     parts = name.split()
@@ -69,8 +69,8 @@ for name in TEAM_MEMBERS:
         f'<article class="iq-team-card" aria-label="Team member: {escape(name)}">'
         f'<div class="iq-team-initials" aria-hidden="true">{escape(initials)}</div>'
         f'<h3 class="iq-team-name">{escape(name)}</h3>'
-        '<p class="iq-team-role">Confirmed project member</p>'
-        '<p class="iq-team-note">Individual responsibilities are not attributed on this page.</p>'
+        f'<p class="iq-team-role">{escape(TEAM_RESPONSIBILITIES[name][0])}</p>'
+        f'<p class="iq-team-note">{escape(TEAM_RESPONSIBILITIES[name][1])}</p>'
         '</article>'
     )
 st.markdown('<section class="iq-team-grid" aria-label="Capstone team members">'
@@ -80,8 +80,8 @@ st.info(ROSTER_NOTE)
 
 st.divider()
 st.subheader("Workflow roles in this demo")
-st.caption("These describe how the application is used. They are not titles or responsibilities assigned to the people listed above.")
-with st.expander("What each role can do", expanded=False):
+st.caption("These describe the application workflow. The member cards above show the team's planning/demo responsibility areas.")
+with st.expander("What each role can do", expanded=True):
     role_cards = []
     for role, (purpose, actions, boundary) in WORKFLOW_ROLE_DETAILS.items():
         role_cards.append(

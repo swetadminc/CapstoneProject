@@ -216,22 +216,22 @@ _GLOBAL_CSS = """
 .iq-flow-title { display: block; grid-column: 2; color: var(--iq-heading); font-size: 12px; font-weight: 700; margin: 0; }
 .iq-flow-detail { grid-column: 2; color: var(--iq-text-secondary); font-size: 11px; line-height: 1.3; }
 .iq-team-grid {
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;
-    margin: 12px 0 22px;
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;
+    margin: 10px 0 16px;
 }
 .iq-team-card {
-    box-sizing: border-box; min-height: 278px; padding: 20px;
-    border: 2px solid #A8C3E8; border-radius: 18px;
-    background: #F7FAFF; box-shadow: 0 5px 18px rgba(26, 42, 74, 0.10);
+    box-sizing: border-box; min-height: 150px; padding: 12px 14px;
+    border: 1.5px solid #A8C3E8; border-radius: 12px;
+    background: #F7FAFF; box-shadow: 0 3px 10px rgba(26, 42, 74, 0.08);
 }
 .iq-team-initials {
     display: flex; align-items: center; justify-content: center;
-    width: 46px; height: 46px; border-radius: 13px; margin-bottom: 11px;
-    background: var(--iq-primary); color: #FFFFFF; font-size: 18px; font-weight: 800;
+    width: 32px; height: 32px; border-radius: 9px; margin-bottom: 7px;
+    background: var(--iq-primary); color: #FFFFFF; font-size: 13px; font-weight: 800;
 }
-.iq-team-name { margin: 0 0 6px; color: var(--iq-heading); font-size: 18px; font-weight: 700; }
-.iq-team-role { margin: 0 0 10px; color: #2455A5; font-size: 14px; font-weight: 700; line-height: 1.35; }
-.iq-team-note { margin: 0; color: var(--iq-text-secondary); font-size: 13px; line-height: 1.45; }
+.iq-team-name { margin: 0 0 4px; color: var(--iq-heading); font-size: 15px; font-weight: 700; }
+.iq-team-role { margin: 0 0 5px; color: #2455A5; font-size: 12px; font-weight: 700; line-height: 1.25; }
+.iq-team-note { margin: 0; color: var(--iq-text-secondary); font-size: 11px; line-height: 1.3; }
 @media (max-width: 900px) { .iq-team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .iq-team-grid { grid-template-columns: 1fr; } }
 @media (max-width: 800px) {
