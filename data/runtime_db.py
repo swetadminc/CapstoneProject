@@ -242,7 +242,9 @@ def resolve_status(raw_alert_status: str, decision: dict | None) -> str:
     if decision:
         return _DECISION_STATUS_LABELS.get(decision["action"], decision["action"])
     if raw_alert_status.startswith("Closed"):
-        return "Closed"
+        # A workbook label is not a decision recorded in this application.
+        # Keep it distinct from a reviewed, auditable human close action.
+        return "Source closed — unverified"
     return raw_alert_status
 
 

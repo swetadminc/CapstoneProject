@@ -275,7 +275,10 @@ _GLOBAL_CSS = """
 .st-key-iq_floating_copilot_open {
     top: 68px; bottom: auto;
     width: min(390px, calc(100vw - 32px));
+    min-width: min(320px, calc(100vw - 24px)); min-height: 250px;
+    max-width: calc(100vw - 24px);
     max-height: min(680px, calc(100vh - 82px)); overflow-y: auto;
+    resize: both; scrollbar-width: thin;
     overscroll-behavior: contain; padding: 10px 12px;
     border: 1.5px solid #91B8F0; border-radius: 18px;
     background: var(--iq-card-bg); color: var(--iq-heading);
@@ -289,7 +292,7 @@ _GLOBAL_CSS = """
     height: auto !important;
     min-height: 105px; max-height: clamp(180px, calc(100vh - 450px), 340px) !important;
     flex: 0 0 auto !important;
-    overflow-y: auto;
+    overflow-y: auto; scrollbar-width: thin;
     margin: 3px 0 !important; padding: 8px !important;
     border: 1.5px solid #91B8F0; border-radius: 12px;
     background: #F3F7FF;
@@ -357,6 +360,9 @@ _GLOBAL_CSS = """
 .st-key-iq_floating_header [data-testid="stHorizontalBlock"] {
     align-items: center !important; gap: 6px !important;
 }
+.st-key-iq_floating_header { cursor: grab; user-select: none; touch-action: none; }
+.st-key-iq_floating_header:active { cursor: grabbing; }
+.st-key-iq_floating_header button { cursor: pointer; }
 .st-key-iq_floating_copilot_open [data-testid="stHorizontalBlock"]:has(.iq-floating-title) {
     align-items: center !important; gap: 6px !important;
 }
@@ -406,6 +412,7 @@ _GLOBAL_CSS = """
     .st-key-iq_floating_copilot_open {
         top: 68px; bottom: auto;
         width: calc(100vw - 24px); max-height: calc(100vh - 80px);
+        resize: none;
     }
     .st-key-iq_floating_chat_history {
         height: auto !important;
@@ -751,6 +758,7 @@ code { background-color: #1B2536 !important; color: #7CC5FF !important; }
 _SEVERITY_CLASS = {"High": "iq-sev-high", "Medium": "iq-sev-medium", "Low": "iq-sev-low"}
 _STATUS_CLASS = {
     "Open": "iq-status-open", "Escalated": "iq-status-escalate", "Closed": "iq-status-close",
+    "Source closed — unverified": "iq-status-open",
     "Info Requested": "iq-status-info", "Closed (Compliance)": "iq-status-close",
     "Returned to Investigator": "iq-status-info", "Referred (Compliance)": "iq-status-escalate",
 }
@@ -935,7 +943,7 @@ def render_context_copilot(page: str, case_id: str | None = None,
         with st.container(key="iq_floating_header"):
             title_col, expand_col, close_col = st.columns([5, 1, 1], vertical_alignment="center")
             with title_col:
-                st.markdown('<div class="iq-floating-title">✦ InvestigateIQ Copilot</div>',
+                st.markdown('<div class="iq-floating-title" title="Drag this header to move the chat window">✦ InvestigateIQ Copilot</div>',
                             unsafe_allow_html=True)
             with expand_col:
                 expanded = bool(st.session_state.get("iq_floating_copilot_expanded", False))
@@ -947,6 +955,61 @@ def render_context_copilot(page: str, case_id: str | None = None,
                 if st.button("×", key="floating_copilot_close", help="Close the floating Copilot chat."):
                     st.session_state["iq_floating_copilot_open"] = False
                     st.rerun()
+        # Streamlit rerenders the panel after each answer. Restore its position
+        # and attach pointer dragging to the header, never to its controls.
+        # This is supplementary to the keyboard-accessible expand/close buttons.
+        st.html("""<script>
+        (() => {
+            const panel = document.querySelector('.st-key-iq_floating_copilot_open');
+            const header = panel?.querySelector('.st-key-iq_floating_header');
+            if (!panel || !header || header.dataset.iqDragReady) return;
+            header.dataset.iqDragReady = 'true';
+            const key = 'iq-copilot-position';
+            const clamp = (value, max) => Math.max(8, Math.min(value, Math.max(8, max)));
+            const place = (left, top) => {
+                panel.style.left = clamp(left, innerWidth - panel.offsetWidth - 8) + 'px';
+                panel.style.top = clamp(top, innerHeight - Math.min(panel.offsetHeight, 180)) + 'px';
+                panel.style.right = 'auto';
+                panel.style.bottom = 'auto';
+            };
+            const resetForMobile = () => {
+                if (innerWidth > 600) return false;
+                panel.style.left = '';
+                panel.style.top = '';
+                panel.style.right = '';
+                panel.style.bottom = '';
+                return true;
+            };
+            try {
+                const saved = JSON.parse(sessionStorage.getItem(key) || 'null');
+                if (!resetForMobile() && saved && Number.isFinite(saved.left) && Number.isFinite(saved.top))
+                    place(saved.left, saved.top);
+            } catch (_) { /* A corrupt preference must not hide the chat. */ }
+            window.addEventListener('resize', () => {
+                if (resetForMobile()) return;
+                const rect = panel.getBoundingClientRect();
+                if (rect.right > innerWidth || rect.bottom > innerHeight)
+                    place(rect.left, rect.top);
+            });
+            let drag = null;
+            header.addEventListener('pointerdown', event => {
+                if (innerWidth <= 600 || event.button !== 0 || event.target.closest('button')) return;
+                const rect = panel.getBoundingClientRect();
+                drag = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top };
+                event.preventDefault();
+            });
+            document.addEventListener('pointermove', event => {
+                if (!drag) return;
+                place(drag.left + event.clientX - drag.x, drag.top + event.clientY - drag.y);
+            });
+            document.addEventListener('pointerup', () => {
+                if (!drag) return;
+                drag = null;
+                const rect = panel.getBoundingClientRect();
+                sessionStorage.setItem(key, JSON.stringify({left: rect.left, top: rect.top}));
+            });
+        })();
+        </script>""", unsafe_allow_javascript=True)
         if st.session_state.get("iq_floating_copilot_expanded", False):
             st.markdown('<span class="iq-chat-expanded" hidden></span>', unsafe_allow_html=True)
         st.markdown('<div class="iq-floating-context">' + escape(page) + ' · ' +
@@ -977,6 +1040,7 @@ def render_context_copilot(page: str, case_id: str | None = None,
              "What KYC and counterparty evidence is missing?",
              "Can you establish the source of funds?",
              "What evidence should we request next?",
+             "What closure evidence is stored for this case?",
              "Request more information.",
              "Explain for compliance review.",
              "Can we conclude that these funds are lawful or unlawful?"]

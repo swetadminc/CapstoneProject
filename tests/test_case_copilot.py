@@ -26,6 +26,18 @@ QUESTION = "How many transactions were stored in one month, which need review, a
 
 
 class CaseCopilotTests(unittest.TestCase):
+    def test_source_closed_workspace_discloses_missing_case_documents(self):
+        app_path = Path(__file__).resolve().parents[1] / "app.py"
+        app = AppTest.from_file(str(app_path)).run(timeout=30)
+        app.session_state["user_name"] = "Case Reviewer"
+        app.session_state["user_role"] = "Investigator"
+        app.session_state["selected_case_id"] = "CASE-003"
+        app.switch_page("pages/2_Investigation_Demo.py").run(timeout=30)
+        self.assertFalse(app.exception)
+        warnings = "\n".join(item.value for item in app.get("warning"))
+        self.assertIn("Source-closed label, not a verified outcome", warnings)
+        self.assertIn("0 case-specific document summary row(s)", warnings)
+
     def test_floating_copilot_requires_case_choice_if_none_active(self):
         app_path = Path(__file__).resolve().parents[1] / "app.py"
         app = AppTest.from_file(str(app_path)).run(timeout=30)
@@ -256,6 +268,18 @@ class CaseCopilotTests(unittest.TestCase):
     def test_account_collision_is_not_silently_attributed(self):
         answer = answer_imported_case_question(QUESTION, "CASE-001")
         self.assertIn("Account-ownership warning", answer["answer"])
+
+    def test_source_closed_does_not_claim_legitimacy_without_case_evidence(self):
+        unsupported = answer_imported_case_question("Why was this case closed?", "CASE-003")
+        self.assertIn("No current close action was recorded", unsupported["answer"])
+        self.assertIn("No case-specific supporting document summary", unsupported["answer"])
+        self.assertIn("does not establish why the case was closed or that funds were legitimate", unsupported["answer"])
+        self.assertTrue(unsupported["chunk_ids"])
+        supported_summary = answer_imported_case_question("What closure evidence is stored?", "CASE-002")
+        self.assertIn("2 case-specific document summary row(s)", supported_summary["answer"])
+        self.assertIn("not original files or independent verification", supported_summary["answer"])
+        self.assertIn("ambiguous customer ownership", supported_summary["answer"])
+        self.assertGreaterEqual(len(supported_summary["chunk_ids"]), 2)
 
     def test_explicit_empty_month_is_not_treated_as_no_bank_activity(self):
         answer = answer_imported_case_question("How many transactions in January 2025?", "CASE-041")

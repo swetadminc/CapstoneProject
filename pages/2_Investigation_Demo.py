@@ -103,15 +103,20 @@ def load_case_options():
     send any of them here. Hero cases are pinned to the top and labeled."""
     conn = sqlite3.connect(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "investigateiq.db"))
     rows = conn.execute("""
-        SELECT a.case_id, c.name, a.alert_type FROM alerts a
+        SELECT a.case_id, c.name, a.alert_type, a.status, a.alert_date FROM alerts a
         JOIN customers c ON c.customer_id = a.customer_id
         ORDER BY a.alert_date DESC
     """).fetchall()
     conn.close()
     hero_ids = {"CASE-001", "CASE-002"}
     options = {}
-    for cid, name, atype in rows:
-        label = f"{cid} — {name} (older cached comparison; owner ambiguous)" if cid in hero_ids else f"{cid} — {name}"
+    for cid, name, atype, source_status, alert_date in rows:
+        if cid in hero_ids:
+            source_label = "Open source alert" if source_status == "Open" else "Source closed, outcome unverified"
+            label = (f"{cid} — {source_label} · {alert_date} · {name} "
+                     "(shared account; owner ambiguous)")
+        else:
+            label = f"{cid} — {name}"
         options[label] = cid
     # pin hero cases first
     ordered = {k: v for k, v in options.items() if v in hero_ids}
@@ -148,6 +153,23 @@ st.markdown(
     f'<div class="iq-workspace-case-badge">Selected case <strong>{escape(case_id)}</strong></div>',
     unsafe_allow_html=True,
 )
+
+if not case_id.startswith("FIC-CASE-"):
+    with closing(sqlite3.connect(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                         "data", "investigateiq.db"))) as source_conn:
+        source_status_row = source_conn.execute(
+            "SELECT status FROM alerts WHERE case_id=?", (case_id,)).fetchone()
+        case_doc_count = source_conn.execute(
+            "SELECT COUNT(*) FROM documents WHERE case_id=?", (case_id,)).fetchone()[0]
+    actions = get_human_actions(case_id)
+    if (source_status_row and source_status_row[0].startswith("Closed")
+            and not (actions and actions[-1]["action"] == "close")):
+        st.warning(
+            f"Source-closed label, not a verified outcome: the imported alert says '{source_status_row[0]}', "
+            f"but no human close action is recorded here. This case has {case_doc_count} case-specific "
+            "document summary row(s), not original files. Review the source evidence, account ownership, "
+            "and rationale before deciding; this label does not prove the funds were legitimate."
+        )
 
 if case_id.startswith("FIC-CASE-"):
     with closing(sqlite3.connect(fictional_intake_path())) as intake_conn:

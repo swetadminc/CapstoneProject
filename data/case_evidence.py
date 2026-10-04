@@ -150,6 +150,7 @@ def _case_sources(conn: sqlite3.Connection, alert: sqlite3.Row) -> list[dict]:
             f"Alert ID: {alert_id}; case ID: {case_id}; customer ID: {cid}; account ID: {account_id}. "
             f"Recorded alert type: {_value(alert['alert_type'])}. Scenario ID: {_value(alert['scenario_id'])}. "
             f"Recorded rule label: {_value(alert['trigger_rule'])}. Severity: {_value(alert['severity'])}. "
+            f"Imported source status: {_value(alert['status'])}. "
             f"Alert date: {_value(alert['alert_date'])}. Trigger transaction ID: "
             f"{_value(alert['trigger_transaction_id'])}.",
             ("The matched-case alert was recomputed from the ten source rows at build time. "

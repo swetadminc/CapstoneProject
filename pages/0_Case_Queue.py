@@ -103,10 +103,11 @@ kpis = [
     ("🕒", "Open", int((df["queue_status"] == "Open").sum()), "iq-kpi-amber", "Awaiting review", "Cases whose current status is Open. An alert is a signal for review, not a fraud finding."),
     ("📨", "Info requested", int((df["queue_status"] == "Info Requested").sum()), "iq-kpi-blue", "Waiting for records", "Cases whose latest recorded human action requested more information. It does not mean the requested documents were received or verified."),
     ("🚨", "Escalated", int((df["queue_status"] == "Escalated").sum()), "iq-kpi-red", "Sent to Compliance queue", "Cases whose latest recorded human action was escalation. No external regulatory report is filed automatically."),
-    ("✅", "Closed", int(df["queue_status"].str.startswith("Closed").sum()), "iq-kpi-green", "Closed workflow state", "Cases whose current status is Closed or Closed (Compliance). Some may carry an original source status rather than a recorded human decision. A closed label is not proof that funds are lawful."),
+    ("✅", "Human closed", int(df["queue_status"].str.startswith("Closed").sum()), "iq-kpi-green", "Recorded decision", "Cases closed by a recorded human action in this application. A close decision is not proof that funds are lawful."),
+    ("📋", "Source closed", int((df["queue_status"] == "Source closed — unverified").sum()), "iq-kpi-amber", "Evidence not established", "Imported alerts labelled closed by the source workbook, without an auditable close action in this application. Most lack case-specific supporting documents; do not treat these as verified legitimate activity."),
     ("🔥", "High severity", int((df["severity"] == "High").sum()), "iq-kpi-red", "Source priority label", "Alerts labelled High in the fictional source data. Severity is independent of case status, so this count overlaps the status cards."),
 ]
-known_status = df["queue_status"].isin(["Open", "Info Requested", "Escalated"]) | df["queue_status"].str.startswith("Closed")
+known_status = df["queue_status"].isin(["Open", "Info Requested", "Escalated", "Source closed — unverified"]) | df["queue_status"].str.startswith("Closed")
 other_status_count = int((~known_status).sum())
 if other_status_count:
     kpis.append(("🔄", "Other workflow", other_status_count, "iq-kpi-blue", "Additional review states",
@@ -124,7 +125,7 @@ for icon, label, value, accent, detail, definition in kpis:
     )
 st.markdown('<div class="iq-kpi-region"><div class="iq-kpi-grid">' + ''.join(cards) + '</div></div>',
             unsafe_allow_html=True)
-st.caption("Status cards use the latest human action when one exists; otherwise they use the original source status. High severity is a separate source label "
+st.caption("Only recorded human actions count as Human closed. Source-closed cases have not been independently substantiated here. High severity is a separate source label "
            "and can overlap any status. Hover over a card or open the definitions below.")
 with st.expander("What these queue numbers mean"):
     for _, label, _, _, _, definition in kpis:
@@ -178,7 +179,10 @@ for _, row in filtered.iterrows():
     hero_tag = ' <span class="iq-hero-badge">CACHED</span>' if row["has_cache"] else ""
     cols[0].markdown(f'<span class="iq-queue-row"></span><span class="iq-mobile-label">Case: </span>'
                       f'`{row["case_id"]}`{hero_tag}', unsafe_allow_html=True)
-    cols[1].markdown(f'<span class="iq-mobile-label">Customer: </span>{escape(str(row["customer_name"]))}',
+    customer_label = escape(str(row["customer_name"]))
+    if row["case_id"] in {"CASE-001", "CASE-002"}:
+        customer_label += '<br><small>Shared source account · ownership unresolved</small>'
+    cols[1].markdown(f'<span class="iq-mobile-label">Customer: </span>{customer_label}',
                       unsafe_allow_html=True)
     cols[2].markdown(f'<span class="iq-mobile-label">Alert type: </span>{escape(str(row["alert_type"]))}',
                       unsafe_allow_html=True)

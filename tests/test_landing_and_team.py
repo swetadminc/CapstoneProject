@@ -156,9 +156,11 @@ class LandingAndTeamTests(unittest.TestCase):
         app.switch_page("pages/0_Case_Queue.py").run(timeout=90)
         self.assertFalse(app.exception)
         page = "\n".join(item.value for item in app.get("markdown"))
-        self.assertEqual(page.count('class="iq-card iq-kpi-card'), 6)
+        self.assertEqual(page.count('class="iq-card iq-kpi-card'), 7)
         self.assertIn('class="iq-flashlight-svg"', page)
-        self.assertEqual(page.count('class="iq-kpi-info-icon"'), 6)
+        self.assertEqual(page.count('class="iq-kpi-info-icon"'), 7)
+        self.assertIn("Source closed", page)
+        self.assertIn("Human closed", page)
         self.assertIn("Action", page)
         self.assertTrue(any(str(item.key).startswith("inv_") and item.label == "Open"
                             for item in app.button))

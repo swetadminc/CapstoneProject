@@ -262,6 +262,7 @@ if os.path.exists(DB_PATH):
 
     total_alerts = len(alert_rows)
     open_alerts = statuses.count("Open")
+    source_closed = statuses.count("Source closed — unverified")
     high_sev = sum(1 for r in alert_rows if r["severity"] == "High")
     escalated = statuses.count("Escalated")
 
@@ -282,8 +283,10 @@ if os.path.exists(DB_PATH):
             f'<div class="iq-kpi-detail">{detail}</div></div>',
             unsafe_allow_html=True,
         )
-    st.caption("These cards summarize preloaded fictional alerts. High severity overlaps status; open and "
-               "escalated are workflow states. Hover over a card or use Help & definitions in the sidebar.")
+    st.caption(f"These cards summarize fictional alerts. {source_closed} imported alerts carry a source-closed label "
+               "without a recorded close decision here; that label does not establish lawful activity. "
+               "CASE-001 and CASE-002 share a source account with unresolved ownership. "
+               "High severity overlaps status. Hover over a card or use Help & definitions in the sidebar.")
     st.write("")
 
 st.subheader("Start here")

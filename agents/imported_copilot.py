@@ -11,6 +11,7 @@ from decimal import Decimal
 from agents.fictional_copilot import _mentions, _month_requested
 from data.case_evidence import case_evidence_index_status
 from data.knowledge_search import DB_PATH
+from data.runtime_db import get_human_actions
 
 
 def answer_imported_case_question(question: str, case_id: str, evidence: dict | None = None,
@@ -45,6 +46,9 @@ def answer_imported_case_question(question: str, case_id: str, evidence: dict | 
             "WHERE customer_id=? AND (case_id IS NULL OR case_id=?)",
             (alert["customer_id"], case_id))]
         index_status = case_evidence_index_status(conn, case_id)
+        case_documents = [dict(row) for row in conn.execute(
+            "SELECT doc_id, doc_type, extracted_summary FROM documents WHERE case_id=? ORDER BY doc_id",
+            (case_id,))]
 
     query = " ".join(question.lower().split())
     provenance_question = _mentions(query, "saved report", "old report", "snapshot",
@@ -101,6 +105,37 @@ def answer_imported_case_question(question: str, case_id: str, evidence: dict | 
             if row["txn_id"] not in txn_ids:
                 txn_ids.append(row["txn_id"])
             cite(doc_id, row["txn_id"])
+
+    if _mentions(query, "why closed", "why was this case closed", "why is this case closed",
+                 "closure evidence", "closed case evidence", "legitimate", "legitimacy"):
+        actions = get_human_actions(case_id)
+        decision = actions[-1] if actions else None
+        cite(f"CASE-ALERT-{case_id}", "Imported source status:")
+        if decision and decision.get("action") == "close":
+            sections.append(f"A human recorded a close action here ({decision['action_id']}) with this "
+                            f"rationale: {decision['rationale']} This is an auditable human statement, "
+                            "not an independently verified source or proof that money is lawful.")
+        elif alert["status"].startswith("Closed"):
+            sections.append(f"The imported Alerts row labels {case_id} '{alert['status']}'. "
+                            "No current close action was recorded in this application. The source label alone "
+                            "does not establish why the case was closed or that funds were legitimate.")
+        else:
+            sections.append("This case is not labelled closed by its source row and has no recorded "
+                            "human close action here.")
+        if case_documents:
+            sections.append(f"{len(case_documents)} case-specific document summary row(s) are stored: " +
+                            "; ".join(f"{doc['doc_id']} ({doc['doc_type']})" for doc in case_documents) +
+                            ". These are summaries, not original files or independent verification.")
+            for doc in case_documents:
+                cite(f"SUMMARY-{doc['doc_id']}", f"Document ID: {doc['doc_id']}")
+        else:
+            sections.append("No case-specific supporting document summary is stored. Ask for the "
+                            "closure rationale and the underlying records before relying on this status.")
+        if len(owner_ids) != 1:
+            sections.append("This source account has ambiguous customer ownership; the ledger cannot "
+                            "safely be attributed to this customer until that collision is resolved.")
+        return {"answer": "\n\n".join(sections), "chunk_ids": chunk_ids,
+                "txn_ids": [], "sources": chunk_ids, "source": "imported_case_database"}
 
     if _mentions(query, "related to", "relationship between", "related parties"):
         return {"answer": "The available case evidence does not establish that relationship. "
