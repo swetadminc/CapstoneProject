@@ -192,6 +192,14 @@ st.info("**BM25 score guide:** A higher displayed number means a stronger keywor
 if "kb_query" not in st.session_state:
     st.session_state.kb_query = ""
 
+
+def apply_suggested_search_term(term: str) -> None:
+    """Update the search widget during Streamlit's permitted callback phase."""
+    current_query = st.session_state.get("kb_query", "")
+    words = current_query.strip().split()[:-1]
+    st.session_state["kb_query"] = " ".join(words + [term])
+
+
 query = st.text_input("Type a question or keywords", key="kb_query", placeholder="e.g. source of funds",
                       help="Searches the local SQLite FTS5 keyword index; this is not semantic/vector search.")
 
@@ -203,11 +211,10 @@ if query and len(query) >= 2:
         st.caption("Suggested (from the index's own vocabulary):")
         cols = st.columns(min(len(suggestions), 6))
         for i, term in enumerate(suggestions[:6]):
-            if cols[i].button(term, key=f"sugg_{term}",
-                              help="Replace your last word with this term from the indexed vocabulary."):
-                words = query.strip().split(" ")[:-1]
-                st.session_state.kb_query = " ".join(words + [term])
-                st.rerun()
+            visible_term = term[:1].upper() + term[1:]
+            cols[i].button(visible_term, key=f"sugg_{term}",
+                           on_click=apply_suggested_search_term, args=(term,),
+                           help="Replace your last word with this term from the indexed vocabulary.")
 
 if query:
     results = search(query, k=5)

@@ -63,7 +63,21 @@ class WorkflowAcceptanceTests(unittest.TestCase):
                 self.assertEqual([item["action"] for item in audit if item["actor"] == "human"],
                                  ["decision: escalate", "decision: compliance_return"])
                 self.assertEqual(runtime_db.resolve_status("Open", runtime_db.get_latest_decision_per_case()["CASE-041"]),
-                                 "Returned to Investigator")
+                                 "Compliance returned — information needed")
+
+    def test_compliance_outcomes_have_distinct_queue_statuses(self):
+        self.assertEqual(
+            runtime_db.resolve_status("Open", {"action": "compliance_ack"}),
+            "Compliance reviewed — no further action",
+        )
+        self.assertEqual(
+            runtime_db.resolve_status("Open", {"action": "compliance_return"}),
+            "Compliance returned — information needed",
+        )
+        self.assertEqual(
+            runtime_db.resolve_status("Open", {"action": "compliance_refer"}),
+            "Compliance referred onward — recorded",
+        )
 
 
 if __name__ == "__main__":

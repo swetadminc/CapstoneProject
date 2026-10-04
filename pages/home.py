@@ -28,7 +28,7 @@ import streamlit.components.v1 as components
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.runtime_db import get_latest_decision_per_case, resolve_status
 from project_identity import COURSE_LABEL, GROUP_LABEL, PROJECT_DESCRIPTION, PROJECT_NAME
-from ui_common import ROLES, require_login, page_flow, render_context_copilot
+from ui_common import ROLES, require_login, page_flow, render_context_copilot, workflow_role_picker_help
 
 st.set_page_config(page_title="InvestigateIQ", page_icon="🔎", layout="wide")
 user_name, user_role = require_login(allow_guest=True)
@@ -210,7 +210,7 @@ with demo_col:
             demo_name = st.text_input("Your name", key="home_demo_name",
                                       help="Display name attributed to decisions and audit events.")
             demo_role = st.radio("Your role", ROLES, horizontal=True, key="home_demo_role",
-                                 help="A workflow label only; this environment does not enforce role-based access.")
+                                 help=workflow_role_picker_help())
             if st.button("Open workspace", type="primary", key="home_demo_continue",
                          help="Open the workspace with this display name and role."):
                 if not demo_name.strip():
@@ -292,7 +292,7 @@ if os.path.exists(DB_PATH):
 st.subheader("Start here")
 
 NAV_CARDS = [
-    ("👥", "Project & Team", "Product aim, group details, and responsibility plan.", "See the planned responsibility areas for each member.", "pages/7_Project_Team.py"),
+    ("👥", "Project & Team", "Product aim, group details, and confirmed roster.", "Review the confirmed project roster.", "pages/7_Project_Team.py"),
     ("🗂️", "Case Queue", "Filter alerts by customer, status, and severity.", "Choose a case to begin an investigation.", "pages/0_Case_Queue.py"),
     ("🕵️", "Investigation Workspace", "Ask case questions and inspect cited records.", "Review findings, decide, and check the audit trail.", "pages/2_Investigation_Demo.py"),
     ("🛡️", "Compliance Queue", "Review cases escalated by an investigator.", "Record a separate human follow-up; no automatic filing.", "pages/3_Compliance_Queue.py"),

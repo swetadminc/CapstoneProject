@@ -57,25 +57,52 @@ df["current_status"] = df.apply(
 
 def category_chart(counts: pd.Series, category_title: str, count_title: str,
                    color: str, descriptions: dict[str, str] | None = None):
-    """Full-length labels and a plain-English hover card for each stored group."""
+    """Horizontal count chart with explicit axes, values, and a plain-English hover card."""
     chart_data = counts.rename("count").rename_axis("category").reset_index()
     chart_data["category"] = chart_data["category"].astype(str)
     chart_data["description"] = chart_data["category"].map(descriptions or {}).fillna(
         "A category recorded in the fictional source data; this count is not a finding of wrongdoing."
     )
-    return (
+    y_encoding = alt.Y(
+        "category:N",
+        title=category_title,
+        sort="-x",
+        axis=alt.Axis(labelLimit=350, labelFontSize=12, titleFontSize=13, titlePadding=14),
+    )
+    x_encoding = alt.X(
+        "count:Q",
+        title=count_title,
+        axis=alt.Axis(tickMinStep=1, labelFontSize=12, titleFontSize=13, titlePadding=14),
+    )
+    bars = (
         alt.Chart(chart_data)
         .mark_bar(color=color, cornerRadiusEnd=5, size=24)
         .encode(
-            y=alt.Y("category:N", title=category_title, sort="-x",
-                    axis=alt.Axis(labelLimit=350, labelFontSize=12)),
-            x=alt.X("count:Q", title=count_title, axis=alt.Axis(tickMinStep=1)),
+            y=y_encoding,
+            x=x_encoding,
             tooltip=[alt.Tooltip("category:N", title=category_title),
                      alt.Tooltip("count:Q", title=count_title, format=",d"),
                      alt.Tooltip("description:N", title="What this means")],
         )
-        .properties(height=max(170, 48 * len(chart_data)))
     )
+    values = alt.Chart(chart_data).mark_text(
+        align="right", baseline="middle", dx=-8, color="#FFFFFF", fontSize=12, fontWeight=700
+    ).encode(
+        y=alt.Y("category:N", sort="-x"),
+        x=alt.X("count:Q"),
+        text=alt.Text("count:Q", format=",d"),
+    )
+    return (bars + values).properties(height=max(170, 48 * len(chart_data)))
+
+
+def chart_display_name(value: object) -> str:
+    """Make an accidental numeric display name understandable in the activity chart."""
+    name = str(value or "").strip()
+    if not name:
+        return "Unnamed reviewer"
+    if name.isdigit():
+        return f"Demo investigator {name}"
+    return name
 
 
 SCENARIO_DESCRIPTIONS = {
@@ -136,34 +163,95 @@ with col4:
     st.caption("Percentage of that typology's stored alerts labelled High severity; not the probability of crime.")
 
 st.divider()
-st.subheader("Alert volume over time")
-weekly = df.set_index("alert_date").resample("W").size().rename("alerts")
-st.area_chart(weekly, color="#2E63BF")
-st.caption(f"X-axis: week ending date. Y-axis: number of stored alerts that week. "
-           f"Source dates span {df['alert_date'].min().date()} to {df['alert_date'].max().date()}.")
+st.subheader("Stored alert records by month")
+st.caption(
+    "Each bar shows how many fictional alert records have a source date in that calendar month. "
+    "This describes when records were dated; it is not a fraud trend or a measure of risk."
+)
+monthly = (
+    df.set_index("alert_date")
+    .resample("MS")
+    .size()
+    .rename("alert_count")
+    .rename_axis("month")
+    .reset_index()
+)
+monthly["month_label"] = monthly["month"].dt.strftime("%B %Y")
+monthly_chart = (
+    alt.Chart(monthly)
+    .mark_bar(color="#2E63BF", cornerRadiusTopLeft=5, cornerRadiusTopRight=5, size=34)
+    .encode(
+        x=alt.X(
+            "month:T",
+            title="Alert month (source date)",
+            axis=alt.Axis(format="%b %Y", labelAngle=-35, labelFontSize=12,
+                          titleFontSize=13, titlePadding=14),
+        ),
+        y=alt.Y(
+            "alert_count:Q",
+            title="Number of stored alerts",
+            axis=alt.Axis(tickMinStep=1, labelFontSize=12, titleFontSize=13, titlePadding=14),
+        ),
+        tooltip=[
+            alt.Tooltip("month_label:N", title="Alert month"),
+            alt.Tooltip("alert_count:Q", title="Stored alerts", format=",d"),
+        ],
+    )
+    .properties(height=280)
+)
+monthly_values = alt.Chart(monthly).mark_text(
+    baseline="top", dy=6, color="#FFFFFF", fontSize=12, fontWeight=700
+).encode(
+    x=alt.X("month:T"),
+    y=alt.Y("alert_count:Q"),
+    text=alt.Text("alert_count:Q", format=",d"),
+)
+st.altair_chart(monthly_chart + monthly_values, use_container_width=True)
+st.caption(
+    f"X-axis: calendar month based on the alert source date. Y-axis: number of stored alerts. "
+    f"Source dates span {df['alert_date'].min().date()} to {df['alert_date'].max().date()}."
+)
 
 st.divider()
-st.subheader("Decisions recorded, by investigator")
+st.subheader("Recorded human actions")
 if decisions.empty:
     st.info("No decisions have been recorded yet — this fills in as investigators work the queue.")
 else:
-    by_investigator = decisions["investigator"].value_counts()
+    decisions["chart_display_name"] = decisions["investigator"].map(chart_display_name)
+    by_investigator = decisions["chart_display_name"].value_counts()
     c1, c2 = st.columns([1, 1])
     with c1:
-        st.caption("Number of saved human actions attributed to each display name, not unique cases or staff productivity.")
-        st.altair_chart(category_chart(by_investigator, "Display name", "Saved actions", "#2E63BF"),
-                        use_container_width=True)
+        st.markdown("#### Actions saved by person")
+        st.caption(
+            "Each bar is one person's saved workflow actions. "
+            "Y-axis: investigator or reviewer display name. X-axis: number of saved human actions. "
+            "This is not a count of unique cases or a productivity score."
+        )
+        st.altair_chart(
+            category_chart(
+                by_investigator,
+                "Investigator or reviewer (display name)",
+                "Number of saved human actions",
+                "#2E63BF",
+                {name: "Saved workflow actions attributed to this display name; not a staff-performance rating."
+                 for name in by_investigator.index},
+            ),
+            use_container_width=True,
+        )
     with c2:
-        st.markdown("#### What people recorded")
-        st.caption("This groups every saved investigator and Compliance action. One case can have several actions, "
-                   "so these bars are not final case outcomes.")
+        st.markdown("#### Actions saved by type")
+        st.caption(
+            "Each bar groups saved Investigator and Compliance actions by action type. "
+            "Y-axis: recorded human action. X-axis: number of saved actions. "
+            "One case can have several actions, so these bars are not final case outcomes."
+        )
         action_labels = {
             "close": "Closed", "escalate": "Escalated", "request_info": "Info Requested",
             "compliance_ack": "Acknowledged", "compliance_return": "Returned to Investigator",
             "compliance_refer": "Referred",
         }
         mix = decisions["action"].map(lambda a: action_labels.get(a, a)).value_counts()
-        st.altair_chart(category_chart(mix, "Recorded human action", "Number of saved actions", "#087E74", {
+        st.altair_chart(category_chart(mix, "Recorded human action type", "Number of saved human actions", "#087E74", {
             "Closed": "An investigator recorded a close action with a rationale; this is not proof that funds were lawful.",
             "Escalated": "An investigator sent a case for Compliance review.",
             "Info Requested": "An investigator requested more information before deciding.",

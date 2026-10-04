@@ -122,6 +122,11 @@ class ContextCopilotTests(unittest.TestCase):
                 self.assertEqual(len(history), number * 2)
                 self.assertEqual(history[-2]["content"], question)
                 self.assertTrue(history[-1]["content"].strip())
+        transcript = "\n".join(item.value for item in app.get("markdown"))
+        self.assertIn("InvestigateIQ Copilot", transcript)
+        self.assertTrue(any("Conversation" in item.value and "scroll up" in item.value
+                            for item in app.get("caption")))
+        self.assertNotIn("Earlier messages", transcript)
 
     def test_admin_page_suggestions_send_repeatedly_without_message_field(self):
         app_path = Path(__file__).resolve().parents[1] / "app.py"

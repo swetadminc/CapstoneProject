@@ -265,21 +265,22 @@ function smallTag(slide,label,x,y,w,fill=C.pale,color=C.blue){
   note(s,'The public UI was smoke-tested on 2 October after commit 0501f6a: one saved fictional case survived reload, appeared in Queue, showed its exact FTS5 chunks and calculated review, and a named escalation appeared in Compliance. This does not prove persistence through another redeploy. Do not imply tests prove fraud accuracy, business value or regulatory compliance. Original uploaded KYC files: zero. Intake saves only numeric fictional batches and generated sample documents; its runtime cases do not run the existing six-agent/Gemini pipeline. ACC-1004 has two customer owners in the source, so code withholds attribution. A real rollout needs legal/compliance ownership, data permissions, authenticated ingestion, retention, official Indian regulatory review and evaluation.');
 }
 
-// 15 — team, carefully worded
+// 15 — confirmed roster, without attributing individual work
 {
-  const s=base('Proposed team responsibilities','14 / GROUP DISCUSSION');
+  const s=base('Confirmed project roster','14 / GROUP');
   const team=[
-    ['Rahul Chainani','Application development & integration'],
-    ['Lakshmi','Requirements & case-study mapping'],
-    ['Laxman Singh','User experience & walkthrough'],
-    ['Pankaj','AI workflow & evidence review'],
-    ['RS','QA & edge-case review'],
-    ['Sweta Singh','Course linkage & explanation']
+    ['Sweta Singh','Confirmed project member'],
+    ['Soumya','Confirmed project member'],
+    ['Lakshmi Dudgikar','Confirmed project member'],
+    ['Rahul Sharma','Confirmed project member'],
+    ['Laxman Singh','Confirmed project member'],
+    ['Pankaj Bharsakale','Confirmed project member'],
+    ['Rahul Chainani','Confirmed project member']
   ];
-  team.forEach((p,i)=>{let row=Math.floor(i/3),col=i%3,x=0.72+col*4.21,y=1.72+row*2.0;box(s,x,y,3.73,1.55,C.white,C.border);circle(s,x+0.19,y+0.28,0.55,i===5?C.violet:C.blue,p[0].split(' ').map(q=>q[0]).join('').slice(0,2));txt(s,p[0],x+0.88,y+0.2,2.62,0.46,{fontSize:17,bold:true});txt(s,p[1],x+0.89,y+0.74,2.58,0.6,{fontSize:13,color:C.muted});});
+  team.forEach((p,i)=>{let row=Math.floor(i/3),col=i%3,x=0.72+col*4.21,y=1.48+row*1.55;box(s,x,y,3.73,1.18,C.white,C.border);circle(s,x+0.19,y+0.25,0.5,i===6?C.violet:C.blue,p[0].split(' ').map(q=>q[0]).join('').slice(0,2));txt(s,p[0],x+0.82,y+0.17,2.72,0.38,{fontSize:15,bold:true});txt(s,p[1],x+0.82,y+0.6,2.72,0.3,{fontSize:11,color:C.muted});});
   box(s,0.78,6.06,11.77,0.53,C.gold,C.amber);
-  txt(s,'Proposed ownership for discussion—not a record of completed coding. Confirm names and actual work before submission.',0.99,6.17,11.3,0.28,{fontSize:12,bold:true,color:C.amber});
-  note(s,'These roles are proposed, not verified completed contributions. Do not tell the evaluation panel that a person wrote code without checking commits and asking the team. Rahul is known to be a strong developer per user input, but that does not establish authorship of each module. Confirm the official group name and full roster as well.');
+  txt(s,'Contact details are not displayed. Individual coding or role claims are not attributed in this walkthrough.',0.99,6.17,11.3,0.28,{fontSize:12,bold:true,color:C.amber});
+  note(s,'Use this slide only to introduce the confirmed roster. Do not attribute code, design, or project ownership to a specific person unless the team has separately verified that record.');
 }
 
 // 16 — closing code map

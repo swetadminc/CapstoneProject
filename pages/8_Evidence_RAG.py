@@ -95,17 +95,25 @@ if requested_case:
 views = ["Case records", "Rule Lab", "Source & chunks", "Search the index", "Method & code"]
 if fictional_intake_enabled():
     views.insert(2, "Fictional Intake")
-view = st.segmented_control(
-    "Explore evidence", views,
-    key="rag_view", required=True,
-    help="Case records: selected alert, customer, KYC summaries and ledger chunks. "
-         "Rule Lab: calculate an illustrative review signal from supplied numbers. "
-         "Fictional Intake (when enabled): inspect a saved generated packet. "
-         "Source & chunks: read synthetic playbooks and their exact passages. "
-         "Search the index: keyword-search those playbook passages. "
-         "Method & code: inspect the Python behind these steps. None of these views verifies "
-         "an original identity document or decides whether funds are lawful.",
-)
+with st.container(border=True, key="iq_bordered_evidence_explorer"):
+    st.markdown(
+        '<div class="iq-evidence-nav-heading"><span aria-hidden="true">🔎</span><div>'
+        '<strong>Evidence exploration workspace</strong>'
+        '<small>Trace the source record, exact indexed chunk, and retrieval method behind a finding.</small>'
+        '</div></div>',
+        unsafe_allow_html=True,
+    )
+    view = st.segmented_control(
+        "Explore evidence", views,
+        key="rag_view", required=True,
+        help="Case records: selected alert, customer, KYC summaries and ledger chunks. "
+             "Rule Lab: calculate an illustrative review signal from supplied numbers. "
+             "Fictional Intake (when enabled): inspect a saved generated packet. "
+             "Source & chunks: read synthetic playbooks and their exact passages. "
+             "Search the index: keyword-search those playbook passages. "
+             "Method & code: inspect the Python behind these steps. None of these views verifies "
+             "an original identity document or decides whether funds are lawful.",
+    )
 context_case_id = st.session_state.get("active_case_id")
 
 if view == "Case records":

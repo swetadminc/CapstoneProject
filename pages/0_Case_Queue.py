@@ -134,6 +134,26 @@ df["queue_status"] = df.apply(lambda row: resolve_status(row["status"], decision
 df["has_cache"] = df["case_id"].isin(CACHED_CASES)
 evidence_by_case = load_case_evidence_summary()
 
+COMPLIANCE_STATUS_DETAILS = {
+    "Compliance reviewed — no further action": (
+        "Compliance selected “Acknowledge — no further action.” The escalation has been reviewed and is "
+        "locked in this tool; the recorded rationale remains in the audit trail."
+    ),
+    "Compliance returned — information needed": (
+        "Compliance selected “Return to investigator for more information.” The investigator can reopen the "
+        "workspace, gather the requested evidence, and record a new action."
+    ),
+    "Compliance referred onward — recorded": (
+        "Compliance selected “Referred onward.” This is a recorded internal outcome only: this tool did not "
+        "draft or file anything with a regulator."
+    ),
+}
+
+
+def queue_status_note(status: str) -> str:
+    """A hover definition that makes the selected workflow outcome unambiguous."""
+    return COMPLIANCE_STATUS_DETAILS.get(status, "Latest workflow status for this case.")
+
 # ------------------------------------------------------------------
 # KPI strip
 # ------------------------------------------------------------------
@@ -165,7 +185,10 @@ kpis = [
     ("📋", "Source closed", int((df["queue_status"] == "Source closed — unverified").sum()), "iq-kpi-amber", "Evidence not established", "Imported alerts labelled closed by the source workbook, without an auditable close action in this application. Most lack case-specific supporting documents; do not treat these as verified legitimate activity."),
     ("🔥", "High severity", int((df["severity"] == "High").sum()), "iq-kpi-red", "Source priority label", "Alerts labelled High in the fictional source data. Severity is independent of case status, so this count overlaps the status cards."),
 ]
-known_status = df["queue_status"].isin(["Open", "Info Requested", "Escalated", "Source closed — unverified", "Demo closed — simulated"]) | df["queue_status"].str.startswith("Closed")
+known_status = df["queue_status"].isin([
+    "Open", "Info Requested", "Escalated", "Source closed — unverified", "Demo closed — simulated",
+    *COMPLIANCE_STATUS_DETAILS,
+]) | df["queue_status"].str.startswith("Closed")
 other_status_count = int((~known_status).sum())
 if other_status_count:
     kpis.append(("🔄", "Other workflow", other_status_count, "iq-kpi-blue", "Additional review states",
@@ -198,7 +221,7 @@ fc1, fc2, fc3, fc4 = st.columns([1.2, 1.2, 1.2, 2])
 severity_filter = fc1.multiselect("Severity", sorted(df["severity"].unique()), default=[],
                                   help="The alert priority label supplied by the fictional source data, such as High or Medium. It is not a fraud verdict. Select one or more values, or leave empty to show all.")
 status_filter = fc2.multiselect("Status", sorted(df["queue_status"].unique()), default=[],
-                                help="Current workflow state. A latest recorded human action overrides the original source status; Info Requested does not mean documents were received, and Escalated does not mean a report was filed.")
+                                help="Current workflow state. The latest recorded human action overrides the original source status. Compliance outcomes appear separately: reviewed/no further action, returned/information needed, and referred onward/recorded only.")
 scenario_filter = fc3.multiselect("Scenario", sorted(df["scenario_id"].unique()), default=[],
                                   help="The rule or typology identifier attached to the fictional alert, such as rapid movement or structuring. It describes why review was prompted, not a proven crime.")
 search = fc4.text_input("Search customer name", placeholder="e.g. Apex",
@@ -215,6 +238,16 @@ if search:
     filtered = filtered[filtered["customer_name"].str.contains(search, case=False, na=False, regex=False)]
 
 st.caption(f"Showing {len(filtered)} of {len(df)} alerts")
+with st.expander("How Compliance outcomes appear in the Case Queue"):
+    st.markdown(
+        "**Compliance reviewed — no further action:** the officer selected **Acknowledge**; the case is "
+        "read-only in this tool.\n\n"
+        "**Compliance returned — information needed:** the officer selected **Return**; the investigator "
+        "can continue the review and record a new action.\n\n"
+        "**Compliance referred onward — recorded:** the officer selected **Referred onward**; the referral "
+        "is recorded in the audit trail, but this tool did not file anything with a regulator.\n\n"
+        "Use the **Status** filter to show exactly the cases in any one of these outcomes."
+    )
 
 # ------------------------------------------------------------------
 # Queue table
@@ -248,6 +281,7 @@ for _, row in filtered.iterrows():
                       unsafe_allow_html=True)
     queue_status = row["queue_status"]
     is_closed = queue_status == "Source closed — unverified" or queue_status == "Demo closed — simulated" or queue_status.startswith("Closed")
+    status_note = queue_status_note(queue_status)
     evidence_inventory = evidence_by_case.get(row["case_id"], {
         "indexed_case_records": 0, "document_summaries": 0, "original_uploads": 0,
     })
@@ -262,16 +296,52 @@ for _, row in filtered.iterrows():
             st.switch_page("pages/8_Evidence_RAG.py")
     else:
         cols[4].markdown(f'<span class="iq-mobile-label">Status: </span>'
-                         f'<span class="iq-queue-status">{status_badge(queue_status)}</span>',
+                         f'<span class="iq-queue-status" title="{escape(status_note)}" '
+                         f'aria-label="{escape(status_note)}">{status_badge(queue_status)}</span>',
                           unsafe_allow_html=True)
     rule_text = escape(str(row["trigger_rule"] or "—"))
     cols[5].markdown(f'<span class="iq-mobile-label">Rule(s): </span>'
                      f'<span class="iq-queue-rule" title="{rule_text}" aria-label="{rule_text}">{rule_text}</span>',
                       unsafe_allow_html=True)
-    # A short visible label and vector icon make the action recognizable even
-    # when the table is narrower; the tooltip names the exact case.
-    if cols[6].button("Open", icon=":material/open_in_new:", key=f"inv_{row['case_id']}",
-                       help=f"Open {row['case_id']} in the Investigation Workspace to inspect recorded activity, source passages and the human decision form.",
+    # The action says whether work can continue. A closed case remains
+    # viewable for evidence and audit purposes, but its decision is locked.
+    if queue_status.startswith("Closed"):
+        action_label = "View decision"
+        action_icon = ":material/visibility:"
+        action_help = (f"View {row['case_id']}'s recorded human closure and audit trail. "
+                       "The completed decision cannot be changed from the workspace.")
+    elif queue_status == "Demo closed — simulated":
+        action_label = "View example"
+        action_icon = ":material/visibility:"
+        action_help = (f"View {row['case_id']}'s clearly labelled fictional closure example and its "
+                       "supporting synthetic records. It is not an authentic proof of lawful funds.")
+    elif queue_status == "Source closed — unverified":
+        action_label = "Review record"
+        action_icon = ":material/manage_search:"
+        action_help = (f"Review {row['case_id']}'s imported source-closed label and available evidence. "
+                       "No human closure is recorded in this application.")
+    elif queue_status == "Compliance reviewed — no further action":
+        action_label = "View outcome"
+        action_icon = ":material/visibility:"
+        action_help = (f"View {row['case_id']}'s recorded Compliance acknowledgement and audit trail. "
+                       "No further action is available in this tool.")
+    elif queue_status == "Compliance referred onward — recorded":
+        action_label = "View referral"
+        action_icon = ":material/visibility:"
+        action_help = (f"View {row['case_id']}'s recorded referral outcome and audit trail. "
+                       "This application did not file anything externally.")
+    elif queue_status == "Compliance returned — information needed":
+        action_label = "Continue review"
+        action_icon = ":material/replay:"
+        action_help = (f"Continue {row['case_id']}'s investigation after Compliance requested more information. "
+                       "The prior escalation and Compliance rationale remain in the audit trail.")
+    else:
+        action_label = "Open case"
+        action_icon = ":material/open_in_new:"
+        action_help = (f"Open {row['case_id']} in the Investigation Workspace to inspect recorded activity, "
+                       "source passages and the human decision form.")
+    if cols[6].button(action_label, icon=action_icon, key=f"inv_{row['case_id']}",
+                       help=action_help,
                        use_container_width=True):
         st.session_state["selected_case_id"] = row["case_id"]
         st.switch_page("pages/2_Investigation_Demo.py")

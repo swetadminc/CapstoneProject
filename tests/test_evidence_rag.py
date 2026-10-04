@@ -171,6 +171,8 @@ class EvidenceRagTests(unittest.TestCase):
         page = "\n".join(item.value for item in app.get("markdown"))
         self.assertIn("knowledge_search.py", page)
         self.assertNotIn("github.com", page)
+        self.assertIn("Evidence exploration workspace", page)
+        self.assertIn("Trace the source record, exact indexed chunk", page)
         labels = [item.label for item in app.get("expander")]
         self.assertEqual(sum(label[:1].isdigit() for label in labels), 8)
         self.assertIn("3 · Split case records", labels)
@@ -191,6 +193,17 @@ class EvidenceRagTests(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertTrue(any(item.label == "BM25 score" for item in app.get("metric")))
         self.assertTrue(any("not a percentage" in item.value for item in app.get("info")))
+
+    def test_admin_search_suggestion_updates_the_query_in_a_callback(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        app.session_state["user_name"] = "Knowledge Reviewer"
+        app.session_state["user_role"] = "Admin"
+        app.session_state["kb_admin_unlocked"] = True
+        app.switch_page("pages/1_Admin_Knowledge_Base.py").run(timeout=30)
+        app.text_input(key="kb_query").set_value("source of fund").run(timeout=30)
+        next(item for item in app.button if item.label == "Funds").click().run(timeout=30)
+        self.assertFalse(app.exception)
+        self.assertEqual(app.text_input(key="kb_query").value, "source of funds")
 
     def test_document_selection_shows_its_chunks(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)

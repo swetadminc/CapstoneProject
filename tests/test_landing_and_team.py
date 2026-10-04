@@ -9,7 +9,8 @@ from xml.etree import ElementTree
 
 from streamlit.testing.v1 import AppTest
 
-from project_identity import PROJECT_SLOGAN, ROSTER_NOTE, TEAM_MEMBERS, TEAM_RESPONSIBILITIES
+from project_identity import PROJECT_SLOGAN, ROSTER_NOTE, TEAM_MEMBERS
+from ui_common import WORKFLOW_ROLE_DETAILS
 from scripts.build_ui_walkthrough import SCENES
 from ui_common import _GLOBAL_CSS, severity_badge, status_badge
 
@@ -64,9 +65,12 @@ class LandingAndTeamTests(unittest.TestCase):
                              "{http://www.w3.org/2000/svg}svg")
         self.assertEqual(PROJECT_SLOGAN, "Trace the evidence. Own the decision.")
 
-    def test_roster_keeps_sweta_last_without_implying_a_lead_role(self):
-        self.assertEqual(TEAM_MEMBERS[-1], "Sweta Singh")
-        self.assertEqual(set(TEAM_RESPONSIBILITIES), set(TEAM_MEMBERS))
+    def test_roster_matches_confirmed_names_without_contact_details(self):
+        self.assertEqual(TEAM_MEMBERS, (
+            "Sweta Singh", "Soumya", "Lakshmi Dudgikar", "Rahul Sharma",
+            "Laxman Singh", "Pankaj Bharsakale", "Rahul Chainani",
+        ))
+        self.assertNotIn("@", " ".join(TEAM_MEMBERS))
 
     def test_guest_can_see_landing_video_before_identity(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -98,7 +102,7 @@ class LandingAndTeamTests(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertEqual(app.session_state["user_role"], "Compliance Officer")
 
-    def test_team_page_shows_source_roster_without_assigned_roles(self):
+    def test_team_page_shows_confirmed_roster_without_contact_details_or_roles(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
         app.switch_page("pages/7_Project_Team.py").run(timeout=30)
         self.assertFalse(app.exception)
@@ -106,12 +110,16 @@ class LandingAndTeamTests(unittest.TestCase):
         for member in TEAM_MEMBERS:
             self.assertIn(member, page)
         self.assertEqual(page.count('class="iq-team-card"'), len(TEAM_MEMBERS))
-        self.assertLess(page.index("Team member: Rahul Chainani"), page.index("Team member: Sweta Singh"))
-        self.assertIn("Application development &amp; integration", page)
-        self.assertIn("Course linkage &amp; project explanation", page)
-        self.assertIn("not claims about work already completed", ROSTER_NOTE)
+        self.assertLess(page.index("Team member: Sweta Singh"), page.index("Team member: Rahul Chainani"))
+        self.assertIn("does not attribute individual work or roles", ROSTER_NOTE)
+        self.assertTrue(any("Contact details are intentionally not displayed" in item.value
+                            for item in app.get("info")))
+        self.assertNotIn("@gmail.com", page)
+        self.assertNotIn("Application development &amp; integration", page)
         self.assertNotIn("CEO / Product Visionary", page)
         self.assertNotIn("Solution Architect", page)
+        self.assertTrue(any(item.value == "Workflow roles in this demo" for item in app.get("subheader")))
+        self.assertEqual(set(WORKFLOW_ROLE_DETAILS), {"Investigator", "Team Lead", "Compliance Officer", "Admin"})
 
     def test_team_settings_can_switch_theme(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -166,14 +174,19 @@ class LandingAndTeamTests(unittest.TestCase):
         self.assertIn("max-width: 100%; white-space: normal", _GLOBAL_CSS)
         self.assertIn("Human closed", page)
         self.assertIn("Action", page)
-        self.assertTrue(any(str(item.key).startswith("inv_") and item.label == "Open"
+        self.assertTrue(any(str(item.key).startswith("inv_") and item.label in {
+                            "Open case", "View decision", "View example", "Review record"}
                             for item in app.button))
+        self.assertFalse(any(str(item.key).startswith("inv_") and item.label == "Open"
+                             for item in app.button))
         self.assertTrue(any(str(item.key).startswith("evidence_CASE-") and item.label == "Evidence"
                             for item in app.button))
         self.assertIn("Info requested", page)
         self.assertTrue(any("High severity is a separate source label" in item.value
                             for item in app.get("caption")))
         self.assertTrue(any(item.label == "What these queue numbers mean"
+                            for item in app.get("expander")))
+        self.assertTrue(any(item.label == "How Compliance outcomes appear in the Case Queue"
                             for item in app.get("expander")))
 
     def test_selected_case_survives_investigation_rerun(self):

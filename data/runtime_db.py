@@ -263,8 +263,12 @@ def get_latest_decision_per_case() -> dict:
 
 _DECISION_STATUS_LABELS = {
     "close": "Closed", "escalate": "Escalated", "request_info": "Info Requested",
-    "compliance_ack": "Closed (Compliance)", "compliance_return": "Returned to Investigator",
-    "compliance_refer": "Referred (Compliance)",
+    # A Compliance action must be visible as its own outcome in Case Queue.
+    # Do not collapse acknowledgement into a generic "closed" label: that
+    # hides both who acted and what the next permitted step is.
+    "compliance_ack": "Compliance reviewed — no further action",
+    "compliance_return": "Compliance returned — information needed",
+    "compliance_refer": "Compliance referred onward — recorded",
 }
 
 

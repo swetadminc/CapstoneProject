@@ -21,6 +21,36 @@ from streamlit.errors import StreamlitSecretNotFoundError
 from project_identity import COURSE_LABEL, GROUP_LABEL, PROJECT_SLOGAN
 
 ROLES = ["Investigator", "Team Lead", "Compliance Officer", "Admin"]
+WORKFLOW_ROLE_DETAILS = {
+    "Investigator": (
+        "Investigates an alert",
+        "Selects a case, reviews its evidence and Copilot answers, then records a reasoned human decision.",
+        "Cannot prove money is lawful or unlawful, or file anything automatically.",
+    ),
+    "Team Lead": (
+        "Coordinates the investigation workflow",
+        "Uses the Case Queue, Analytics, and audit trail to monitor workload and help investigators prioritise follow-up.",
+        "This demo label does not grant extra permissions or replace an investigator's accountable decision.",
+    ),
+    "Compliance Officer": (
+        "Performs a second human review",
+        "Reviews cases escalated to the Compliance Queue and can acknowledge the review or return a case for more information.",
+        "Does not automatically submit a regulatory filing or make a legal finding.",
+    ),
+    "Admin": (
+        "Maintains the demo knowledge and rules",
+        "After the separate passcode check, can inspect fictional source material, retrieval chunks, and rule settings.",
+        "The role label alone does not unlock restricted screens or alter case evidence.",
+    ),
+}
+
+
+def workflow_role_picker_help() -> str:
+    """Plain-language explanation shown by every workflow-role picker."""
+    summaries = [f"{role}: {details[0].lower()}." for role, details in WORKFLOW_ROLE_DETAILS.items()]
+    return "Choose a workflow label for this demo session. " + " ".join(summaries) + (
+        " This is not authenticated role-based access; restricted admin pages still require their passcode."
+    )
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 LOGO_ICON = os.path.join(_ASSETS_DIR, "logo_icon.svg")
 LOGO_FULL_LIGHT = os.path.join(_ASSETS_DIR, "logo_full.svg")
@@ -235,8 +265,8 @@ _GLOBAL_CSS = """
 .iq-hero-badge { background: var(--iq-primary); color: white; padding: 1px 7px; border-radius: 5px; font-size: 11px; margin-left: 6px; }
 .iq-nav-title { font-size: 17px; font-weight: 700; color: var(--iq-heading); margin: 0 0 2px 0; line-height: 1.3; }
 .iq-nav-detail {
-    color: var(--iq-text-secondary); font-size: 13px; line-height: 1.45;
-    margin: 0; padding-left: 10px; border-left: 2px dotted var(--iq-card-border);
+    color: var(--iq-text-secondary); font-size: 13px; line-height: 1.35;
+    margin: 4px 0 0; padding-left: 8px; border-left: 2px dotted var(--iq-card-border);
 }
 .iq-nav-icon {
     display: inline-flex; align-items: center; justify-content: center;
@@ -244,6 +274,42 @@ _GLOBAL_CSS = """
     background: #EAF2FF; border: 1px solid #B9D0F5; border-radius: 8px;
     font-size: 17px;
 }
+.iq-role-grid {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+    margin: 6px 0;
+}
+.iq-role-card {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--iq-primary) 6%, var(--iq-card-bg)), var(--iq-card-bg));
+    border: 1px solid color-mix(in srgb, var(--iq-primary) 28%, var(--iq-card-border));
+    border-left: 4px solid var(--iq-primary); border-radius: 10px; padding: 10px 12px;
+}
+.iq-role-card h3 { color: var(--iq-heading); font-size: 15px; margin: 0 0 3px; }
+.iq-role-card p { color: var(--iq-text-secondary); font-size: 12px; line-height: 1.4; margin: 4px 0; }
+.iq-role-card .iq-role-purpose { color: var(--iq-heading); font-weight: 700; }
+.iq-role-card .iq-role-boundary { color: var(--iq-primary); }
+@media (max-width: 700px) { .iq-role-grid { grid-template-columns: 1fr; } }
+.st-key-iq_bordered_evidence_explorer {
+    margin: 10px 0 14px; padding: 10px 14px 12px !important;
+    border: 2px solid transparent !important; border-radius: 15px !important;
+    background: linear-gradient(135deg, #F7FBFF, #F4F0FF 56%, #EDFCF7) padding-box,
+                linear-gradient(110deg, #477FE0, #8B65D8 52%, #22A98D) border-box !important;
+    box-shadow: 0 7px 20px rgba(57, 86, 158, 0.12);
+}
+.iq-evidence-nav-heading { display: flex; align-items: center; gap: 9px; margin: 0 0 5px; }
+.iq-evidence-nav-heading > span {
+    display: inline-flex; align-items: center; justify-content: center; width: 31px; height: 31px;
+    border-radius: 9px; background: linear-gradient(135deg, #DCEBFF, #EDE4FF); font-size: 17px;
+}
+.iq-evidence-nav-heading strong { display: block; color: var(--iq-heading); font-size: 15px; line-height: 1.2; }
+.iq-evidence-nav-heading small { display: block; color: var(--iq-text-secondary); font-size: 12px; line-height: 1.3; margin-top: 2px; }
+.st-key-iq_bordered_evidence_explorer [data-testid="stSegmentedControl"] {
+    padding: 3px; border-radius: 10px; background: rgba(255, 255, 255, 0.55);
+}
+.st-key-iq_bordered_evidence_explorer [data-testid="stSegmentedControl"] button[aria-pressed="true"] {
+    background: linear-gradient(120deg, #315FB8, #087E74) !important; color: #FFFFFF !important;
+    border-color: #174999 !important; box-shadow: 0 3px 8px rgba(33, 86, 171, 0.24);
+}
+.st-key-iq_bordered_evidence_explorer [data-testid="stSegmentedControl"] button[aria-pressed="true"] * { color: #FFFFFF !important; }
 /* Keep the shared Copilot on the page, independent of the collapsible
    Streamlit sidebar. The closed launcher is deliberately small; the open
    panel stays inside the viewport and scrolls its own conversation. */
@@ -306,19 +372,23 @@ _GLOBAL_CSS = """
     width: fit-content; max-width: 93%; margin: 8px 0 12px;
     padding: 9px 11px; border: 1px solid var(--iq-card-border);
     border-radius: 13px; background: var(--iq-card-bg);
-    overflow-wrap: anywhere;
+    overflow-wrap: anywhere; font-size: 13px; line-height: 1.45;
 }
 .iq-chat-message.iq-chat-user {
     margin-left: auto; background: #E5EFFD; border-color: #A7C5EF;
 }
-.iq-chat-message.iq-chat-assistant { margin-right: auto; }
+.iq-chat-message.iq-chat-assistant {
+    margin-right: auto; color: #075F66; background: linear-gradient(135deg, #F0FFFD, #E8F7FF);
+    border-color: #3AAFA2; transform: rotate(-0.22deg); transform-origin: left center;
+}
 .iq-chat-message.iq-chat-assistant[data-iq-latest-answer="true"] {
     border-color: #3AAFA2; box-shadow: 0 0 0 2px rgba(58, 175, 162, .16);
 }
 .iq-chat-speaker {
-    display: block; margin-bottom: 4px; font-size: 11px;
+    display: block; margin-bottom: 4px; font-size: 10px;
     font-weight: 800; color: var(--iq-text-secondary);
 }
+.iq-chat-message.iq-chat-assistant .iq-chat-speaker { color: #087E74; }
 .st-key-iq_floating_copilot_open [data-testid="stFormSubmitButton"] button {
     background: linear-gradient(120deg, #087E74, #0A9A89) !important;
     border: 1.5px solid #51C8B8 !important;
@@ -409,9 +479,13 @@ _GLOBAL_CSS = """
     display: flex; align-items: center; min-height: 42px;
     color: var(--iq-heading); font-size: 16px; font-weight: 800; line-height: 1.2;
 }
-.iq-floating-context { color: var(--iq-text-secondary); font-size: 12px; line-height: 1.25; }
+.iq-floating-context {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    color: var(--iq-text-secondary); font-size: 12px; line-height: 1.3; margin: 4px 0 8px;
+}
+.iq-floating-page { min-width: 0; overflow-wrap: anywhere; }
 .iq-selected-case, .iq-workspace-case-badge strong {
-    display: inline-block; padding: 2px 8px; border-radius: 8px;
+    display: inline-block; max-width: 100%; overflow-wrap: anywhere; padding: 2px 8px; border-radius: 8px;
     background: #2058B2; border: 1px solid #7FB5FF;
     color: #FFFFFF; font-weight: 800; letter-spacing: .03em;
 }
@@ -553,12 +627,33 @@ _GLOBAL_CSS = """
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Keep the home navigation informative without leaving a large blank panel. */
+/* Compact home navigation: each card keeps one purpose and one next step,
+   while hover provides the visual affordance without adding scroll height. */
 [class*="st-key-iq_bordered_nav_"] {
-    min-height: 164px;
+    min-height: 128px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    padding: 11px 14px !important;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--iq-card-bg) 0%, color-mix(in srgb, var(--iq-primary) 5%, var(--iq-card-bg)) 100%) !important;
+    border: 1.5px solid color-mix(in srgb, var(--iq-primary) 32%, var(--iq-card-border)) !important;
+    box-shadow: 0 3px 10px rgba(30, 67, 126, 0.06);
+}
+[class*="st-key-iq_bordered_nav_"]:hover {
+    transform: translateY(-3px);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--iq-primary) 13%, var(--iq-card-bg)) 0%, color-mix(in srgb, #08A79B 10%, var(--iq-card-bg)) 100%) !important;
+    border-color: var(--iq-primary) !important;
+    box-shadow: 0 10px 23px rgba(30, 67, 126, 0.17);
+}
+[class*="st-key-iq_bordered_nav_"] [data-testid="stPageLink-NavLink"] {
+    color: var(--iq-primary) !important;
+    font-weight: 700 !important;
+    padding: 2px 0 0 !important;
+    border-radius: 8px;
+}
+[class*="st-key-iq_bordered_nav_"]:hover [data-testid="stPageLink-NavLink"] {
+    color: #087D75 !important;
 }
 [class*="st-key-iq_bordered_nav_"] > [data-testid="stElementContainer"]:last-child {
     margin-top: auto;
@@ -622,9 +717,32 @@ _DARK_OVERRIDE_CSS = """
     --iq-card-border: #2E3B52;
     --iq-text-secondary: #9FB0C9;
     --iq-heading: #E8EDF7;
+    --iq-tooltip-icon: #B8D8FF;
+}
+.stApp [data-testid="stTooltipIcon"] {
+    display: inline-flex !important; align-items: center; justify-content: center;
+    color: var(--iq-tooltip-icon) !important; opacity: 1 !important;
+    border-radius: 50%; filter: drop-shadow(0 0 2px rgba(184, 216, 255, 0.34));
+}
+.stApp [data-testid="stTooltipIcon"] svg,
+.stApp [data-testid="stTooltipIcon"] path {
+    fill: var(--iq-tooltip-icon) !important; stroke: var(--iq-tooltip-icon) !important;
+    opacity: 1 !important;
+}
+.stApp [data-testid="stTooltipIcon"]:hover,
+.stApp [data-testid="stTooltipIcon"]:focus-within {
+    color: #FFFFFF !important; filter: drop-shadow(0 0 4px rgba(126, 190, 255, 0.85));
+}
+.stApp [data-testid="stTooltipIcon"]:hover svg,
+.stApp [data-testid="stTooltipIcon"]:hover path,
+.stApp [data-testid="stTooltipIcon"]:focus-within svg,
+.stApp [data-testid="stTooltipIcon"]:focus-within path {
+    fill: #FFFFFF !important; stroke: #FFFFFF !important;
 }
 .st-key-iq_floating_chat_history { background: #142033 !important; border-color: #648AC4 !important; }
 .iq-chat-message.iq-chat-user { background: #254267 !important; border-color: #648AC4 !important; }
+.iq-chat-message.iq-chat-assistant { background: linear-gradient(135deg, #143D49, #183B55) !important; border-color: #3AAFA2 !important; color: #D8FFF9 !important; }
+.iq-chat-message.iq-chat-assistant .iq-chat-speaker { color: #71E2D6 !important; }
 .st-key-iq_floating_copilot_open { border-color: #79A9EA !important; }
 .st-key-iq_floating_copilot_open [data-testid="stButton"] button,
 .st-key-iq_floating_copilot_open [data-testid="stSelectbox"] .react-aria-ComboBox > div {
@@ -695,6 +813,34 @@ _DARK_OVERRIDE_CSS = """
     color: #E8EDF7 !important;
 }
 [data-testid="stCaptionContainer"], .iq-kpi-label, small, caption { color: #9FB0C9 !important; }
+/* The knowledge-base method chips are authored as light-mode HTML spans.
+   The broad dark-text rule above otherwise leaves pale text on their pale
+   backgrounds, so give them their own dark surface and readable foreground. */
+.stApp .iq-chip {
+    background: #263B5A !important; color: #D5E8FF !important;
+    border-color: #78A9E8 !important; box-shadow: 0 1px 4px rgba(0, 0, 0, .22);
+}
+/* Streamlit's segmented-control track keeps a light surface by default.
+   Scope this to Evidence & RAG's keyed control so no other button changes. */
+.stApp .st-key-rag_view [data-testid="stSegmentedControl"],
+.stApp .st-key-rag_view {
+    background: #18263B !important; border-radius: 10px;
+}
+.stApp .st-key-rag_view [data-testid="stSegmentedControl"] button,
+.stApp .st-key-rag_view button {
+    background: #223651 !important; border-color: #5278AE !important; color: #D9E9FF !important;
+}
+.stApp .st-key-rag_view [data-testid="stSegmentedControl"] button *,
+.stApp .st-key-rag_view button * { color: #D9E9FF !important; }
+.stApp .st-key-rag_view [data-testid="stSegmentedControl"] button[aria-pressed="true"],
+.stApp .st-key-rag_view button[aria-pressed="true"],
+.stApp .st-key-rag_view [role="radio"][aria-checked="true"] {
+    background: linear-gradient(120deg, #2E63BF, #087E74) !important;
+    border-color: #75D2C5 !important; color: #FFFFFF !important;
+}
+.stApp .st-key-rag_view [data-testid="stSegmentedControl"] button[aria-pressed="true"] *,
+.stApp .st-key-rag_view button[aria-pressed="true"] *,
+.stApp .st-key-rag_view [role="radio"][aria-checked="true"] * { color: #FFFFFF !important; }
 [data-testid="stTextInput"] input, [data-testid="stTextArea"] textarea {
     background-color: #1B2536 !important; color: #E8EDF7 !important;
     border-color: #2E3B52 !important;
@@ -797,8 +943,14 @@ _STATUS_CLASS = {
     "Open": "iq-status-open", "Escalated": "iq-status-escalate", "Closed": "iq-status-close",
     "Source closed — unverified": "iq-status-open",
     "Demo closed — simulated": "iq-status-info",
-    "Info Requested": "iq-status-info", "Closed (Compliance)": "iq-status-close",
-    "Returned to Investigator": "iq-status-info", "Referred (Compliance)": "iq-status-escalate",
+    "Info Requested": "iq-status-info",
+    "Compliance reviewed — no further action": "iq-status-close",
+    "Compliance returned — information needed": "iq-status-info",
+    "Compliance referred onward — recorded": "iq-status-escalate",
+    # Retain colors for any older in-memory display values while the clearer
+    # labels above are used for all newly resolved statuses.
+    "Closed (Compliance)": "iq-status-close", "Returned to Investigator": "iq-status-info",
+    "Referred (Compliance)": "iq-status-escalate",
 }
 
 
@@ -926,7 +1078,7 @@ def require_login(allow_guest: bool = False):
                 )
                 name = st.text_input("Your name", help="Display name recorded beside decisions and audit events.")
                 role = st.radio("Your role", ROLES, horizontal=True,
-                                help="A workflow label; this environment does not enforce role-based access.")
+                                help=workflow_role_picker_help())
                 if st.button("Continue", type="primary", use_container_width=True,
                              help="Open the workspace with this display name and role."):
                     if not name.strip():
@@ -1050,9 +1202,10 @@ def render_context_copilot(page: str, case_id: str | None = None,
         </script>""", unsafe_allow_javascript=True)
         if st.session_state.get("iq_floating_copilot_expanded", False):
             st.markdown('<span class="iq-chat-expanded" hidden></span>', unsafe_allow_html=True)
-        st.markdown('<div class="iq-floating-context">' + escape(page) + ' · ' +
-                    (f'<span class="iq-selected-case">Case {escape(case_id)}</span>'
-                     if case_id else 'No case selected') + '</div>',
+        context_case = (f'<span class="iq-selected-case">Case {escape(case_id)}</span>'
+                        if case_id else '<span>No case selected</span>')
+        st.markdown('<div class="iq-floating-context"><span class="iq-floating-page">' +
+                    escape(page) + '</span>' + context_case + '</div>',
                     unsafe_allow_html=True)
         if "user_name" not in st.session_state:
             st.info("Enter your workspace with a display name to ask the Copilot.")
@@ -1112,7 +1265,7 @@ def render_context_copilot(page: str, case_id: str | None = None,
         def render_chat_turn(turn_index: int) -> None:
             turn = history[turn_index]
             role_class = "iq-chat-user" if turn["role"] == "user" else "iq-chat-assistant"
-            speaker = "You" if turn["role"] == "user" else "Copilot"
+            speaker = "You" if turn["role"] == "user" else "InvestigateIQ Copilot"
             st.markdown(
                 f'<div class="iq-chat-message {role_class}" '
                 f'{"data-iq-latest-answer=\"true\" " if turn["role"] == "assistant" and turn_index == len(history) - 1 else ""}'
@@ -1146,16 +1299,12 @@ def render_context_copilot(page: str, case_id: str | None = None,
                         st.session_state["context_pending_rag_view"] = "Case records"
                     st.switch_page("pages/8_Evidence_RAG.py")
 
-        if len(history) > 2:
-            with st.expander(f"Earlier messages ({len(history) - 2})"):
-                for turn_index in range(max(0, len(history) - 20), len(history) - 2):
-                    render_chat_turn(turn_index)
         with st.container(border=False, key="iq_floating_chat_history"):
             if not history:
                 st.caption("Ask a question about this page or the selected case. Answers appear here.")
             else:
-                st.caption("Latest exchange · hover over your question to read it in full")
-            for turn_index in range(max(0, len(history) - 2), len(history)):
+                st.caption("Conversation · scroll up to review earlier messages. Hover over a question to read it in full.")
+            for turn_index in range(len(history)):
                 render_chat_turn(turn_index)
         if st.session_state.pop(f"iq_copilot_focus_{scope}", False):
             # Static script only: no case text or user input enters JavaScript.
