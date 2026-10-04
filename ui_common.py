@@ -852,6 +852,15 @@ _DARK_OVERRIDE_CSS = """
 .stApp .st-key-rag_view [data-testid="stSegmentedControl"] button[aria-pressed="true"] *,
 .stApp .st-key-rag_view button[aria-pressed="true"] *,
 .stApp .st-key-rag_view [role="radio"][aria-checked="true"] * { color: #FFFFFF !important; }
+/* The Evidence & RAG panel keeps a pale gradient header in dark mode. The
+   global dark text rule must not turn that heading and its segmented-control
+   label into near-white text on a light surface. */
+.stApp .st-key-iq_bordered_evidence_explorer .iq-evidence-nav-heading strong,
+.stApp .st-key-rag_view label,
+.stApp .st-key-rag_view label * { color: #173C78 !important; }
+.stApp .st-key-iq_bordered_evidence_explorer .iq-evidence-nav-heading small {
+    color: #49627F !important;
+}
 [data-testid="stTextInput"] input, [data-testid="stTextArea"] textarea {
     background-color: #1B2536 !important; color: #E8EDF7 !important;
     border-color: #2E3B52 !important;

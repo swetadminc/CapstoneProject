@@ -78,6 +78,8 @@ class SidebarContrastTests(unittest.TestCase):
         self.assertIn('color: #D9E9FF !important', _DARK_OVERRIDE_CSS)
         self.assertIn('button[aria-pressed="true"]', _DARK_OVERRIDE_CSS)
         self.assertIn('[role="radio"][aria-checked="true"]', _DARK_OVERRIDE_CSS)
+        self.assertIn('iq-evidence-nav-heading strong', _DARK_OVERRIDE_CSS)
+        self.assertIn('color: #173C78 !important', _DARK_OVERRIDE_CSS)
 
 
 if __name__ == "__main__":
