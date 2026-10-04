@@ -627,33 +627,44 @@ _GLOBAL_CSS = """
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Compact home navigation: each card keeps one purpose and one next step,
-   while hover provides the visual affordance without adding scroll height. */
+/* Compact home navigation: one concise purpose plus a clear gradient action,
+   so the landing grid is meaningfully shorter than the previous two-copy
+   cards while keeping every destination understandable. */
 [class*="st-key-iq_bordered_nav_"] {
-    min-height: 128px;
+    min-height: 104px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    padding: 11px 14px !important;
+    padding: 9px 12px !important;
     overflow: hidden;
-    background: linear-gradient(135deg, var(--iq-card-bg) 0%, color-mix(in srgb, var(--iq-primary) 5%, var(--iq-card-bg)) 100%) !important;
-    border: 1.5px solid color-mix(in srgb, var(--iq-primary) 32%, var(--iq-card-border)) !important;
-    box-shadow: 0 3px 10px rgba(30, 67, 126, 0.06);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--iq-primary) 7%, var(--iq-card-bg)) 0%, var(--iq-card-bg) 52%, color-mix(in srgb, #08A79B 5%, var(--iq-card-bg)) 100%) !important;
+    border: 2px solid transparent !important;
+    background-origin: border-box !important;
+    background-clip: padding-box, border-box !important;
+    background-image: linear-gradient(135deg, color-mix(in srgb, var(--iq-primary) 7%, var(--iq-card-bg)) 0%, var(--iq-card-bg) 52%, color-mix(in srgb, #08A79B 5%, var(--iq-card-bg)) 100%), linear-gradient(115deg, #6A9AF0, #86CFC2 52%, #B08BEA) !important;
+    box-shadow: 0 3px 11px rgba(30, 67, 126, 0.08);
+}
+[class*="st-key-iq_bordered_nav_"] .iq-nav-title { font-size: 16px; margin: 0; line-height: 1.2; }
+[class*="st-key-iq_bordered_nav_"] [data-testid="stCaptionContainer"] {
+    margin: 3px 0 5px !important; font-size: 12px; line-height: 1.28;
 }
 [class*="st-key-iq_bordered_nav_"]:hover {
     transform: translateY(-3px);
-    background: linear-gradient(135deg, color-mix(in srgb, var(--iq-primary) 13%, var(--iq-card-bg)) 0%, color-mix(in srgb, #08A79B 10%, var(--iq-card-bg)) 100%) !important;
-    border-color: var(--iq-primary) !important;
+    background-image: linear-gradient(135deg, color-mix(in srgb, var(--iq-primary) 15%, var(--iq-card-bg)) 0%, var(--iq-card-bg) 50%, color-mix(in srgb, #08A79B 13%, var(--iq-card-bg)) 100%), linear-gradient(115deg, #2E63BF, #08A79B 52%, #875CD1) !important;
     box-shadow: 0 10px 23px rgba(30, 67, 126, 0.17);
 }
 [class*="st-key-iq_bordered_nav_"] [data-testid="stPageLink-NavLink"] {
-    color: var(--iq-primary) !important;
-    font-weight: 700 !important;
-    padding: 2px 0 0 !important;
-    border-radius: 8px;
+    display: inline-flex !important; align-items: center; justify-content: center;
+    width: max-content; min-height: 26px; margin-top: auto; padding: 3px 10px !important;
+    color: #FFFFFF !important; font-size: 12px; font-weight: 750 !important;
+    border: 1px solid #6ACFC1 !important; border-radius: 999px;
+    background: linear-gradient(115deg, #2E63BF, #087E74) !important;
+    box-shadow: 0 2px 7px rgba(20, 86, 153, .18); transition: transform .16s ease, filter .16s ease;
 }
+[class*="st-key-iq_bordered_nav_"] [data-testid="stPageLink-NavLink"] * { color: #FFFFFF !important; }
 [class*="st-key-iq_bordered_nav_"]:hover [data-testid="stPageLink-NavLink"] {
-    color: #087D75 !important;
+    background: linear-gradient(115deg, #1C4FAD, #056D65) !important;
+    filter: brightness(1.06); transform: translateY(-1px);
 }
 [class*="st-key-iq_bordered_nav_"] > [data-testid="stElementContainer"]:last-child {
     margin-top: auto;

@@ -2,6 +2,7 @@
 
 import re
 import unittest
+from pathlib import Path
 
 from ui_common import _DARK_OVERRIDE_CSS, _GLOBAL_CSS
 
@@ -47,10 +48,11 @@ class SidebarContrastTests(unittest.TestCase):
     def test_home_navigation_cards_are_compact_and_have_hover_feedback(self):
         nav_rule = re.search(r'\[class\*="st-key-iq_bordered_nav_"\]\s*\{([^}]+)\}', _GLOBAL_CSS)
         self.assertIsNotNone(nav_rule)
-        self.assertRegex(nav_rule.group(1), r'\bmin-height:\s*128px')
-        self.assertIn('linear-gradient', nav_rule.group(1))
+        self.assertRegex(nav_rule.group(1), r'\bmin-height:\s*104px')
+        self.assertIn('background-image', nav_rule.group(1))
         self.assertIn('[class*="st-key-iq_bordered_nav_"]:hover', _GLOBAL_CSS)
         self.assertIn('translateY(-3px)', _GLOBAL_CSS)
+        self.assertIn('Open section →', (Path(__file__).resolve().parents[1] / "pages" / "home.py").read_text(encoding="utf-8"))
 
     def test_floating_copilot_context_wraps_page_and_case_badge(self):
         self.assertIn('.iq-floating-context {', _GLOBAL_CSS)

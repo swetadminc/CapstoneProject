@@ -292,15 +292,15 @@ if os.path.exists(DB_PATH):
 st.subheader("Start here")
 
 NAV_CARDS = [
-    ("👥", "Project & Team", "Product aim, group details, and confirmed roster.", "Review the confirmed project roster.", "pages/7_Project_Team.py"),
-    ("🗂️", "Case Queue", "Filter alerts by customer, status, and severity.", "Choose a case to begin an investigation.", "pages/0_Case_Queue.py"),
-    ("🕵️", "Investigation Workspace", "Ask case questions and inspect cited records.", "Review findings, decide, and check the audit trail.", "pages/2_Investigation_Demo.py"),
-    ("🛡️", "Compliance Queue", "Review cases escalated by an investigator.", "Record a separate human follow-up; no automatic filing.", "pages/3_Compliance_Queue.py"),
-    ("📊", "Analytics", "Explore alert volumes and severity patterns.", "Read workload trends, not fraud verdicts.", "pages/5_Analytics.py"),
-    ("🔍", "Global Search", "Find a customer, account, or transaction.", "Open the matching record for its context.", "pages/6_Global_Search.py"),
-    ("🧩", "Evidence & RAG", "Inspect fictional KYC, alerts, and ledger sources.", "Compare source text, exact chunks, and evidence gaps.", "pages/8_Evidence_RAG.py"),
-    ("🔐", "Admin: Knowledge Base", "Browse the indexed investigation guidance.", "Check the source text behind a retrieved passage.", "pages/1_Admin_Knowledge_Base.py"),
-    ("⚙️", "Admin: Rule Config", "Preview thresholds against fictional alerts.", "A red match means review, not proven wrongdoing.", "pages/4_Admin_Rule_Config.py"),
+    ("👥", "Project & Team", "Meet the confirmed team and view the workflow roles used in this demo.", "pages/7_Project_Team.py"),
+    ("🗂️", "Case Queue", "Filter alerts and choose the next case for human review.", "pages/0_Case_Queue.py"),
+    ("🕵️", "Investigation Workspace", "Review case records, cited evidence, and the human decision trail.", "pages/2_Investigation_Demo.py"),
+    ("🛡️", "Compliance Queue", "Review escalations and record the separate Compliance outcome.", "pages/3_Compliance_Queue.py"),
+    ("📊", "Analytics", "Read clearly labelled volumes, workflow actions, and status patterns.", "pages/5_Analytics.py"),
+    ("🔍", "Global Search", "Find a fictional customer, account, or transaction with context.", "pages/6_Global_Search.py"),
+    ("🧩", "Evidence & RAG", "Trace a finding to its source record, exact chunk, and evidence gaps.", "pages/8_Evidence_RAG.py"),
+    ("🔐", "Admin: Knowledge Base", "Explore indexed playbooks, chunks, search, and retrieval method.", "pages/1_Admin_Knowledge_Base.py"),
+    ("⚙️", "Admin: Rule Config", "Preview review thresholds against fictional alert records.", "pages/4_Admin_Rule_Config.py"),
 ]
 
 # Fresh st.columns(3) per row of 3, rather than one set of columns indexed
@@ -314,14 +314,13 @@ NAV_CARDS = [
 for row_start in range(0, len(NAV_CARDS), 3):
     row = NAV_CARDS[row_start:row_start + 3]
     cols = st.columns(3)
-    for j, (icon, label, help_text, next_step, target) in enumerate(row):
+    for j, (icon, label, help_text, target) in enumerate(row):
         with cols[j]:
             st.markdown(f'<div class="iq-rise iq-stagger-{j + 1}">', unsafe_allow_html=True)
             with st.container(border=True, key=f"iq_bordered_nav_{row_start + j}"):
                 st.markdown(f'<p class="iq-nav-title"><span class="iq-nav-icon" aria-hidden="true">{icon}</span>{label}</p>', unsafe_allow_html=True)
                 st.caption(help_text)
-                st.markdown(f'<p class="iq-nav-detail">{next_step}</p>', unsafe_allow_html=True)
-                st.page_link(target, label="Open →", help=help_text)
+                st.page_link(target, label="Open section →", help=help_text)
             st.markdown('</div>', unsafe_allow_html=True)
 
 st.divider()
