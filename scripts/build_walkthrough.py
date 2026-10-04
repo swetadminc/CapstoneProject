@@ -258,8 +258,34 @@ try {{
     result = subprocess.run([powershell, "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
                             capture_output=True, text=True)
     if result.returncode:
-        raise RuntimeError(f"Windows speech synthesis failed: {result.stderr.strip()}")
-    if result.stdout.strip():
+        # Some clean Windows build agents have System.Speech installed but no
+        # registered voice. Fall back to the installed Edge TTS CLI so a
+        # narrated walkthrough can still be rebuilt from the same storyboard.
+        edge_tts = shutil.which("edge-tts")
+        if not edge_tts:
+            raise RuntimeError(f"Windows speech synthesis failed: {result.stderr.strip()}")
+        ffmpeg = find_ffmpeg()
+        print("Windows speech voices unavailable; using Edge TTS fallback (en-US-JennyNeural).")
+        entries = json.loads(manifest.read_text(encoding="utf-8"))
+        for entry in entries:
+            wav_path = Path(entry["path"])
+            mp3_path = wav_path.with_suffix(".mp3")
+            edge_result = subprocess.run(
+                [edge_tts, "--voice", "en-US-JennyNeural", "--text", entry["text"],
+                 "--write-media", str(mp3_path)],
+                capture_output=True, text=True,
+            )
+            if edge_result.returncode or not mp3_path.is_file() or mp3_path.stat().st_size < 1024:
+                raise RuntimeError(f"Edge TTS narration failed: {edge_result.stderr.strip()}")
+            convert = subprocess.run(
+                [ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-i", str(mp3_path),
+                 "-ac", "1", "-ar", "22050", str(wav_path)],
+                capture_output=True, text=True,
+            )
+            mp3_path.unlink(missing_ok=True)
+            if convert.returncode or not wav_path.is_file():
+                raise RuntimeError(f"Could not convert Edge TTS narration: {convert.stderr.strip()}")
+    elif result.stdout.strip():
         print(result.stdout.strip())
     for track in tracks:
         if not track.is_file() or track.stat().st_size < 1024:

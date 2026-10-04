@@ -53,7 +53,7 @@ SCENES = [
      "narration": "Home explains what this product does and gives a route into the Case Queue. The left navigation also includes Investigation Workspace, Evidence and R A G, Compliance Queue, Analytics, Global Search, an information page, and two admin screens. The floating Ask Investigate IQ launcher stays at the lower right, independent of the navigation menu. Opening it does not change the case or leave the current page. We will visit each operational screen.",
      "caption": "Pages on the left; floating Copilot at the lower right.", "target": (1180, 660)},
     {"screen": "48_public_queue_current.png", "title": "3 · Understand the Case Queue",
-     "narration": "The Case Queue is where an investigator begins. It lists fictional alerts with severity, status, scenario, and recorded trigger-rule metadata. The counts and filters help find work, but an alert is not evidence of a crime. This is not connected to a live bank monitoring system. The example we will use is Case zero four one, Coastal Wholesale Traders, a high-severity structuring-style alert.",
+     "narration": "The Case Queue is where an investigator begins. It lists fictional alerts with severity, status, scenario, and recorded trigger-rule metadata. The counts and filters help find work, but an alert is not evidence of a crime. This is not connected to a live bank monitoring system. A closed or Compliance-reviewed row can expose its Evidence button so the supporting records are inspectable; its action label is not an invitation to reopen a completed decision. The example we will use is Case zero four one, Coastal Wholesale Traders, a high-severity structuring-style alert.",
      "caption": "Queue counts orient the investigator; they do not prove wrongdoing.", "target": (711, 462)},
     {"screen": "49_public_queue_filtered.png", "title": "Find and Open CASE-041",
      "narration": "Type Coastal into the customer filter. The list narrows to Case zero four one. Its row shows the customer, the structuring alert label, high severity, open status, and recorded rule R three. The clearly labeled Open button takes us directly to this case's Investigation Workspace. The rule label is source-dataset metadata; this screen does not independently recalculate the alert. We open the case to check what actually happened.",
@@ -113,18 +113,18 @@ SCENES = [
     {"screen": "15_public_reasoned_decision.png", "title": "Our Proposed Next Step",
      "narration": "For this example, Request more information is the cautious option shown in the form. The proposed rationale asks for the business explanation of the cash-deposit cluster and agreements with Retail Partner A and B before a final conclusion. That is not the same as declaring the activity harmless; it keeps the issue open for follow-up. The rationale is drafted here. Until Submit decision is pressed, no decision is recorded and the case does not move to Compliance.",
      "caption": "A draft rationale alone does not record a decision.", "target": (747, 350)},
-    {"screen": "26_public_intake_compliance.jpg", "title": "8 · What Compliance Receives",
-     "narration": "Now we open the Compliance Queue. The Case zero four one form was not submitted, so that example did not create an escalation. The case shown here is a separate fictional transaction packet that an investigator explicitly escalated with a written reason. We will inspect how that packet was created shortly. Compliance can review the reason, acknowledge the case, return it for information, or record a referral decision. The product does not automatically file a suspicious transaction report or communicate with a regulator.",
-     "caption": "A submitted fictional escalation appears with its human rationale.", "target": (825, 421)},
-    {"screen": "17_public_analytics.png", "title": "9 · Analytics",
-     "narration": "Analytics summarizes the fictional alert set by severity, scenario, status, and time. It is a workload and exploration view: users can see how many alerts are open or resolved and which patterns occur in the sample. It does not measure real-world crime detection, false positives, or model accuracy. Those claims would need independent evaluation and real bank data, which Investigate IQ does not have.",
-     "caption": "Descriptive workload charts, not model-performance proof.", "target": (142, 262)},
+    {"screen": "26_public_intake_compliance.jpg", "title": "8 · What Compliance Receives", "visual": "compliance_states",
+     "narration": "Now we open the Compliance Queue. The Case zero four one form was not submitted, so that example did not create an escalation. The case shown here is a separate fictional transaction packet that an investigator explicitly escalated with a written reason. Compliance can record three distinct outcomes. Acknowledge means Compliance reviewed it and needs no further action, so the queue shows Compliance reviewed — no further action. Return means the investigator must provide more information, so the queue shows Compliance returned — information needed. Refer means an onward referral was recorded, so the queue shows Compliance referred onward — recorded; it is not a filing. These labels make the outcome visible on the Case Queue and the audit trail. The product does not automatically file a suspicious transaction report or communicate with a regulator.",
+     "caption": "Acknowledge → reviewed; Return → information needed; Refer → recorded onward referral."},
+    {"screen": "17_public_analytics.png", "title": "9 · Analytics", "visual": "analytics",
+     "narration": "Analytics is descriptive, so let us name every graph precisely. Alerts by severity counts the stored High, Medium, and Low labels. Alerts by typology counts alert categories such as structuring or velocity. Current status counts the latest workflow state, including source status and human or Compliance outcomes. High-severity share by typology is the proportion of each typology carrying the High label; it is not a probability of crime. Stored alert records by month counts fictional records dated in each month; it is not a risk trend. Finally, recorded human actions by person and by action type count saved workflow events, not staff productivity, case quality, or final outcomes. The axes and tooltips identify the unit for each chart. None of these graphs measures real-world crime detection, false positives, or model accuracy; that would require independent evaluation and real bank data.",
+     "caption": "Six descriptive views: labels, workflow state, time, and recorded actions — never a verdict."},
     {"screen": "18_public_global_search.png", "title": "10 · Global Search",
      "narration": "Global Search is the quickest cross-reference tool. Search Coastal and the site locates the customer, related case, account, and transactions in the fictional dataset. A result can take us back to the Investigation Workspace, so we do not have to remember a case number. Evidence and R A G is different: it lets us inspect source documents and search guidance or case-evidence chunks within their scope. Search is a pointer to records, not a conclusion.",
      "caption": "Find linked records, then inspect their source evidence.", "target": (784, 500)},
-    {"screen": "19_public_team.png", "title": "11 · About InvestigateIQ",
-     "narration": "This information page identifies Investigate IQ and explains its purpose. It is separate from the investigation workflow: opening it does not change a case, its evidence, or a recorded decision. We now return to the operational screens.",
-     "caption": "Product information is separate from case decisions.", "target": (142, 127)},
+    {"screen": "19_public_team.png", "title": "11 · Project & Team",
+     "narration": "Project and the role guide explain who owns which part of this demonstration. The Investigator selects a case, reviews evidence, and records the accountable decision. The lead coordinates the investigation workflow and follow-up. The Compliance Officer performs the second human review of escalations and can acknowledge or return them. The Admin maintains the fictional knowledge base and rule previews after the separate passcode check. The confirmed roster is shown by name only: Sweta Singh, Soumya, Lakshmi Dudgikar, Rahul Sharma, Laxman Singh, Pankaj Bharsakale, and Rahul Chainani. These are planning responsibilities, not production permissions; a role label cannot prove identity or alter evidence.",
+     "caption": "Named responsibilities clarify ownership; role labels are not authentication.", "target": (142, 127)},
     {"screen": "20_public_admin_knowledge.png", "title": "12 · Admin Knowledge Base",
      "narration": "Now open Admin Knowledge Base. Enter the configured passcode in the masked field and select Unlock; we never display or speak the code. The passcode opens an inspector, but it is only a limited gate, not bank-grade identity or role authorization. After unlocking, we can inspect the actual source documents, their chunks, and a live retrieval query.",
      "caption": "Masked passcode → read-only source and retrieval inspector", "target": (164, 366)},
@@ -344,6 +344,21 @@ def render_diagram(scene: dict, progress: float) -> Image.Image:
             ("03", "guidance_for()", "Filter retrieval to the alert scenario"),
             ("04", "validate()", "Check selected IDs and draft claims"),
         ]
+    elif scene["visual"] == "compliance_states":
+        nodes = [
+            ("A", "Acknowledge", "Compliance reviewed — no further action"),
+            ("R", "Return", "Compliance returned — information needed"),
+            ("→", "Refer", "Compliance referred onward — recorded"),
+        ]
+    elif scene["visual"] == "analytics":
+        nodes = [
+            ("01", "Severity", "Count stored High, Medium, Low labels"),
+            ("02", "Typology", "Count alert categories in the sample"),
+            ("03", "Status", "Latest source or human workflow state"),
+            ("04", "High share", "High-label proportion, not crime probability"),
+            ("05", "Month", "Fictional records dated in each month"),
+            ("06", "Human actions", "Saved events by person and action type"),
+        ]
     elif scene["visual"] == "intake":
         nodes = [
             ("01", "Numeric input", "Amounts and expected activity"),
@@ -490,8 +505,8 @@ def build() -> tuple[Path, Path]:
         command = [find_ffmpeg(), "-hide_banner", "-loglevel", "error", "-y",
                    "-f", "rawvideo", "-pixel_format", "rgb24", "-video_size", f"{WIDTH}x{HEIGHT}",
                    "-framerate", str(FPS), "-i", "-", "-i", str(narration),
-                   "-c:v", "libopenh264", "-b:v", "360k", "-pix_fmt", "yuv420p",
-                   "-c:a", "aac", "-b:a", "80k", "-metadata", f"title={VIDEO_TITLE}",
+                   "-c:v", "libopenh264", "-b:v", "300k", "-pix_fmt", "yuv420p",
+                   "-c:a", "aac", "-b:a", "64k", "-metadata", f"title={VIDEO_TITLE}",
                    "-movflags", "+faststart", str(pending_output)]
         process = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
         try:
