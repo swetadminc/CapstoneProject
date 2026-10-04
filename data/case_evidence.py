@@ -140,26 +140,30 @@ def _case_sources(conn: sqlite3.Connection, alert: sqlite3.Row) -> list[dict]:
     matched = conn.execute(
         "SELECT * FROM matched_case_metadata WHERE case_id=?", (case_id,)
     ).fetchone()
+    demo_closed = alert["status"] == "Closed - Simulated Example"
     alert_doc = _source(
         f"CASE-ALERT-{case_id}", cid, case_id, "alert_record", "Alert record",
         f"Recorded alert — {case_id}", [
             ("FICTIONAL COURSE DATA — this alert was calculated from the matched-case transaction fixture, "
              "not received from a third-party monitoring service. The app has no incoming alert API."
-             if matched else "FICTIONAL COURSE DATA — this is a record imported from the Alerts worksheet, "
+            if matched else "FICTIONAL COURSE DATA — this is a generated demonstration alert, "
+             "not an imported bank alert or third-party message. The app has no incoming alert API."
+            if demo_closed else "FICTIONAL COURSE DATA — this is a record imported from the Alerts worksheet, "
              "not a third-party monitoring message. The app has no incoming alert API."),
             f"Alert ID: {alert_id}; case ID: {case_id}; customer ID: {cid}; account ID: {account_id}. "
             f"Recorded alert type: {_value(alert['alert_type'])}. Scenario ID: {_value(alert['scenario_id'])}. "
             f"Recorded rule label: {_value(alert['trigger_rule'])}. Severity: {_value(alert['severity'])}. "
-            f"Imported source status: {_value(alert['status'])}. "
+            f"Source status: {_value(alert['status'])}. "
             f"Alert date: {_value(alert['alert_date'])}. Trigger transaction ID: "
             f"{_value(alert['trigger_transaction_id'])}.",
             ("The matched-case alert was recomputed from the ten source rows at build time. "
              "This remains a fictional test signal, not a bank alert or a legal/criminal verdict."
-             if matched else "The rule label is source-dataset metadata, not proof that the current app "
+             if matched else "This demonstration's 3.0x comparison is reproducible from its fictional customer and transaction rows. The simulated closure is not a human action or verification of economic purpose."
+             if demo_closed else "The rule label is source-dataset metadata, not proof that the current app "
              "independently recomputed the trigger. A monitoring signal is a reason to review records, "
              "not a legal or criminal verdict."),
-        ], "calculated_from_fictional_test_rows" if matched else "copied_from_alert_row",
-        "calculated_fictional_test_signal" if matched else "recorded_not_independently_recalculated",
+        ], "calculated_from_fictional_test_rows" if matched or demo_closed else "copied_from_alert_row",
+        "calculated_fictional_test_signal" if matched or demo_closed else "recorded_not_independently_recalculated",
         "alerts", [alert_id, case_id], _value(alert["alert_date"]),
     )
 

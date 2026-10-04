@@ -759,6 +759,7 @@ _SEVERITY_CLASS = {"High": "iq-sev-high", "Medium": "iq-sev-medium", "Low": "iq-
 _STATUS_CLASS = {
     "Open": "iq-status-open", "Escalated": "iq-status-escalate", "Closed": "iq-status-close",
     "Source closed — unverified": "iq-status-open",
+    "Demo closed — simulated": "iq-status-info",
     "Info Requested": "iq-status-info", "Closed (Compliance)": "iq-status-close",
     "Returned to Investigator": "iq-status-info", "Referred (Compliance)": "iq-status-escalate",
 }

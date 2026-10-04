@@ -79,7 +79,7 @@ class LandingAndTeamTests(unittest.TestCase):
         self.assertIn(PROJECT_SLOGAN, page)
         self.assertIn('aria-label="How this page works"', page)
         self.assertEqual([item.label for item in app.expander], ["ℹ️ Help & definitions"])
-        self.assertIn(("Seed Alerts", "44"), [(metric.label, metric.value) for metric in app.metric])
+        self.assertIn(("Seed Alerts", "45"), [(metric.label, metric.value) for metric in app.metric])
 
     def test_guest_can_enter_workspace_from_home(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -156,9 +156,9 @@ class LandingAndTeamTests(unittest.TestCase):
         app.switch_page("pages/0_Case_Queue.py").run(timeout=90)
         self.assertFalse(app.exception)
         page = "\n".join(item.value for item in app.get("markdown"))
-        self.assertEqual(page.count('class="iq-card iq-kpi-card'), 7)
+        self.assertEqual(page.count('class="iq-card iq-kpi-card'), 8)
         self.assertIn('class="iq-flashlight-svg"', page)
-        self.assertEqual(page.count('class="iq-kpi-info-icon"'), 7)
+        self.assertEqual(page.count('class="iq-kpi-info-icon"'), 8)
         self.assertIn("Source closed", page)
         self.assertIn("Human closed", page)
         self.assertIn("Action", page)

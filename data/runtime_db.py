@@ -241,6 +241,8 @@ def resolve_status(raw_alert_status: str, decision: dict | None) -> str:
     counting the dataset's original, pre-decision status."""
     if decision:
         return _DECISION_STATUS_LABELS.get(decision["action"], decision["action"])
+    if raw_alert_status == "Closed - Simulated Example":
+        return "Demo closed — simulated"
     if raw_alert_status.startswith("Closed"):
         # A workbook label is not a decision recorded in this application.
         # Keep it distinct from a reviewed, auditable human close action.

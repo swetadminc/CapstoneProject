@@ -110,11 +110,27 @@ def answer_imported_case_question(question: str, case_id: str, evidence: dict | 
                  "closure evidence", "closed case evidence", "legitimate", "legitimacy"):
         actions = get_human_actions(case_id)
         decision = actions[-1] if actions else None
-        cite(f"CASE-ALERT-{case_id}", "Imported source status:")
+        cite(f"CASE-ALERT-{case_id}", "Source status:")
         if decision and decision.get("action") == "close":
             sections.append(f"A human recorded a close action here ({decision['action_id']}) with this "
                             f"rationale: {decision['rationale']} This is an auditable human statement, "
                             "not an independently verified source or proof that money is lawful.")
+        elif alert["status"] == "Closed - Simulated Example":
+            credit = next((row for row in rows if row["txn_id"] == "TXN-DEMO-045-01"), None)
+            debit = next((row for row in rows if row["txn_id"] == "TXN-DEMO-045-02"), None)
+            sections.append("This is a fictional closed-case *example*, not a recorded human close action. "
+                            f"The source alert was prompted by a INR {credit['amount']:,.0f} credit "
+                            f"({credit['txn_id']}) versus the customer's declared INR "
+                            f"{customer['expected_monthly_credit']:,.0f} monthly credit baseline "
+                            f"({credit['amount'] / customer['expected_monthly_credit']:.1f}x). "
+                            f"A later INR {debit['amount']:,.0f} debit ({debit['txn_id']}) is recorded. "
+                            "The simulated review compares the credit with a fictional project invoice and "
+                            "service-acceptance summary, and the debit with a fictional supplier receipt. "
+                            "Those records have matching IDs and amounts but were authored for the same fixture; "
+                            "they are not independent confirmation and not proof of lawful funds.")
+            for doc in case_documents:
+                cite(f"SUMMARY-{doc['doc_id']}", f"Document ID: {doc['doc_id']}")
+            cite_rows([row for row in rows if row["txn_id"] in {"TXN-DEMO-045-01", "TXN-DEMO-045-02"}])
         elif alert["status"].startswith("Closed"):
             sections.append(f"The imported Alerts row labels {case_id} '{alert['status']}'. "
                             "No current close action was recorded in this application. The source label alone "
@@ -135,7 +151,7 @@ def answer_imported_case_question(question: str, case_id: str, evidence: dict | 
             sections.append("This source account has ambiguous customer ownership; the ledger cannot "
                             "safely be attributed to this customer until that collision is resolved.")
         return {"answer": "\n\n".join(sections), "chunk_ids": chunk_ids,
-                "txn_ids": [], "sources": chunk_ids, "source": "imported_case_database"}
+                "txn_ids": txn_ids, "sources": chunk_ids, "source": "imported_case_database"}
 
     if _mentions(query, "related to", "relationship between", "related parties"):
         return {"answer": "The available case evidence does not establish that relationship. "

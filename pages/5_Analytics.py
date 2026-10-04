@@ -105,10 +105,11 @@ with col2:
 col3, col4 = st.columns(2)
 with col3:
     st.subheader("Alerts by current status")
-    st.caption("Latest displayed status for each case. A source-closed label is kept separate from a human close action recorded here; it does not establish that the activity was legitimate.")
+    st.caption("Latest displayed status for each case. Source-closed, simulated demo closure, and recorded human close are distinct. None proves that funds are lawful.")
     status_counts = df["current_status"].value_counts()
     st.altair_chart(category_chart(status_counts, "Current case status", "Number of cases", "#27844E", {
         "Source closed — unverified": "The imported workbook marked this alert closed, but this application has no recorded investigator close action or complete supporting evidence for that outcome.",
+        "Demo closed — simulated": "A fictional example with linked transaction and document-summary rows. It has no authentic original files or recorded human close action.",
         "Closed": "A human close action was recorded here with a rationale; that decision does not prove the funds were lawful.",
     }),
                     use_container_width=True)

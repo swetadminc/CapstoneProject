@@ -104,10 +104,11 @@ kpis = [
     ("📨", "Info requested", int((df["queue_status"] == "Info Requested").sum()), "iq-kpi-blue", "Waiting for records", "Cases whose latest recorded human action requested more information. It does not mean the requested documents were received or verified."),
     ("🚨", "Escalated", int((df["queue_status"] == "Escalated").sum()), "iq-kpi-red", "Sent to Compliance queue", "Cases whose latest recorded human action was escalation. No external regulatory report is filed automatically."),
     ("✅", "Human closed", int(df["queue_status"].str.startswith("Closed").sum()), "iq-kpi-green", "Recorded decision", "Cases closed by a recorded human action in this application. A close decision is not proof that funds are lawful."),
+    ("🧩", "Demo closed", int((df["queue_status"] == "Demo closed — simulated").sum()), "iq-kpi-green", "Fictional example", "A clearly marked simulated closure with mutually consistent fictional transaction and document-summary rows. No human close action or authentic document is implied."),
     ("📋", "Source closed", int((df["queue_status"] == "Source closed — unverified").sum()), "iq-kpi-amber", "Evidence not established", "Imported alerts labelled closed by the source workbook, without an auditable close action in this application. Most lack case-specific supporting documents; do not treat these as verified legitimate activity."),
     ("🔥", "High severity", int((df["severity"] == "High").sum()), "iq-kpi-red", "Source priority label", "Alerts labelled High in the fictional source data. Severity is independent of case status, so this count overlaps the status cards."),
 ]
-known_status = df["queue_status"].isin(["Open", "Info Requested", "Escalated", "Source closed — unverified"]) | df["queue_status"].str.startswith("Closed")
+known_status = df["queue_status"].isin(["Open", "Info Requested", "Escalated", "Source closed — unverified", "Demo closed — simulated"]) | df["queue_status"].str.startswith("Closed")
 other_status_count = int((~known_status).sum())
 if other_status_count:
     kpis.append(("🔄", "Other workflow", other_status_count, "iq-kpi-blue", "Additional review states",

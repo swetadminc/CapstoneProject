@@ -19,9 +19,11 @@ import re
 if __package__:
     from .case_evidence import build_case_evidence
     from .matched_case_fixtures import seed_matched_cases
+    from .closed_case_fixture import seed_closed_example
 else:
     from case_evidence import build_case_evidence
     from matched_case_fixtures import seed_matched_cases
+    from closed_case_fixture import seed_closed_example
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(HERE)
@@ -185,6 +187,7 @@ def main():
         counts[table] = len(df)
 
     seed_matched_cases(conn)
+    seed_closed_example(conn)
     for table in SHEET_TO_TABLE.values():
         counts[table] = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
 

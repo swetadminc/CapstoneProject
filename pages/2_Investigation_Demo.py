@@ -162,7 +162,9 @@ if not case_id.startswith("FIC-CASE-"):
         case_doc_count = source_conn.execute(
             "SELECT COUNT(*) FROM documents WHERE case_id=?", (case_id,)).fetchone()[0]
     actions = get_human_actions(case_id)
-    if (source_status_row and source_status_row[0].startswith("Closed")
+    if source_status_row and source_status_row[0] == "Closed - Simulated Example":
+        st.info("Fictional closure example: the linked invoice, service acceptance, supplier receipt, and review worksheet are generated summaries, not authentic files or a recorded human decision. Compare their IDs and amounts with the ledger. This does not establish that funds are lawful.")
+    elif (source_status_row and source_status_row[0].startswith("Closed")
             and not (actions and actions[-1]["action"] == "close")):
         st.warning(
             f"Source-closed label, not a verified outcome: the imported alert says '{source_status_row[0]}', "
