@@ -25,6 +25,7 @@ from data.case_evidence import case_evidence_index_status
 from data.knowledge_search import DB_PATH
 from agents.grounding_validator import GroundingValidator
 from agents.transaction_investigation_agent import anchor_cached_evidence
+from agents.evidence_confidence import calculate_evidence_confidence
 from data.runtime_db import record_human_decision, get_audit_log, get_human_actions, log_audit_event
 from data.fictional_intake import (
     assess_fictional_case, fictional_intake_enabled, fictional_intake_path, init_fictional_intake,
@@ -304,6 +305,9 @@ if run:
                 st.error(f"Investigation failed: {e}")
                 st.stop()
             elapsed = time.time() - t0
+    result["report"]["_evidence_confidence"] = calculate_evidence_confidence(
+        result["report"], result["evidence"], result["guidance"]
+    )
     st.session_state[state_key] = {"result": result, "elapsed": elapsed,
                                    "use_cache": use_cache, "use_calculated": use_calculated}
 
@@ -324,6 +328,34 @@ if state_key in st.session_state:
                 st.write(f"- {note}")
     else:
         st.caption("Grounding Validator: no issues found by its selected checks; human review is still required.")
+
+    confidence = report.get("_evidence_confidence") or calculate_evidence_confidence(report, evidence, guidance)
+    with st.container(border=True):
+        st.markdown("### 🧭 Evidence confidence")
+        st.caption(
+            "A transparent, deterministic check of how well this draft is supported by the records supplied to this run."
+        )
+        confidence_score, confidence_rating, confidence_gaps = st.columns(3)
+        confidence_score.metric(
+            "Evidence support score", f"{confidence['score']} / 100",
+            help="A support-coverage score for this draft, not a risk, fraud, or outcome prediction.",
+        )
+        confidence_rating.metric("Evidence support", confidence["rating"])
+        confidence_gaps.metric("Known limitations", len(confidence["limitations"]))
+        st.progress(confidence["score"], text=f"{confidence['rating']} evidence support for this draft")
+        st.info(confidence["disclaimer"])
+        with st.expander("How this score was calculated"):
+            st.caption("The score is a visible rubric, not an opaque model confidence value.")
+            for component in confidence["components"]:
+                sign = "+" if component["points"] >= 0 else ""
+                st.write(
+                    f"**{component['label']}: {sign}{component['points']}** "
+                    f"of {component['max_points']} — {component['reason']}"
+                )
+            if confidence["limitations"]:
+                st.markdown("**What still needs human review**")
+                for limitation in confidence["limitations"]:
+                    st.write(f"- {limitation}")
 
     latest_decision = (get_human_actions(case_id) or [None])[-1]
     pdf_bytes = build_report_pdf(case_id, context, evidence, report, human_action=latest_decision)

@@ -167,6 +167,26 @@ def build_report_pdf(case_id: str, context: dict, evidence: dict, report: dict,
     )
     pdf.ln(3)
 
+    confidence = report.get("_evidence_confidence")
+    if confidence:
+        pdf.section_title("Evidence Confidence")
+        pdf.body(
+            f"Evidence support score: {confidence.get('score', 'N/A')} / 100 ({confidence.get('rating', 'N/A')})\n"
+            + confidence.get("disclaimer", "")
+        )
+        components = confidence.get("components") or []
+        if components:
+            pdf.body("Transparent score components:\n" + "\n".join(
+                f"- {item.get('label')}: {item.get('points')} of {item.get('max_points')} - {item.get('reason')}"
+                for item in components
+            ), size=9)
+        limitations = confidence.get("limitations") or []
+        if limitations:
+            pdf.body("Known limitations for human review:\n" + "\n".join(
+                f"- {item}" for item in limitations
+            ), size=9)
+        pdf.ln(3)
+
     pdf.section_title("Human Decision")
     if human_action:
         pdf.body(
