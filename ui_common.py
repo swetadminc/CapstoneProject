@@ -310,6 +310,68 @@ _GLOBAL_CSS = """
     border-color: #174999 !important; box-shadow: 0 3px 8px rgba(33, 86, 171, 0.24);
 }
 .st-key-iq_bordered_evidence_explorer [data-testid="stSegmentedControl"] button[aria-pressed="true"] * { color: #FFFFFF !important; }
+/* Evidence & RAG's transaction view is intentionally a balanced pair of
+   cards: the connector conveys the recorded ledger direction, not a proven
+   transfer chain. The compact gradient surface makes that distinction easy
+   to scan without consuming a second row. */
+.iq-transaction-flow {
+    display: grid; grid-template-columns: minmax(0, 1fr) 104px minmax(0, 1fr);
+    align-items: stretch; gap: 12px; margin: 10px 0 12px; padding: 10px;
+    border: 1.5px solid transparent; border-radius: 14px;
+    background: linear-gradient(135deg, #F8FBFF, #F2F7FF 55%, #F3FCF9) padding-box,
+                linear-gradient(115deg, #72A6F5, #9B80E2 48%, #39BCA5) border-box;
+    box-shadow: 0 5px 14px rgba(38, 85, 153, .10);
+}
+.iq-transaction-flow-card {
+    min-height: 116px; box-sizing: border-box; display: flex; flex-direction: column;
+    justify-content: center; gap: 8px; padding: 14px 16px; border: 1.5px solid #B9CEE9;
+    border-radius: 11px; background: rgba(255, 255, 255, .78);
+}
+.iq-transaction-flow-card strong { color: var(--iq-heading); font-size: 16px; line-height: 1.35; overflow-wrap: anywhere; }
+.iq-transaction-flow-card small { color: var(--iq-text-secondary); font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+.iq-transaction-flow-label { color: #225BAE; font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.iq-transaction-flow-arrow { position: relative; min-width: 0; display: flex; align-items: center; justify-content: center; }
+.iq-transaction-flow-arrow::before {
+    content: ''; position: absolute; left: 5px; right: 13px; top: calc(50% - 9px); height: 5px;
+    background: radial-gradient(circle, #477FE0 2px, transparent 2.7px) 0 0 / 10px 5px repeat-x;
+    animation: iq-transaction-dots 1.6s linear infinite;
+}
+.iq-transaction-flow-arrow::after {
+    content: ''; position: absolute; right: 7px; top: calc(50% - 14px); width: 11px; height: 11px;
+    border-top: 3px solid #238C82; border-right: 3px solid #238C82; transform: rotate(45deg);
+}
+.iq-transaction-flow-arrow span {
+    position: relative; z-index: 1; margin-top: 28px; color: var(--iq-text-secondary); font-size: 10px;
+    font-weight: 700; text-align: center; white-space: nowrap;
+}
+@keyframes iq-transaction-dots { to { background-position: 10px 0; } }
+.iq-case-confidence {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 11px 0 3px;
+    padding: 13px 16px; border: 2px solid transparent; border-radius: 14px;
+    background: linear-gradient(125deg, #F3F8FF, #F8F4FF 56%, #EEFBF7) padding-box,
+                linear-gradient(115deg, #477FE0, #916DE0 50%, #18A58E) border-box;
+    box-shadow: 0 6px 18px rgba(49, 82, 149, .12);
+}
+.iq-case-confidence h3 { margin: 2px 0; color: var(--iq-heading); font-size: 18px; }
+.iq-case-confidence p { margin: 0; color: var(--iq-text-secondary); font-size: 12px; line-height: 1.4; }
+.iq-confidence-eyebrow { color: #315FB8; font-size: 10px; font-weight: 800; letter-spacing: .08em; }
+.iq-confidence-score { min-width: 128px; box-sizing: border-box; padding: 8px 11px; border-radius: 11px; text-align: center; }
+.iq-confidence-score strong { font-size: 30px; line-height: 1; }
+.iq-confidence-score span { font-size: 12px; font-weight: 700; }
+.iq-confidence-score small { display: block; margin-top: 3px; font-size: 10px; font-weight: 800; }
+.iq-confidence-high { color: #087E74; background: #E2F8F1; border: 1px solid #69CBB9; }
+.iq-confidence-moderate { color: #9B6200; background: #FFF4D8; border: 1px solid #E8BC62; }
+.iq-confidence-low { color: #B42B35; background: #FFE8EB; border: 1px solid #ED9CA4; }
+@media (max-width: 750px) {
+    .iq-transaction-flow { grid-template-columns: 1fr; gap: 8px; }
+    .iq-transaction-flow-arrow { height: 44px; }
+    .iq-transaction-flow-arrow::before { left: 50%; right: auto; top: 3px; width: 5px; height: 28px; transform: translateX(-50%); background-size: 5px 10px; background-repeat: repeat-y; }
+    .iq-transaction-flow-arrow::after { right: auto; left: calc(50% - 7px); top: 22px; transform: rotate(135deg); }
+    .iq-transaction-flow-arrow span { margin-top: 33px; }
+    .iq-case-confidence { align-items: flex-start; flex-direction: column; }
+    .iq-confidence-score { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .iq-transaction-flow-arrow::before { animation: none; } }
 /* Keep the shared Copilot on the page, independent of the collapsible
    Streamlit sidebar. The closed launcher is deliberately small; the open
    panel stays inside the viewport and scrolls its own conversation. */
@@ -730,6 +792,23 @@ _DARK_OVERRIDE_CSS = """
     --iq-heading: #E8EDF7;
     --iq-tooltip-icon: #B8D8FF;
 }
+.iq-transaction-flow {
+    background: linear-gradient(135deg, #17283F, #1E314C 55%, #173F3C) padding-box,
+                linear-gradient(115deg, #6EA7FA, #B698F0 48%, #59D1BA) border-box;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .22);
+}
+.iq-transaction-flow-card { background: #1D2D47; border-color: #648AC4; }
+.iq-transaction-flow-label { color: #9FC7FF !important; }
+.iq-transaction-flow-arrow::before { background-image: radial-gradient(circle, #A7C8FF 2px, transparent 2.7px); }
+.iq-transaction-flow-arrow::after { border-color: #71E2D6; }
+.iq-case-confidence {
+    background: linear-gradient(125deg, #1A2D4A, #30284A 56%, #19433D) padding-box,
+                linear-gradient(115deg, #75A9F3, #B49AF0 50%, #63D6C0) border-box;
+}
+.iq-confidence-eyebrow { color: #A9C9FF !important; }
+.iq-confidence-high { color: #79E4D6 !important; background: #164A45; border-color: #43B6A4; }
+.iq-confidence-moderate { color: #FFD47A !important; background: #554323; border-color: #C9973B; }
+.iq-confidence-low { color: #FFB5BC !important; background: #542E38; border-color: #D36A78; }
 .stApp [data-testid="stTooltipIcon"] {
     display: inline-flex !important; align-items: center; justify-content: center;
     color: var(--iq-tooltip-icon) !important; opacity: 1 !important;

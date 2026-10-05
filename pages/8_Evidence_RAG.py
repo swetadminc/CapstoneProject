@@ -5,6 +5,7 @@ import os
 import sqlite3
 import sys
 from contextlib import closing
+from html import escape
 
 import streamlit as st
 
@@ -21,6 +22,9 @@ from data.fictional_intake import (
 )
 from agents.evidence_agent import EvidenceAgent
 from agents.grounding_validator import GroundingValidator
+from agents.investigation_agent import discover_evidence, gather_context
+from agents.calculated_summary import build_calculated_report
+from agents.evidence_confidence import calculate_evidence_confidence
 from ui_common import require_login, page_banner, page_flow, render_context_copilot
 
 st.set_page_config(page_title="InvestigateIQ — Evidence & RAG", page_icon="🧩", layout="wide")
@@ -81,6 +85,53 @@ def open_case_chunk(doc_id: str, chunk_id: str) -> None:
     st.session_state["rag_case_doc_id"] = doc_id
     st.session_state["rag_case_chunk_id"] = chunk_id
     st.session_state["rag_view"] = "Case records"
+
+
+def current_case_report_confidence(case_id: str) -> dict:
+    """Build a no-model, no-audit-log score from the records now being viewed.
+
+    This deliberately mirrors the Investigation Workspace's transparent
+    evidence-support rubric without replaying a historical saved report or
+    creating workflow/audit events merely because someone inspected evidence.
+    """
+    context = gather_context(case_id)
+    evidence = discover_evidence(context)
+    retrieved = EvidenceAgent().run(context["alert"], case_id)
+    evidence["documents"] = retrieved["documents"]
+    evidence["case_chunks"] = retrieved["case_chunks"]
+    report = GroundingValidator().validate(
+        build_calculated_report(context, evidence, retrieved["guidance"]),
+        evidence,
+        retrieved["guidance"],
+    )
+    return calculate_evidence_confidence(report, evidence, retrieved["guidance"])
+
+
+def transaction_flow_html(trace: dict) -> str:
+    """Render a balanced, directional endpoint view without implying settlement."""
+    def card(label: str, endpoint: dict) -> str:
+        account = escape(str(endpoint["account_id"] or "Unknown"))
+        name = escape(str(endpoint["name"]))
+        customer = escape(str(endpoint["customer_id"] or "Unknown"))
+        kyc = escape(str(endpoint["dataset_kyc_status"]))
+        originals = escape(str(endpoint["original_identity_files"]))
+        return (
+            '<article class="iq-transaction-flow-card">'
+            f'<span class="iq-transaction-flow-label">{label}</span>'
+            f'<strong>{account} · {name}</strong>'
+            f'<small>Customer: {customer} · Dataset KYC field: {kyc} · '
+            f'Original identity files: {originals}</small>'
+            '</article>'
+        )
+
+    return (
+        '<section class="iq-transaction-flow" aria-label="Recorded transaction endpoints">'
+        + card("Recorded source", trace["source"])
+        + '<div class="iq-transaction-flow-arrow" aria-label="Recorded direction from source to destination">'
+          '<span>Recorded direction</span></div>'
+        + card("Recorded destination", trace["destination"])
+        + '</section>'
+    )
 
 
 if "rag_view" not in st.session_state:
@@ -159,6 +210,33 @@ if view == "Case records":
         for gap in coverage["gaps"]:
             st.warning(gap)
         st.write(coverage["conclusion"])
+    confidence_key = f"case_report_confidence_{case_id}"
+    if confidence_key not in st.session_state:
+        try:
+            st.session_state[confidence_key] = current_case_report_confidence(case_id)
+        except (sqlite3.Error, ValueError) as exc:
+            st.session_state[confidence_key] = {"error": str(exc)}
+    confidence = st.session_state[confidence_key]
+    if confidence.get("error"):
+        st.warning("Current case-report evidence score is unavailable; inspect the source records and gaps directly.")
+    else:
+        score_class = {"High": "iq-confidence-high", "Moderate": "iq-confidence-moderate", "Low": "iq-confidence-low"}[confidence["rating"]]
+        st.markdown(
+            '<section class="iq-case-confidence" aria-label="Current case-report evidence support">'
+            '<div><span class="iq-confidence-eyebrow">CURRENT CASE REPORT</span>'
+            '<h3>Evidence support score</h3>'
+            '<p>Calculated after the current case records and retrieved guidance are assembled.</p></div>'
+            f'<div class="iq-confidence-score {score_class}"><strong>{confidence["score"]}</strong><span>/ 100</span>'
+            f'<small>{escape(confidence["rating"])} evidence support</small></div>'
+            '</section>',
+            unsafe_allow_html=True,
+        )
+        st.caption(confidence["disclaimer"] + " This current calculated score can differ from a saved historical report.")
+        with st.expander("Why this case-report score is highlighted"):
+            st.write("It makes the evidence limits visible before an investigator opens or relies on a draft.")
+            for component in confidence["components"]:
+                sign = "+" if component["points"] >= 0 else ""
+                st.write(f"**{component['label']}: {sign}{component['points']}** of {component['max_points']} — {component['reason']}")
     if matched:
         with closing(sqlite3.connect(DB_PATH)) as conn:
             conn.row_factory = sqlite3.Row
@@ -240,16 +318,7 @@ if view == "Case records":
             st.button("Open this transaction's source chunk", key=f"case_txn_chunk_{case_id}_{txn_id}",
                       on_click=open_case_chunk, args=(ledger_doc_id, ledger_chunk[0]),
                       help="Jump to the exact indexed paragraph containing this transaction ID.")
-        origin, arrow, target = st.columns([5, 1, 5])
-        with origin.container(border=True):
-            st.markdown("**Recorded source**")
-            st.write(f"{trace['source']['account_id'] or 'Unknown'} · {trace['source']['name']}")
-            st.caption(f"Customer: {trace['source']['customer_id'] or 'Unknown'} · Dataset KYC field: {trace['source']['dataset_kyc_status']} · Original identity files: {trace['source']['original_identity_files']}")
-        arrow.markdown("### →")
-        with target.container(border=True):
-            st.markdown("**Recorded destination**")
-            st.write(f"{trace['destination']['account_id'] or 'Unknown'} · {trace['destination']['name']}")
-            st.caption(f"Customer: {trace['destination']['customer_id'] or 'Unknown'} · Dataset KYC field: {trace['destination']['dataset_kyc_status']} · Original identity files: {trace['destination']['original_identity_files']}")
+        st.markdown(transaction_flow_html(trace), unsafe_allow_html=True)
         st.warning(trace["caveat"])
         if trace["mirror_transaction_id"]:
             st.success(f"Matching opposite-side posting: {trace['mirror_transaction_id']}")

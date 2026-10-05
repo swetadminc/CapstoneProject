@@ -51,6 +51,9 @@ class EvidenceRagTests(unittest.TestCase):
         page = "\n".join(item.value for item in app.get("markdown"))
         headings = "\n".join(item.value for item in app.get("subheader"))
         self.assertIn("Transaction path", headings)
+        self.assertIn("Evidence support score", page)
+        self.assertIn("CURRENT CASE REPORT", page)
+        self.assertIn("iq-transaction-flow", page)
         self.assertIn("FICTIONAL COURSE SAMPLE", page)
         self.assertNotIn("github.com", page)
         self.assertTrue(any("Current case index:" in item.value and
