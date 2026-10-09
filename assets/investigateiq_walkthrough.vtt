@@ -1,1088 +1,360 @@
 WEBVTT
 
 1
-00:00:00.100 --> 00:00:04.670
-Welcome to Investigate IQ, an investigation copilot for
-reviewing banking alerts.
+00:00:00.080 --> 00:00:02.454
+Start on the current Home screen.
 
 2
-00:00:04.670 --> 00:00:13.810
-We will follow Case zero four one from its alert through
-transactions, a cited draft, evidence retrieval, and a human
-next step.
+00:00:02.454 --> 00:00:08.389
+A display name and one of the four workflow labels start the fictional
+demo workspace.
 
 3
-00:00:13.810 --> 00:00:22.535
-We will then open a separate fictional intake packet to show
-how a new numeric case is actually stored and recalculated.
+00:00:08.389 --> 00:00:15.907
+The field attributes later human actions; it is not authentication, and
+choosing a role does not grant real-world authority.
 
 4
-00:00:22.535 --> 00:00:24.612
-Both paths use fabricated data.
+00:00:15.907 --> 00:00:21.050
+We will use the reordered left navigation to visit every current product
+page.
 
 5
-00:00:24.612 --> 00:00:30.429
-Neither determines whether money is legal or illegal, and
-neither files a regulatory report.
+00:00:23.080 --> 00:00:26.554
+Case Queue is the operational starting point.
 
 6
-00:00:32.100 --> 00:00:33.843
-We begin on Home.
+00:00:26.554 --> 00:00:33.998
+Its summary cards separate total alerts, open work, source-closed labels,
+escalation counts, and High severity.
 
 7
-00:00:33.843 --> 00:00:39.506
-Enter a display name, here Case Reviewer, and choose the
-Investigator workflow role.
+00:00:33.998 --> 00:00:40.947
+These are stored fictional workflow labels, not proof that money is lawful
+or unlawful.
 
 8
-00:00:39.506 --> 00:00:41.249
-Then open the workspace.
+00:00:43.080 --> 00:00:46.314
+Scroll slowly to the filters and table.
 
 9
-00:00:41.249 --> 00:00:48.220
-The name helps attribute actions inside Investigate IQ; it is
-not bank-grade login or identity verification.
+00:00:46.314 --> 00:00:58.790
+Search customer name narrows the queue; the row then exposes case,
+customer, alert type, severity, current status, recorded rule labels, and
+an action to inspect the case.
 
 10
-00:00:48.220 --> 00:00:56.933
-Later, if a decision is submitted, the product requires a
-written rationale and saves the action to its audit history.
+00:00:58.790 --> 00:01:02.486
+A status and an action have distinct meanings.
 
 11
-00:00:56.933 --> 00:01:00.855
-Selecting a role alone does not make a decision.
+00:01:04.080 --> 00:01:08.852
+The filtered queue demonstrates the same review flow with a smaller result
+set.
 
 12
-00:01:03.100 --> 00:01:06.763
-Here is the route we will actually follow.
+00:01:08.852 --> 00:01:11.054
+An open case can be investigated.
 
 13
-00:01:06.763 --> 00:01:10.425
-A fictional monitoring alert enters the Case Queue.
+00:01:11.054 --> 00:01:22.066
+A closed or reviewed case instead retains an Evidence path, so the user
+can inspect the support without treating the label as an invitation to
+change a completed human decision.
 
 14
-00:01:10.425 --> 00:01:16.377
-The investigator opens the case, checks source transactions,
-and reads the copilot's draft.
+00:01:24.080 --> 00:01:29.490
+Investigation Workspace begins with a selected case and a repeatable
+saved-report mode.
 
 15
-00:01:16.377 --> 00:01:24.618
-Evidence and R A G shows exactly which synthetic playbook
-document was indexed and what chunks were retrieved.
+00:01:29.490 --> 00:01:36.704
+Run investigation replays a historical snapshot or the calculated mode can
+evaluate the current fictional rows.
 
 16
-00:01:24.618 --> 00:01:31.027
-The investigator, not the AI, chooses whether to close, ask
-for information, or escalate.
+00:01:36.704 --> 00:01:40.311
+Neither mode records a human decision by itself.
 
 17
-00:01:31.027 --> 00:01:33.774
-Only a submitted escalation enters Compliance.
+00:01:42.080 --> 00:01:46.257
+After the report is built, Evidence confidence appears prominently.
 
 18
-00:01:36.100 --> 00:01:42.161
-Home explains what this product does and gives a route into
-the Case Queue.
+00:01:46.257 --> 00:01:53.682
+Here the support score is 45 out of 100, with Low support and four known
+limitations.
 
 19
-00:01:42.161 --> 00:01:52.550
-The left navigation also includes Investigation Workspace,
-Evidence and R A G, Compliance Queue, Analytics, Global
-Search, an information page, and two admin screens.
+00:01:53.682 --> 00:02:01.571
+This is a transparent evidence-coverage check, not a probability of crime,
+money laundering, or the recommended outcome.
 
 20
-00:01:52.550 --> 00:01:59.477
-The floating Ask Investigate IQ launcher stays at the lower
-right, independent of the navigation menu.
+00:02:03.080 --> 00:02:07.911
+Continue down the report to the case context and Evidence and Findings.
 
 21
-00:01:59.477 --> 00:02:04.671
-Opening it does not change the case or leave the current page.
+00:02:07.911 --> 00:02:11.936
+The screen preserves its source-data warning and identifies review-window
+facts.
 
 22
-00:02:04.671 --> 00:02:07.269
-We will visit each operational screen.
+00:02:11.936 --> 00:02:17.572
+It makes the limitation visible before any person is asked to make a
+decision.
 
 23
-00:02:09.100 --> 00:02:12.376
-The Case Queue is where an investigator begins.
+00:02:19.080 --> 00:02:23.114
+Evidence and RAG is where citations become inspectable records.
 
 24
-00:02:12.376 --> 00:02:17.290
-It lists fictional alerts with severity, status, scenario, and
-recorded trigger-rule metadata.
+00:02:23.114 --> 00:02:31.181
+Its compact flow describes choosing a case, reading exact source text and
+chunks, checking coverage, and testing retrieval.
 
 25
-00:02:17.290 --> 00:02:23.841
-The counts and filters help find work, but an alert is not
-evidence of a crime.
+00:02:31.181 --> 00:02:37.456
+This is the evidence workspace, not a claim that a cited record
+establishes wrongdoing.
 
 26
-00:02:23.841 --> 00:02:27.936
-This is not connected to a live bank monitoring system.
+00:02:39.080 --> 00:02:41.260
+Scroll into Case records.
 
 27
-00:02:27.936 --> 00:02:39.401
-A closed or Compliance-reviewed row can expose its Evidence
-button so the supporting records are inspectable; its action
-label is not an invitation to reopen a completed decision.
+00:02:41.260 --> 00:02:48.891
+The selected case shows its indexed passages, identity-record limitations,
+original-file count, and unmatched counterparties.
 
 28
-00:02:39.401 --> 00:02:46.362
-The example we will use is Case zero four one, Coastal
-Wholesale Traders, a high-severity structuring-style alert.
+00:02:48.891 --> 00:02:56.521
+The page explicitly distinguishes a generated record or dataset field from
+independently verified evidence.
 
 29
-00:02:48.100 --> 00:02:50.707
-Type Coastal into the customer filter.
+00:02:58.080 --> 00:03:04.048
+The floating InvestigateIQ Copilot opens on the same page, keeping the
+selected case visible.
 
 30
-00:02:50.707 --> 00:02:54.184
-The list narrows to Case zero four one.
+00:03:04.048 --> 00:03:12.147
+Because this capture is a non-submitting demonstration, it asks the viewer
+to enter a workspace before asking a question.
 
 31
-00:02:54.184 --> 00:03:02.005
-Its row shows the customer, the structuring alert label, high
-severity, open status, and recorded rule R three.
+00:03:12.147 --> 00:03:18.541
+The Copilot is a bounded explanation tool; it never selects or submits the
+human action.
 
 32
-00:03:02.005 --> 00:03:07.654
-The clearly labeled Open button takes us directly to this
-case's Investigation Workspace.
+00:03:20.080 --> 00:03:22.704
+Rule Lab is a separate evidence tab.
 
 33
-00:03:07.654 --> 00:03:13.738
-The rule label is source-dataset metadata; this screen does
-not independently recalculate the alert.
+00:03:22.704 --> 00:03:33.577
+It explains the alert-rule metadata and preview boundary, so a red or
+matched condition is read as a review signal—not a verdict and not a
+replacement for source evidence.
 
 34
-00:03:13.738 --> 00:03:17.649
-We open the case to check what actually happened.
+00:03:35.080 --> 00:03:38.531
+Fictional Intake shows the separate calculated packet workflow.
 
 35
-00:03:20.100 --> 00:03:26.760
-The workspace keeps the selected case and offers a saved
-investigation replay or live analysis.
+00:03:38.531 --> 00:03:51.041
+This deliberately generated example is visibly different from an imported
+alert: its rows, source text, and evidence gaps are labeled as fictional
+rather than presented as original banking records.
 
 36
-00:03:26.760 --> 00:03:32.533
-For a reliable walkthrough, we choose the saved Case zero four
-one report.
+00:03:53.080 --> 00:03:58.789
+Source and chunks lets an investigator open the source document behind a
+cited guidance passage.
 
 37
-00:03:32.533 --> 00:03:37.861
-It is a previously generated AI draft, not a fresh model run.
+00:03:58.789 --> 00:04:07.162
+The document and its chunks are shown separately, which makes the
+retrieval path reviewable rather than hiding it inside a generated answer.
 
 38
-00:03:37.861 --> 00:03:42.745
-Live analysis is available only when a model connection is
-configured.
+00:04:09.080 --> 00:04:15.102
+As we continue to scroll, exact chunks and their metadata stay connected
+to their source.
 
 39
-00:03:42.745 --> 00:03:52.958
-The pipeline gathers alert details, customer K Y C,
-transaction patterns, relationships, available documents, and
-playbook guidance before drafting findings for human review.
+00:04:15.102 --> 00:04:19.519
+A chunk is a searchable excerpt with an identifier and scope.
 
 40
-00:03:55.100 --> 00:03:59.598
-The customer is Coastal Wholesale Traders, a wholesale
-distribution business.
+00:04:19.519 --> 00:04:25.541
+It is useful for traceability, but its presence does not independently
+establish a customer fact.
 
 41
-00:03:59.598 --> 00:04:05.896
-The review window contains six credits from September twenty
-second through September twenty seventh.
+00:04:27.080 --> 00:04:30.713
+Search the index makes the retrieval method visible.
 
 42
-00:04:05.896 --> 00:04:11.294
-The account's prior baseline average is three hundred ninety
-five thousand rupees.
+00:04:30.713 --> 00:04:39.797
+It searches the stored fictional sources and case passages; results are
+leads for inspection, not unverified answers presented as facts.
 
 43
-00:04:11.294 --> 00:04:20.741
-The trigger transaction is nine hundred seventy five thousand
-rupees, which is displayed as about two point five times that
-baseline.
+00:04:42.080 --> 00:04:49.929
+The detailed result area lets the investigator compare result text, scope,
+and source identifier before relying on a passage.
 
 44
-00:04:20.741 --> 00:04:24.340
-There are no prior cases in this dataset.
+00:04:49.929 --> 00:04:54.887
+This is why the product shows the evidence boundary alongside the result.
 
 45
-00:04:24.340 --> 00:04:28.388
-These are context facts to verify, not a verdict.
+00:04:57.080 --> 00:05:01.729
+Method and code documents how records, chunks, retrieval, and checks
+connect.
 
 46
-00:04:30.100 --> 00:04:32.870
-The six credits are not all identical.
+00:05:01.729 --> 00:05:10.182
+It is included so a reviewer can understand the product’s method rather
+than treating the UI as a black box.
 
 47
-00:04:32.870 --> 00:04:51.465
-Four are recorded as cash deposits: transaction nineteen nine
-two seven for nine hundred seventy five thousand, nineteen
-nine two eight for nine hundred sixty thousand, nineteen nine
-three zero for nine hundred fifty five thousand, and nineteen
-nine three two for nine hundred eighty thousand rupees.
+00:05:12.080 --> 00:05:14.788
+Continue through the implementation notes slowly.
 
 48
-00:04:51.465 --> 00:04:56.608
-Together those four cash entries total three million eight
-hundred seventy thousand rupees.
+00:05:14.788 --> 00:05:25.621
+The documented method is deliberately limited: it can retrieve and trace
+supplied fictional material, but cannot verify outside-bank facts or make
+a legal finding.
 
 49
-00:04:56.608 --> 00:05:05.708
-The other two credits are recorded as payments from Retail
-Partner A and B, so they should not silently be described as
-cash.
+00:05:28.080 --> 00:05:32.595
+Compliance Queue contains cases an investigator has explicitly escalated.
 
 50
-00:05:08.100 --> 00:05:14.594
-The draft marks the deposit cluster as a red flag and cites
-the four cash transaction IDs.
+00:05:32.595 --> 00:05:38.615
+It is a second human-review step, separate from the investigator’s
+decision panel.
 
 51
-00:05:14.594 --> 00:05:20.706
-A separate finding says the file lacks documentation
-explaining why this pattern fits the customer's business.
+00:05:38.615 --> 00:05:43.632
+Nothing on this screen files a report with a regulator.
 
 52
-00:05:20.706 --> 00:05:27.200
-That missing document is not proof of an improper purpose; it
-is a reason to ask questions.
+00:05:46.080 --> 00:05:59.614
+The Compliance outcomes are distinguished in the queue and audit history:
+acknowledge means reviewed with no further action; return sends the case
+back for more information; referred onward records that a referral was
+made by a human.
 
 53
-00:05:27.200 --> 00:05:32.930
-The report asks for the business rationale and the agreements
-with the two retail partners.
+00:05:59.614 --> 00:06:02.906
+The labels preserve the next state of the case.
 
 54
-00:05:32.930 --> 00:05:40.188
-The Grounding Validator checks selected IDs and numeric
-wording, but not every sentence or the truth of an
-explanation.
+00:06:05.080 --> 00:06:08.885
+Analytics starts with descriptive summaries of the fictional dataset.
 
 55
-00:05:42.100 --> 00:05:46.924
-The floating Copilot opens on the right and shows the selected
-case.
+00:06:08.885 --> 00:06:19.032
+Read each title and axis as a count or share of stored labels—not as a
+prediction, fraud score, productivity rating, or probability of crime.
 
 56
-00:05:46.924 --> 00:05:55.366
-Suggested questions can fill the message field, and the
-investigator can also type a question and press Send at the
-bottom.
+00:06:21.080 --> 00:06:23.943
+Here the graphs are fully in view.
 
 57
-00:05:55.366 --> 00:05:57.778
-The conversation appears above the composer.
+00:06:23.943 --> 00:06:28.851
+Alerts by current status uses number of cases on the horizontal axis.
 
 58
-00:05:57.778 --> 00:06:02.602
-The selected case's answer can point to stored transactions or
-indexed passages.
+00:06:28.851 --> 00:06:32.941
+High-severity share by typology uses percentage on the horizontal axis.
 
 59
-00:06:02.602 --> 00:06:07.828
-The saved investigation report is a separate historical draft,
-not a second chat.
+00:06:32.941 --> 00:06:39.076
+The explanatory text below each graph states the unit and what it does not
+measure.
 
 60
-00:06:07.828 --> 00:06:13.054
-The Copilot's current answer is bounded by the records it can
-actually read.
+00:06:41.080 --> 00:06:48.348
+As the page scrolls further, the remaining charts show stored records over
+time and recorded human actions.
 
 61
-00:06:15.100 --> 00:06:19.502
-Notice the distinction between a plausible answer and a
-verified conclusion.
+00:06:48.348 --> 00:06:53.051
+A monthly alert line counts fictional records for each time bucket.
 
 62
-00:06:19.502 --> 00:06:23.904
-A citation tells us which transaction or playbook entry to
-inspect.
+00:06:53.051 --> 00:06:59.036
+Human-action charts count saved actions; they do not measure final
+outcomes or staff performance.
 
 63
-00:06:23.904 --> 00:06:29.506
-It does not prove the prose is correct or that the activity is
-unlawful.
+00:07:01.080 --> 00:07:02.943
+Global Search is read-only.
 
 64
-00:06:29.506 --> 00:06:38.710
-The saved report even proposes escalation, but our second
-playbook requires a documented request for an explanation and
-no reasonable answer on file.
+00:07:02.943 --> 00:07:14.589
+A user can look up a fictional customer, account, transaction reference,
+or case identifier, then use a matching record to regain context in
+Investigation Workspace.
 
 65
-00:06:38.710 --> 00:06:42.312
-We will not let the draft skip that condition.
+00:07:14.589 --> 00:07:18.782
+Search locates records; it does not reach a conclusion.
 
 66
-00:06:42.312 --> 00:06:45.513
-The investigator retains ownership of the next step.
+00:07:21.080 --> 00:07:29.076
+Project and Team names the confirmed roster and makes the product’s
+planning responsibilities visible by person.
 
 67
-00:06:47.100 --> 00:06:54.761
-Now ask the case Copilot about transactions that are stored
-and whether K Y C is independently verified.
+00:07:29.076 --> 00:07:36.072
+This section uses names only, without email addresses, and does not imply
+production permissions.
 
 68
-00:06:54.761 --> 00:07:01.571
-For Case zero four one, the current answer counts sixteen rows
-in the supplied account dataset.
+00:07:38.080 --> 00:07:42.054
+The open role guide explains the four workflow roles.
 
 69
-00:07:01.571 --> 00:07:06.679
-The older saved report captured six transactions in its
-narrower review window.
+00:07:42.054 --> 00:07:55.741
+The Investigator reviews evidence and records an accountable action; the
+Team Lead coordinates; the Compliance Officer conducts second review; the
+Admin maintains fictional guidance and rules after a separate passcode
+gate.
 
 70
-00:07:06.679 --> 00:07:09.658
-Neither number is a complete bank-month statement.
+00:07:55.741 --> 00:07:58.390
+Labels do not authenticate a user.
 
 71
-00:07:09.658 --> 00:07:19.022
-The source alert identifies transaction nineteen nine two
-seven as its trigger; it does not independently classify every
-other row as suspicious.
+00:08:00.080 --> 00:08:04.938
+Admin Knowledge Base is intentionally shown in its locked state.
 
 72
-00:07:19.022 --> 00:07:28.386
-The workbook K Y C field says Verified, but zero original
-identity files were uploaded, so that label is not independent
-verification.
+00:08:04.938 --> 00:08:09.797
+The video does not expose, store, or automate a passcode.
 
 73
-00:07:28.386 --> 00:07:31.791
-The answer cites stored case passages for inspection.
+00:08:09.797 --> 00:08:15.627
+The boundary is visible: protected source-inspection tools require a
+separate authorized unlock.
 
 74
-00:07:34.100 --> 00:07:36.554
-A second question tests evidence provenance.
+00:08:18.080 --> 00:08:22.005
+Admin Rule Config has the same protected boundary.
 
 75
-00:07:36.554 --> 00:07:43.917
-The historical saved report captured zero case passages, while
-the current index contains twenty one for this case.
+00:08:22.005 --> 00:08:32.309
+This concludes the current product tour: InvestigateIQ shows the evidence
+trail, the retrieval method, the score’s limitation, and the human
+workflow.
 
 76
-00:07:43.917 --> 00:07:48.007
-The copilot names both scopes and their recorded times
-separately.
-
-77
-00:07:48.007 --> 00:07:54.552
-It does not claim to know the old index version or when the
-extra passages arrived.
-
-78
-00:07:54.552 --> 00:08:02.324
-A current citation cannot retroactively prove what the old
-report saw; the old report is retained as a snapshot.
-
-79
-00:08:04.100 --> 00:08:08.932
-Follow the copilot's cited case-ledger chunk to Evidence and R
-A G.
-
-80
-00:08:08.932 --> 00:08:13.764
-The source identifier, verification status, and exact stored
-passage are visible here.
-
-81
-00:08:13.764 --> 00:08:21.414
-This first chunk warns that the account rows are only the
-supplied fictional dataset, not a complete bank statement.
-
-82
-00:08:21.414 --> 00:08:29.065
-The citation is an inspectable pointer; it does not
-authenticate the source or prove what happened at another
-bank.
-
-83
-00:08:31.100 --> 00:08:36.959
-The investigator can also ask the floating, page-aware
-Copilot, What does this chunk say?
-
-84
-00:08:36.959 --> 00:08:40.726
-The page shows passage C zero beside the answer.
-
-85
-00:08:40.726 --> 00:08:47.004
-The answer quotes the exact stored text and identifies its
-status as source rows only.
-
-86
-00:08:47.004 --> 00:08:52.026
-It warns that the supplied dataset is not a complete bank
-statement.
-
-87
-00:08:52.026 --> 00:08:58.304
-It does not invent an original document, counterparty K Y C,
-or a legal-money verdict.
-
-88
-00:08:58.304 --> 00:09:02.489
-This is the boundary between useful retrieval and unsupported
-claims.
-
-89
-00:09:04.100 --> 00:09:10.600
-From the cited playbook, we move to Evidence and R A G without
-leaving the site.
-
-90
-00:09:10.600 --> 00:09:19.131
-R A G means retrieval-augmented generation: retrieve relevant
-source passages first, then use those passages to support a
-draft with citations.
-
-91
-00:09:19.131 --> 00:09:25.225
-For this case, we use Source and chunks, Search the index, and
-Method and code.
-
-92
-00:09:25.225 --> 00:09:31.318
-The page also offers Case records and a Rule Lab; Fictional
-Intake appears when enabled.
-
-93
-00:09:31.318 --> 00:09:36.599
-The playbook collection has twenty four synthetic documents
-and fifty seven indexed chunks.
-
-94
-00:09:36.599 --> 00:09:43.506
-Case zero four one points to playbook P B A M L S T R zero
-one.
-
-95
-00:09:43.506 --> 00:09:48.787
-A document citation identifies a source; it does not prove
-every generated claim.
-
-96
-00:09:51.100 --> 00:10:00.321
-Here is the original text of P B A M L S T R zero one, titled
-Identify and document a structuring pattern.
-
-97
-00:10:00.321 --> 00:10:06.335
-It instructs the investigator to list exact transactions,
-amounts, dates, channels, and the combined value.
-
-98
-00:10:06.335 --> 00:10:11.947
-It also asks whether amounts are similar and whether the
-channel or counterparty changes.
-
-99
-00:10:11.947 --> 00:10:17.961
-We can see the source itself, rather than trusting only an AI
-summary of it.
-
-100
-00:10:17.961 --> 00:10:23.173
-This is synthetic guidance, not an approved Indian-bank policy
-or an official regulation.
-
-101
-00:10:25.100 --> 00:10:30.396
-The builder stores one metadata chunk containing the document
-title and escalation criterion.
-
-102
-00:10:30.396 --> 00:10:36.507
-It then splits the body at sentence-ending punctuation and
-groups two sentences per body chunk.
-
-103
-00:10:36.507 --> 00:10:41.803
-This source produces three indexed chunks: C zero, C one, and
-C two.
-
-104
-00:10:41.803 --> 00:10:48.728
-The selected investigation retrieved the metadata chunk C
-zero, while the body chunks preserve the detailed
-instructions.
-
-105
-00:10:48.728 --> 00:10:56.468
-Each passage can be opened and read on the same site, with its
-source ID and word count visible.
-
-106
-00:10:58.100 --> 00:11:03.594
-The Search the index view lets us type terms such as
-structuring cash deposits.
-
-107
-00:11:03.594 --> 00:11:11.834
-SQLite F T S five matches those terms against the stored
-chunks, and B M twenty five ranks the matching passages.
-
-108
-00:11:11.834 --> 00:11:19.682
-The Evidence Agent uses this search with the alert scenario as
-a filter, so the case receives relevant playbook guidance.
-
-109
-00:11:19.682 --> 00:11:23.998
-This is lexical keyword retrieval, not embeddings or a vector
-database.
-
-110
-00:11:23.998 --> 00:11:28.314
-Search results can open their source chunk here on the site.
-
-111
-00:11:30.100 --> 00:11:33.874
-This is the full document path behind the screen.
-
-112
-00:11:33.874 --> 00:11:38.068
-The authored markdown playbook is parsed into a source record.
-
-113
-00:11:38.068 --> 00:11:42.261
-The builder creates a metadata chunk and two-sentence body
-chunks.
-
-114
-00:11:42.261 --> 00:11:45.616
-SQLite stores those chunks and indexes their words.
-
-115
-00:11:45.616 --> 00:11:49.390
-For a case, the Evidence Agent retrieves scenario-matched
-passages.
-
-116
-00:11:49.390 --> 00:11:58.196
-The draft can cite a playbook ID, and the Grounding Validator
-checks that the ID actually came from the retrieved set.
-
-117
-00:11:58.196 --> 00:12:03.228
-Finally, the human opens the source and judges whether the
-guidance applies.
-
-118
-00:12:05.100 --> 00:12:10.406
-The Method and code view keeps the implementation inside
-Investigate IQ.
-
-119
-00:12:10.406 --> 00:12:21.500
-It has eight expandable steps covering alert calculation,
-guidance and case chunking, case and guidance search,
-transaction links, context gathering, and citation checks.
-
-120
-00:12:21.500 --> 00:12:24.394
-This diagram highlights four representative functions.
-
-121
-00:12:24.394 --> 00:12:36.453
-The code supports explainability, but the validator is
-limited: it checks selected citations and wording patterns,
-not the full factual correctness of a generated report.
-
-122
-00:12:38.100 --> 00:12:47.364
-Back in the Investigation Workspace, the Human Decision panel
-offers close with no concern, request more information, or
-escalate to Compliance.
-
-123
-00:12:47.364 --> 00:12:51.335
-The AI cannot select or submit any of them.
-
-124
-00:12:51.335 --> 00:12:56.629
-The investigator's name and written reason are required for a
-recorded decision.
-
-125
-00:12:56.629 --> 00:13:04.569
-This matters because the retrieved playbook is conditional,
-and the case file has no documented business explanation yet.
-
-126
-00:13:04.569 --> 00:13:09.863
-A machine-generated escalation suggestion cannot replace those
-checks or the human decision.
-
-127
-00:13:12.100 --> 00:13:17.564
-For this example, Request more information is the cautious
-option shown in the form.
-
-128
-00:13:17.564 --> 00:13:26.932
-The proposed rationale asks for the business explanation of
-the cash-deposit cluster and agreements with Retail Partner A
-and B before a final conclusion.
-
-129
-00:13:26.932 --> 00:13:33.567
-That is not the same as declaring the activity harmless; it
-keeps the issue open for follow-up.
-
-130
-00:13:33.567 --> 00:13:35.519
-The rationale is drafted here.
-
-131
-00:13:35.519 --> 00:13:42.154
-Until Submit decision is pressed, no decision is recorded and
-the case does not move to Compliance.
-
-132
-00:13:44.100 --> 00:13:46.565
-Now we open the Compliance Queue.
-
-133
-00:13:46.565 --> 00:13:53.549
-The Case zero four one form was not submitted, so that example
-did not create an escalation.
-
-134
-00:13:53.549 --> 00:14:01.355
-The case shown here is a separate fictional transaction packet
-that an investigator explicitly escalated with a written
-reason.
-
-135
-00:14:01.355 --> 00:14:03.820
-Compliance can record three distinct outcomes.
-
-136
-00:14:03.820 --> 00:14:12.037
-Acknowledge means Compliance reviewed it and needs no further
-action, so the queue shows Compliance reviewed — no further
-action.
-
-137
-00:14:12.037 --> 00:14:19.021
-Return means the investigator must provide more information,
-so the queue shows Compliance returned — information needed.
-
-138
-00:14:19.021 --> 00:14:27.649
-Refer means an onward referral was recorded, so the queue
-shows Compliance referred onward — recorded; it is not a
-filing.
-
-139
-00:14:27.649 --> 00:14:33.401
-These labels make the outcome visible on the Case Queue and
-the audit trail.
-
-140
-00:14:33.401 --> 00:14:39.563
-The product does not automatically file a suspicious
-transaction report or communicate with a regulator.
-
-141
-00:14:41.100 --> 00:14:45.479
-Analytics is descriptive, so let us name every graph
-precisely.
-
-142
-00:14:45.479 --> 00:14:50.296
-Alerts by severity counts the stored High, Medium, and Low
-labels.
-
-143
-00:14:50.296 --> 00:14:55.113
-Alerts by typology counts alert categories such as structuring
-or velocity.
-
-144
-00:14:55.113 --> 00:15:01.682
-Current status counts the latest workflow state, including
-source status and human or Compliance outcomes.
-
-145
-00:15:01.682 --> 00:15:10.878
-High-severity share by typology is the proportion of each
-typology carrying the High label; it is not a probability of
-crime.
-
-146
-00:15:10.878 --> 00:15:18.760
-Stored alert records by month counts fictional records dated
-in each month; it is not a risk trend.
-
-147
-00:15:18.760 --> 00:15:28.394
-Finally, recorded human actions by person and by action type
-count saved workflow events, not staff productivity, case
-quality, or final outcomes.
-
-148
-00:15:28.394 --> 00:15:32.773
-The axes and tooltips identify the unit for each chart.
-
-149
-00:15:32.773 --> 00:15:42.407
-None of these graphs measures real-world crime detection,
-false positives, or model accuracy; that would require
-independent evaluation and real bank data.
-
-150
-00:15:44.100 --> 00:15:46.884
-Global Search is the quickest cross-reference tool.
-
-151
-00:15:46.884 --> 00:15:53.645
-Search Coastal and the site locates the customer, related
-case, account, and transactions in the fictional dataset.
-
-152
-00:15:53.645 --> 00:16:01.599
-A result can take us back to the Investigation Workspace, so
-we do not have to remember a case number.
-
-153
-00:16:01.599 --> 00:16:10.349
-Evidence and R A G is different: it lets us inspect source
-documents and search guidance or case-evidence chunks within
-their scope.
-
-154
-00:16:10.349 --> 00:16:13.929
-Search is a pointer to records, not a conclusion.
-
-155
-00:16:16.100 --> 00:16:21.972
-Project and the role guide explain who owns which part of this
-demonstration.
-
-156
-00:16:21.972 --> 00:16:27.392
-The Investigator selects a case, reviews evidence, and records
-the accountable decision.
-
-157
-00:16:27.392 --> 00:16:31.005
-The lead coordinates the investigation workflow and follow-up.
-
-158
-00:16:31.005 --> 00:16:38.232
-The Compliance Officer performs the second human review of
-escalations and can acknowledge or return them.
-
-159
-00:16:38.232 --> 00:16:45.007
-The Admin maintains the fictional knowledge base and rule
-previews after the separate passcode check.
-
-160
-00:16:45.007 --> 00:16:54.944
-The confirmed roster is shown by name only: Sweta Singh,
-Soumya, Lakshmi Dudgikar, Rahul Sharma, Laxman Singh, Pankaj
-Bharsakale, and Rahul Chainani.
-
-161
-00:16:54.944 --> 00:17:02.171
-These are planning responsibilities, not production
-permissions; a role label cannot prove identity or alter
-evidence.
-
-162
-00:17:04.100 --> 00:17:06.182
-Now open Admin Knowledge Base.
-
-163
-00:17:06.182 --> 00:17:13.679
-Enter the configured passcode in the masked field and select
-Unlock; we never display or speak the code.
-
-164
-00:17:13.679 --> 00:17:21.176
-The passcode opens an inspector, but it is only a limited
-gate, not bank-grade identity or role authorization.
-
-165
-00:17:21.176 --> 00:17:27.840
-After unlocking, we can inspect the actual source documents,
-their chunks, and a live retrieval query.
-
-166
-00:17:30.100 --> 00:17:38.439
-The unlocked page reports twenty four synthetic playbook
-documents, fifty seven indexed chunks, and four hundred
-seventy six searchable terms.
-
-167
-00:17:38.439 --> 00:17:50.530
-Each source is an O K F, or Open Knowledge Format, Markdown
-playbook with structured fields for its ID, scenario, title,
-escalation criteria, and version followed by guidance text.
-
-168
-00:17:50.530 --> 00:17:54.282
-This is the guidance corpus for the source-database copilot.
-
-169
-00:17:54.282 --> 00:18:04.705
-It is separate from customer K Y C records and from the new
-fictional intake packet; those case records are not O K F
-playbooks.
-
-170
-00:18:04.705 --> 00:18:10.542
-Search here is lexical full-text retrieval, not an embedding
-model or a vector database.
-
-171
-00:18:12.100 --> 00:18:20.054
-Open playbook P B A M L S T R zero one, the structuring
-guidance connected to Case zero four one.
-
-172
-00:18:20.054 --> 00:18:23.463
-Its complete source text appears above the chunk table.
-
-173
-00:18:23.463 --> 00:18:31.418
-One metadata chunk stores its title and escalation criterion;
-the body is split at sentence boundaries and grouped in two-
-sentence passages.
-
-174
-00:18:31.418 --> 00:18:38.614
-Here we can see C zero, C one, and C two with their exact
-source text and word counts.
-
-175
-00:18:38.614 --> 00:18:43.539
-A chunk is a searchable excerpt, not proof that a transaction
-is criminal.
-
-176
-00:18:45.100 --> 00:18:48.867
-Type structuring cash deposits into the live retrieval field.
-
-177
-00:18:48.867 --> 00:18:56.400
-SQLite F T S five matches the indexed words and B M twenty
-five ranks the returned passages.
-
-178
-00:18:56.400 --> 00:19:07.281
-The first result here is a conditional escalation passage: the
-pattern, implausible business fit, and no reasonable
-explanation after a documented request must all be examined.
-
-179
-00:19:07.281 --> 00:19:16.488
-The copilot can cite a source identifier, but the investigator
-still reads this exact passage and compares it with the
-transaction records.
-
-180
-00:19:18.100 --> 00:19:22.207
-The second admin page has its own masked passcode step.
-
-181
-00:19:22.207 --> 00:19:27.135
-After unlocking, it displays saved R one and R two preview
-settings.
-
-182
-00:19:27.135 --> 00:19:34.939
-These controls do not constitute the bank's production
-monitoring engine, and changing them does not regenerate
-existing queue alerts.
-
-183
-00:19:34.939 --> 00:19:41.510
-We will inspect the saved values and run a read-only preview
-without saving a new configuration.
-
-184
-00:19:43.100 --> 00:19:53.279
-The saved example settings are five times the account baseline
-for R one, eighty percent outbound proxy for R two, and a
-seventy two hour observation window.
-
-185
-00:19:53.279 --> 00:20:02.704
-R two compares aggregate debits from the same account; it does
-not prove that the same credited rupees funded those debits or
-crossed another bank.
-
-186
-00:20:02.704 --> 00:20:08.360
-Sliders allow a proposed change, but nothing is written until
-a named admin presses Save.
-
-187
-00:20:10.100 --> 00:20:14.797
-At the current settings, the read-only preview checked three
-hundred fictional accounts.
-
-188
-00:20:14.797 --> 00:20:18.320
-Two met R one; none met both preview conditions.
-
-189
-00:20:18.320 --> 00:20:28.106
-This is a sensitivity check over a sample, not the count of
-live alerts and not the calculation used for the separate
-fictional intake case.
-
-190
-00:20:28.106 --> 00:20:32.020
-We do not save any threshold change in this walkthrough.
-
-191
-00:20:34.100 --> 00:20:38.252
-Now open Fictional Intake inside Evidence and R A G.
-
-192
-00:20:38.252 --> 00:20:49.045
-Enter an asserted monthly baseline of eighty thousand rupees,
-an incoming transfer amount of three hundred thousand, and an
-outgoing amount of one hundred eighty thousand.
-
-193
-00:20:49.045 --> 00:21:03.161
-The application creates ten labeled synthetic rows, calculates
-a review signal, and saves one case in SQLite with five
-generated text records: profile, invalid sample P A N, invalid
-sample passport, ledger, and alert.
-
-194
-00:21:03.161 --> 00:21:06.482
-No bank document or third-party alert is uploaded.
-
-195
-00:21:06.482 --> 00:21:09.803
-The case then appears in the Case Queue.
-
-196
-00:21:12.100 --> 00:21:16.456
-Open the stored ledger rows rather than trusting a static
-card.
-
-197
-00:21:16.456 --> 00:21:22.000
-Four completed credits of three hundred thousand total one
-million two hundred thousand rupees.
-
-198
-00:21:22.000 --> 00:21:27.148
-Six completed debits of one hundred eighty thousand total one
-million eighty thousand.
-
-199
-00:21:27.148 --> 00:21:34.672
-The recorded external counterparty identifiers tell us where
-this fictional bank's ledger says money came from or went to.
-
-200
-00:21:34.672 --> 00:21:42.988
-They do not supply the other bank's customer K Y C, opposite-
-side posting, or a verified chain of the same rupees.
-
-201
-00:21:45.100 --> 00:21:50.064
-In the saved packet, each generated record can be read in
-full.
-
-202
-00:21:50.064 --> 00:21:54.615
-Here the exact indexed passages and the case-scoped search are
-visible.
-
-203
-00:21:54.615 --> 00:22:04.543
-The source text is split into passages, given a S H A two five
-six digest, and searched with SQLite F T S five.
-
-204
-00:22:04.543 --> 00:22:09.507
-The result shows the saved transaction text, not a model's
-invented answer.
-
-205
-00:22:09.507 --> 00:22:19.435
-But identity samples are deliberately invalid, no original
-identity file was uploaded, counterparty K Y C is unknown, and
-independent source-of-funds proof is missing.
-
-206
-00:22:19.435 --> 00:22:25.227
-A transfer chain and a citation cannot establish whether money
-is legal or illegal.
-
-207
-00:22:27.100 --> 00:22:30.587
-Open the new case in the Investigation Workspace.
-
-208
-00:22:30.587 --> 00:22:37.125
-Its separate calculated review reloads the saved rows and
-checks source fingerprints and exact chunks.
-
-209
-00:22:37.125 --> 00:22:49.330
-The observed amounts are one million two hundred thousand in
-and one million eighty thousand out: fifteen times the
-asserted monthly baseline, ninety percent outbound, and six
-beneficiaries.
-
-210
-00:22:49.330 --> 00:22:58.920
-Fixed questions give answers anchored to those source IDs;
-this is not the six-agent or Gemini report from Case zero four
-one.
-
-211
-00:22:58.920 --> 00:23:05.458
-Original identity files, independent source-of-funds proof,
-counterparty K Y C, and settlement confirmation are absent.
-
-212
-00:23:05.458 --> 00:23:14.175
-A human may request information or escalate with a written
-reason, but cannot close this incomplete packet as no concern.
-
-213
-00:23:16.100 --> 00:23:18.180
-Our conclusion is deliberately narrow.
-
-214
-00:23:18.180 --> 00:23:29.826
-In Case zero four one, the cash-deposit cluster and playbook
-guidance justify asking for a business explanation and partner
-agreements; the draft alone does not record a decision.
-
-215
-00:23:29.826 --> 00:23:39.809
-In the separate ten-transfer packet, the stored rows exceed
-the review threshold and an investigator recorded a reasoned
-escalation because independent evidence is missing.
-
-216
-00:23:39.809 --> 00:23:43.968
-Neither case is proven legal or illegal by this application.
-
-217
-00:23:43.968 --> 00:23:46.464
-A regulator filing did not occur.
-
-218
-00:23:46.464 --> 00:23:54.367
-Investigate IQ shows the evidence trail and the unanswered
-questions; a human owns the judgment and the next action.
+00:08:32.309 --> 00:08:37.706
+It does not make the final decision or file anything automatically.
