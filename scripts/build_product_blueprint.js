@@ -74,7 +74,7 @@ function image(name, caption, width = 640, height = 360) {
   const file = path.join(screens, name);
   if (!fs.existsSync(file)) throw new Error(`Missing Blueprint screenshot: ${name}`);
   return [
-    new Paragraph({ children: [new ImageRun({ data: fs.readFileSync(file), type: "png", transformation: { width, height } })], alignment: AlignmentType.CENTER, spacing: { before: 120, after: 55 } }),
+    new Paragraph({ children: [new ImageRun({ data: fs.readFileSync(file), type: path.extname(file).slice(1), transformation: { width, height } })], alignment: AlignmentType.CENTER, spacing: { before: 120, after: 55 } }),
     p(text(`Figure — ${caption}`, { size: 17, italics: true, color: grey }), { alignment: AlignmentType.CENTER, after: 180, line: 230 }),
   ];
 }
@@ -249,7 +249,7 @@ content.push(
     ["4. Grounding Validator", "Checks known citation IDs, selected ratio claims, forbidden verdict wording, and obvious prompt-like text in supplied fields. It can downgrade unsupported verified language or remove unsafe output elements.", "Visible validation notes and safer wording. It reduces selected failure modes; it cannot guarantee factual truth or completeness."],
     ["5. Human action and audit", "A person supplies a display name and required rationale before a permitted decision is appended. Compliance can acknowledge, return, or record an onward referral as a separate human step.", "Recorded workflow state and auditable history. The display name is not authenticated identity or production RBAC."],
   ], [1850, 4850, 3660]),
-  ...image("2026_architecture_diagram.png", "Implemented architecture: deterministic specialist evidence gathering, optional Summary Agent drafting, Grounding Validator controls, and the final human/audit boundary."),
+  ...image("2026_data_flow_diagram_v2.svg", "Data flow: selected case evidence and retrieved knowledge converge in a validated advisory report before a named human records the next step."),
   h("9.2 Architecture execution path", 2),
   p(text("The code-level path below is the most important explanation for a faculty reviewer: specialist outputs are assembled first; an optional model can draft a summary; a validator checks the draft against controlled rules; and only then does the UI present the material for a human decision.")),
   codeLine("triage → kyc → transactions → relationships → evidence → structured_inputs"),
@@ -342,7 +342,7 @@ content.push(
     ["Pilot readiness", "Role-based authentication, authorization, evidence-lineage versioning, and confidence-rule version history.", "Use approved identity, privacy, and access-control requirements before any real data connection."],
     ["Scale with governance", "Document ingestion controls, monitored retrieval evaluation, approved integrations, and reviewer-feedback analytics.", "Establish data governance, human review protocols, model-risk assessment, and operational ownership first."],
   ], [1900, 4200, 3260]),
-  h("13. Detailed FAQ and final live-demo preparation", 1),
+  h("13. Detailed FAQ", 1),
   p(text("The following answers are prepared from the implemented demo, not from hypothetical features. They are intended for faculty questions during the same 15-minute presentation session. The FAQ appendix in the deck is deliberately short; this Blueprint retains the detailed version.")),
   table(["Likely question", "Prepared answer"], [
     ["Where does the data come from?", "All customers, cases, alerts, transactions, documents, and knowledge sources are fictional course material stored locally for this demonstration. The prototype is not connected to a bank feed, a live customer system, or an external regulator."],
@@ -364,16 +364,6 @@ content.push(
     ["Rahul Sharma", "Testing, edge cases, and quality checks.", "Prepares answers; does not create a second presenter."],
     ["Sweta Singh", "Program statement, scope boundaries, and ROI framework.", "Prepares answers; does not create a second presenter."],
   ], [2050, 4250, 3800]),
-  h("Safe two-case demonstration sequence", 2),
-  table(["Time", "Screen and action", "What the presenter says"], [
-    ["0:00–0:35", "Case Queue: open Evidence for the documented closed case only.", "This is a completed fictional outcome with recorded support. We are not changing or re-closing it."],
-    ["0:35–1:15", "Case Queue: open the default open/escalated case.", "Status tells the workflow position; Rule(s) explain the signal; Action opens the context."],
-    ["1:15–2:05", "Investigation Workspace: run saved or calculated review.", "The report is advisory. The validator and confidence card show support and limitations."],
-    ["2:05–2:55", "Evidence & RAG: show a source, exact chunks, FTS5/BM25 retrieval, and the linked record.", "This is lexical retrieval over local fictional material, not a vector index and not proof."],
-    ["2:55–3:40", "Ask InvestigateIQ: ask one prepared bounded case question.", "The answer points back to stored material and cannot submit a workflow action."],
-    ["3:40–4:50", "Show the human-decision and audit surfaces without clicking Submit.", "Only a named person with a rationale can record Close, Request more information, or Escalate. We will not change a case in the live demo."],
-  ], [1350, 3900, 4850]),
-  callout("Demo safeguard", "Do not submit an investigator or Compliance action, reset decisions, create intake data, or reveal or enter an Admin passcode during the live demonstration. The closed case is evidence-only; the open/escalated case is used to show the review path without persisting an action.", gold),
   callout("Final product position", "InvestigateIQ demonstrates a transparent evidence-to-decision workflow. It helps a reviewer find, inspect, and question supplied material; it does not turn a record or model response into a legal, regulatory, or factual conclusion. The human reviewer remains responsible for the next step.", blue),
 );
 

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto"><path d="M0,0 L14,7 L0,14 Z" fill="#00A79D"/></marker>
+    <style>
+      .eyebrow{font:700 23px Arial,sans-serif;fill:#008F88;letter-spacing:2px}.title{font:700 45px Arial,sans-serif;fill:#0B1F3A}.head{font:700 28px Arial,sans-serif;fill:#12233F}.sub{font:21px Arial,sans-serif;fill:#63738D}.small{font:19px Arial,sans-serif;fill:#63738D}.bar{font:700 22px Arial,sans-serif;fill:#fff}.note{font:italic 20px Arial,sans-serif;fill:#63738D}
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="#F6F9FE"/>
+  <text x="80" y="70" class="eyebrow">INVESTIGATEIQ DATA FLOW</text>
+  <text x="80" y="125" class="title">Evidence first. Human decision last.</text>
+  <text x="80" y="180" class="eyebrow">CASE-REVIEW FLOW</text>
+  <g stroke="#B7CBEA" stroke-width="3"><rect x="55" y="215" rx="22" width="270" height="160" fill="#fff"/><rect x="370" y="215" rx="22" width="270" height="160" fill="#fff"/><rect x="685" y="215" rx="22" width="270" height="160" fill="#fff"/><rect x="1000" y="215" rx="22" width="270" height="160" fill="#E6F8F6"/><rect x="1315" y="215" rx="22" width="230" height="160" fill="#fff"/></g>
+  <g font-family="Arial" font-size="18" font-weight="700" fill="#fff" text-anchor="middle"><circle cx="91" cy="253" r="23" fill="#2E65C5"/><circle cx="406" cy="253" r="23" fill="#2E65C5"/><circle cx="721" cy="253" r="23" fill="#2E65C5"/><circle cx="1036" cy="253" r="23" fill="#00A79D"/><circle cx="1351" cy="253" r="23" fill="#2E65C5"/><text x="91" y="259">1</text><text x="406" y="259">2</text><text x="721" y="259">3</text><text x="1036" y="259">4</text><text x="1351" y="259">5</text></g>
+  <text x="82" y="315" class="head">Case + question</text><text x="82" y="350" class="sub">Selected queue record</text>
+  <text x="397" y="315" class="head">Case evidence</text><text x="397" y="350" class="sub">SQLite records</text>
+  <text x="712" y="315" class="head">Specialist checks</text><text x="712" y="350" class="sub">Triage · KYC · transactions</text>
+  <text x="1027" y="315" class="head">Draft + validator</text><text x="1027" y="350" class="sub">Optional AI; grounded checks</text>
+  <text x="1342" y="315" class="head">Human audit</text><text x="1342" y="350" class="sub">Rationale + Compliance</text>
+  <g stroke="#00A79D" stroke-width="5" marker-end="url(#arrow)"><line x1="330" y1="295" x2="358" y2="295"/><line x1="645" y1="295" x2="673" y2="295"/><line x1="960" y1="295" x2="988" y2="295"/><line x1="1275" y1="295" x2="1303" y2="295"/></g>
+  <text x="80" y="470" class="eyebrow">KNOWLEDGE-RETRIEVAL FLOW</text>
+  <g stroke="#B7CBEA" stroke-width="3"><rect x="85" y="505" rx="22" width="300" height="120" fill="#fff"/><rect x="465" y="505" rx="22" width="300" height="120" fill="#fff"/><rect x="845" y="505" rx="22" width="300" height="120" fill="#E6F8F6"/><rect x="1225" y="505" rx="22" width="300" height="120" fill="#fff"/></g>
+  <text x="235" y="555" class="head" text-anchor="middle">OKF source</text><text x="235" y="590" class="sub" text-anchor="middle">Metadata + body</text><text x="615" y="555" class="head" text-anchor="middle">Chunks</text><text x="615" y="590" class="sub" text-anchor="middle">Inspectable IDs</text><text x="995" y="555" class="head" text-anchor="middle">FTS5 + BM25</text><text x="995" y="590" class="sub" text-anchor="middle">Lexical retrieval</text><text x="1375" y="555" class="head" text-anchor="middle">Citations</text><text x="1375" y="590" class="sub" text-anchor="middle">Exact passages</text>
+  <g stroke="#00A79D" stroke-width="5" marker-end="url(#arrow)"><line x1="390" y1="565" x2="450" y2="565"/><line x1="770" y1="565" x2="830" y2="565"/><line x1="1150" y1="565" x2="1210" y2="565"/><line x1="1375" y1="500" x2="1375" y2="392"/></g>
+  <text x="1402" y="448" class="small">cited context</text>
+  <rect x="80" y="700" rx="22" width="1440" height="82" fill="#173C78"/><text x="800" y="751" class="bar" text-anchor="middle">Control boundary: retrieval finds supplied text; validation checks selected claims; confidence exposes limitations; no action is automated.</text><text x="800" y="850" class="note" text-anchor="middle">A named person interprets the evidence and records the next step.</text>
+</svg>
