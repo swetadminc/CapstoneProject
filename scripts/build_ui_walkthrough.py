@@ -168,6 +168,17 @@ def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(str(FONT_BOLD if bold else FONT), size)
 
 
+def fit_screen(image: Image.Image) -> Image.Image:
+    """Place a capture on the 16:9 canvas without distorting its pixels."""
+    image = image.convert("RGB")
+    scale = min(WIDTH / image.width, HEIGHT / image.height)
+    fitted = image.resize((max(1, round(image.width * scale)),
+                           max(1, round(image.height * scale))), Image.Resampling.LANCZOS)
+    canvas = Image.new("RGB", (WIDTH, HEIGHT), "#EEF4FC")
+    canvas.paste(fitted, ((WIDTH - fitted.width) // 2, (HEIGHT - fitted.height) // 2))
+    return canvas
+
+
 def wrap(draw: ImageDraw.ImageDraw, value: str, face: ImageFont.FreeTypeFont, limit: int) -> list[str]:
     lines: list[str] = []
     line = ""
@@ -222,7 +233,7 @@ def draw_pointer(draw: ImageDraw.ImageDraw, target: tuple[int, int], progress: f
 # Coordinates refer to the actual 1280 × 720 screen captures. Each sequence
 # follows the visible controls or evidence as that scene's narration advances.
 SCENE_FOCUS = {
-    1: [(1030, 359), (1040, 442), (974, 501)],
+    1: [(755, 398), (755, 493), (755, 581)],
     3: [(1030, 103), (82, 162), (1180, 665)],
     4: [(496, 164), (524, 655), (890, 655)],
     5: [(1030, 360), (415, 507), (1153, 512)],
@@ -455,7 +466,7 @@ def render_frame(scene: dict, scene_index: int, elapsed: float, duration: int,
             image = padded
         draw = ImageDraw.Draw(image)
         draw_scene_label(draw, scene_index)
-        draw_pointer(draw, (1080, 625), progress)
+        draw_pointer(draw, (790, 610), progress)
         return image
     # A slow camera move plus a travelling cursor makes the navigation
     # sequence legible instead of presenting motionless screenshots.
@@ -512,7 +523,7 @@ def build() -> tuple[Path, Path]:
     screen_images = []
     for scene in SCENES:
         image = Image.open(SCREENS / scene["screen"]).convert("RGB")
-        screen_images.append(image if scene.get("scroll") else image.resize((WIDTH, HEIGHT)))
+        screen_images.append(image if scene.get("scroll") else fit_screen(image))
     POSTER.parent.mkdir(parents=True, exist_ok=True)
     poster_image(screen_images[0]).save(POSTER)
     with tempfile.TemporaryDirectory(prefix="investigateiq-ui-video-") as temp:

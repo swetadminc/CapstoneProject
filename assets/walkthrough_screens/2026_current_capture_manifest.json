@@ -1,0 +1,580 @@
+[
+  {
+    "name": "workspace_entry",
+    "file": "2026_workspace_entry.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "workspace_entry",
+    "file": "2026_workspace_entry.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "workspace_entry",
+    "file": "2026_workspace_entry.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "workspace_entry",
+    "file": "2026_workspace_entry.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "workspace_current_report",
+    "file": "2026_workspace_current_report.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 539,
+      "y": 645
+    }
+  },
+  {
+    "name": "workspace_current_report",
+    "file": "2026_workspace_current_report.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 539,
+      "y": 645
+    }
+  },
+  {
+    "name": "workspace_confidence",
+    "file": "2026_workspace_confidence.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 539,
+      "y": 125
+    }
+  },
+  {
+    "name": "workspace_findings",
+    "file": "2026_workspace_findings.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 521,
+      "y": 440
+    }
+  },
+  {
+    "name": "home_guest",
+    "file": "2026_home_guest.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 640,
+      "y": 0
+    }
+  },
+  {
+    "name": "home_workspace",
+    "file": "2026_home_workspace.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 150,
+      "y": 256
+    }
+  },
+  {
+    "name": "home_workspace_lower",
+    "file": "2026_home_workspace_lower.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 439,
+      "y": 1143
+    }
+  },
+  {
+    "name": "case_queue_top",
+    "file": "2026_case_queue_top.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "case_queue_table",
+    "file": "2026_case_queue_table.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 97,
+      "y": 160
+    }
+  },
+  {
+    "name": "case_queue_filtered",
+    "file": "2026_case_queue_filtered.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "evidence_case_records",
+    "file": "2026_evidence_case_records.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 790,
+      "y": 1646
+    }
+  },
+  {
+    "name": "evidence_case_records_detail",
+    "file": "2026_evidence_case_records_detail.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 790,
+      "y": 1036
+    }
+  },
+  {
+    "name": "evidence_copilot_open",
+    "file": "2026_evidence_copilot_open.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 1015,
+      "y": 108
+    }
+  },
+  {
+    "name": "evidence_rule_lab",
+    "file": "2026_evidence_rule_lab.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "evidence_fictional_intake",
+    "file": "2026_evidence_fictional_intake.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "evidence_source_chunks",
+    "file": "2026_evidence_source_chunks.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "evidence_source_chunks_detail",
+    "file": "2026_evidence_source_chunks_detail.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "evidence_search_index",
+    "file": "2026_evidence_search_index.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "evidence_search_index_detail",
+    "file": "2026_evidence_search_index_detail.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "evidence_method_code",
+    "file": "2026_evidence_method_code.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "evidence_method_code_detail",
+    "file": "2026_evidence_method_code_detail.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "compliance_queue",
+    "file": "2026_compliance_queue.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "compliance_queue_detail",
+    "file": "2026_compliance_queue_detail.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "analytics",
+    "file": "2026_analytics.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "analytics_charts",
+    "file": "2026_analytics_charts.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "analytics_lower_charts",
+    "file": "2026_analytics_lower_charts.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "global_search",
+    "file": "2026_global_search.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "project_team",
+    "file": "2026_project_team.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 790,
+      "y": 132
+    }
+  },
+  {
+    "name": "project_team_roles",
+    "file": "2026_project_team_roles.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 481,
+      "y": 1394
+    }
+  },
+  {
+    "name": "admin_knowledge_locked",
+    "file": "2026_admin_knowledge_locked.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "admin_rules_locked",
+    "file": "2026_admin_rules_locked.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "workspace_current_report",
+    "file": "2026_workspace_current_report.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 539,
+      "y": 645
+    }
+  },
+  {
+    "name": "workspace_confidence",
+    "file": "2026_workspace_confidence.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 539,
+      "y": 125
+    }
+  },
+  {
+    "name": "workspace_findings",
+    "file": "2026_workspace_findings.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 521,
+      "y": 440
+    }
+  },
+  {
+    "name": "home_guest",
+    "file": "2026_home_guest.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 640,
+      "y": 0
+    }
+  },
+  {
+    "name": "home_workspace",
+    "file": "2026_home_workspace.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 150,
+      "y": 256
+    }
+  },
+  {
+    "name": "home_workspace_lower",
+    "file": "2026_home_workspace_lower.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 439,
+      "y": 1143
+    }
+  },
+  {
+    "name": "case_queue_top",
+    "file": "2026_case_queue_top.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 790,
+      "y": 116
+    }
+  },
+  {
+    "name": "case_queue_table",
+    "file": "2026_case_queue_table.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 97,
+      "y": 160
+    }
+  },
+  {
+    "name": "case_queue_filtered",
+    "file": "2026_case_queue_filtered.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 1165,
+      "y": 529
+    }
+  },
+  {
+    "name": "evidence_case_records",
+    "file": "2026_evidence_case_records.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 790,
+      "y": 1646
+    }
+  },
+  {
+    "name": "evidence_case_records_detail",
+    "file": "2026_evidence_case_records_detail.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 790,
+      "y": 1036
+    }
+  },
+  {
+    "name": "evidence_copilot_open",
+    "file": "2026_evidence_copilot_open.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 1015,
+      "y": 108
+    }
+  },
+  {
+    "name": "evidence_rule_lab",
+    "file": "2026_evidence_rule_lab.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "evidence_fictional_intake",
+    "file": "2026_evidence_fictional_intake.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "evidence_source_chunks",
+    "file": "2026_evidence_source_chunks.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "evidence_source_chunks_detail",
+    "file": "2026_evidence_source_chunks_detail.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "evidence_search_index",
+    "file": "2026_evidence_search_index.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "evidence_search_index_detail",
+    "file": "2026_evidence_search_index_detail.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "evidence_method_code",
+    "file": "2026_evidence_method_code.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "evidence_method_code_detail",
+    "file": "2026_evidence_method_code_detail.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "compliance_queue",
+    "file": "2026_compliance_queue.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 790,
+      "y": 132
+    }
+  },
+  {
+    "name": "compliance_queue_detail",
+    "file": "2026_compliance_queue_detail.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "analytics",
+    "file": "2026_analytics.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 790,
+      "y": 132
+    }
+  },
+  {
+    "name": "analytics_charts",
+    "file": "2026_analytics_charts.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "analytics_lower_charts",
+    "file": "2026_analytics_lower_charts.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "global_search",
+    "file": "2026_global_search.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 790,
+      "y": 132
+    }
+  },
+  {
+    "name": "project_team",
+    "file": "2026_project_team.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 790,
+      "y": 132
+    }
+  },
+  {
+    "name": "project_team_roles",
+    "file": "2026_project_team_roles.png",
+    "width": 1280,
+    "height": 720,
+    "target": null
+  },
+  {
+    "name": "admin_knowledge_locked",
+    "file": "2026_admin_knowledge_locked.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 790,
+      "y": 132
+    }
+  },
+  {
+    "name": "admin_rules_locked",
+    "file": "2026_admin_rules_locked.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 790,
+      "y": 132
+    }
+  },
+  {
+    "name": "workspace_current_report",
+    "file": "2026_workspace_current_report.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 539,
+      "y": 645
+    }
+  },
+  {
+    "name": "workspace_confidence",
+    "file": "2026_workspace_confidence.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 539,
+      "y": 125
+    }
+  },
+  {
+    "name": "workspace_findings",
+    "file": "2026_workspace_findings.png",
+    "width": 1280,
+    "height": 720,
+    "target": {
+      "x": 521,
+      "y": 440
+    }
+  }
+]
